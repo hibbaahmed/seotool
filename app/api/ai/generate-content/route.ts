@@ -4,17 +4,7 @@ import { z } from 'zod'
 // Support for multiple AI providers
 const AI_PROVIDER = process.env.AI_PROVIDER || 'openai' // 'openai' or 'claude'
 
-const generateContentSchema = z.object({
-  topic: z.string().min(1, 'Topic is required'),
-  keywords: z.array(z.string()).default([]),
-  language: z.string().default('en'),
-  tone: z.enum(['professional', 'casual', 'technical', 'creative']).default('professional'),
-  length: z.enum(['short', 'medium', 'long']).default('medium'),
-  includeImages: z.boolean().default(false),
-  includeVideo: z.boolean().default(false),
-  includeTableOfContents: z.boolean().default(true),
-  targetAudience: z.string().optional(),
-})
+// Duplicate schema removed below; keeping single source of truth defined at top of file
 
 // OpenAI integration
 async function generateWithOpenAI(prompt: string) {
