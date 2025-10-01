@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projects Project[]
+  content  Content[]
+  socialPosts SocialMediaPost[]
+  analytics Analytics[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  domain      String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     Content[]
+  rssFeeds    RSSFeed[]
+  automationRules AutomationRule[]
+
+  @@map("projects")
+}
+
+model Content {
+  id              String      @id @default(cuid())
+  title           String
+  content         String
+  type            ContentType @default(BLOG)
+  status          ContentStatus @default(DRAFT)
+  projectId       String
+  userId          String
+  seoScore        Int?
+  keywords        String[]
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  publishedAt     DateTime?
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seoIssues       SEOIssue[]
+  socialPosts     SocialMediaPost[]
+  analytics       Analytics[]
+
+  @@map("content")
+}
+
+model SEOIssue {
+  id        String      @id @default(cuid())
+  type      SEOIssueType
+  severity  Severity
+  message   String
+  suggestion String
+  contentId String
+  isFixed   Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  content   Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("seo_issues")
+}
+
+model SocialMediaPost {
+  id        String   @id @default(cuid())
+  content   String
+  platform  Platform
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  status    PostStatus @default(DRAFT)
+  contentId String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("social_media_posts")
+}
+
+model Analytics {
+  id         String   @id @default(cuid())
+  contentId  String
+  views      Int      @default(0)
+  clicks     Int      @default(0)
+  impressions Int     @default(0)
+  ctr        Float    @default(0)
+  position   Float    @default(0)
+  date       DateTime @default(now())
+  userId     String
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
+
+model RSSFeed {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  projectId   String
+  isActive    Boolean  @default(true)
+  lastFetched DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("rss_feeds")
+}
+
+model AutomationRule {
+  id        String   @id @default(cuid())
+  name      String
+  trigger   Trigger
+  action    Action
+  config    Json
+  projectId String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("automation_rules")
+}
+
+// Enums
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum ContentType {
+  BLOG
+  PAGE
+  PRODUCT
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+enum SEOIssueType {
+  META_TITLE
+  META_DESCRIPTION
+  CANONICAL_URL
+  ALT_TEXT
+  INTERNAL_LINKING
+  SCHEMA_MARKUP
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Platform {
+  TWITTER
+  FACEBOOK
+  LINKEDIN
+  INSTAGRAM
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+}
+
+enum Trigger {
+  RSS_FEED
+  KEYWORD
+  SCHEDULE
+}
+
+enum Action {
+  GENERATE_CONTENT
+  PUBLISH
+  SHARE_SOCIAL
+}
+
+
