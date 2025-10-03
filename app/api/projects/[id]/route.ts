@@ -13,11 +13,12 @@ const updateProjectSchema = z.object({
 // GET /api/projects/[id] - Get a specific project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         content: {
           orderBy: { createdAt: 'desc' },
@@ -62,14 +63,15 @@ export async function GET(
 // PUT /api/projects/[id] - Update a project
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json()
     const updateData = updateProjectSchema.parse(body)
 
     const project = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         _count: {
@@ -115,11 +117,12 @@ export async function PUT(
 // DELETE /api/projects/[id] - Delete a project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.project.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({

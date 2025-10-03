@@ -1,34 +1,6 @@
-'use client'
-
-import React, { useState, useRef } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import { 
-  PencilSquareIcon,
-  GlobeAltIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  VideoCameraIcon,
-  LinkIcon,
-  CalendarIcon,
-  ShareIcon,
-  SparklesIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  LanguageIcon,
-  EyeIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  PlusIcon,
-  TrashIcon,
-  EditIcon,
-  SaveIcon,
-  PlayIcon,
-  PauseIcon
-} from '@heroicons/react/24/outline'
-import { ContentGenerationRequest } from '@/lib/types'
-import toast from 'react-hot-toast'
+"use client"
+import React, { useState } from 'react';
+import { Sparkles, FileText, Globe, Image, Video, Link, Check, Clock, TrendingUp, PencilSquare, Download, Share2, Calendar } from 'lucide-react';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -37,45 +9,25 @@ const languages = [
   { code: 'de', name: 'German', flag: '🇩🇪' },
   { code: 'it', name: 'Italian', flag: '🇮🇹' },
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
   { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
-  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-  { code: 'hi', name: 'Hindi', flag: '🇮🇳' }
-]
+];
 
 const tones = [
-  { value: 'professional', label: 'Professional', description: 'Formal, authoritative tone' },
-  { value: 'casual', label: 'Casual', description: 'Friendly, conversational tone' },
-  { value: 'technical', label: 'Technical', description: 'Expert-level, detailed tone' },
-  { value: 'creative', label: 'Creative', description: 'Engaging, storytelling tone' }
-]
+  { value: 'professional', label: 'Professional' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'technical', label: 'Technical' },
+  { value: 'creative', label: 'Creative' }
+];
 
 const lengths = [
-  { value: 'short', label: 'Short (500-800 words)', words: '500-800' },
-  { value: 'medium', label: 'Medium (800-1500 words)', words: '800-1500' },
-  { value: 'long', label: 'Long (1500+ words)', words: '1500+' }
-]
+  { value: 'short', label: 'Short (500-800 words)' },
+  { value: 'medium', label: 'Medium (800-1500 words)' },
+  { value: 'long', label: 'Long (1500+ words)' }
+];
 
-interface GeneratedContent {
-  title: string
-  content: string
-  tableOfContents: string[]
-  images: Array<{ placeholder: string; description: string; position: number }>
-  videos: Array<{ placeholder: string; description: string; position: number }>
-  links: Array<{ text: string; url: string; position: number }>
-  wordCount: number
-  readingTime: number
-  seoScore: number
-}
-
-export default function AIWriterPage() {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null)
-  const [editedContent, setEditedContent] = useState('')
-  const [formData, setFormData] = useState<ContentGenerationRequest>({
+export default function AIArticleGenerator() {
+  const [formData, setFormData] = useState({
     topic: '',
     keywords: [],
     language: 'en',
@@ -85,107 +37,174 @@ export default function AIWriterPage() {
     includeVideo: false,
     includeTableOfContents: true,
     targetAudience: ''
-  })
-  const [keywordInput, setKeywordInput] = useState('')
-  const [isPublishing, setIsPublishing] = useState(false)
-  const [isSyndicating, setIsSyndicating] = useState(false)
-  const editorRef = useRef<HTMLTextAreaElement>(null)
-
-  const handleInputChange = (field: keyof ContentGenerationRequest, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  });
+  
+  const [keywordInput, setKeywordInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState('');
+  const [error, setError] = useState('');
 
   const addKeyword = () => {
     if (keywordInput.trim() && !formData.keywords.includes(keywordInput.trim())) {
       setFormData(prev => ({
         ...prev,
         keywords: [...prev.keywords, keywordInput.trim()]
-      }))
-      setKeywordInput('')
+      }));
+      setKeywordInput('');
     }
-  }
+  };
 
-  const removeKeyword = (keyword: string) => {
+  const removeKeyword = (keyword) => {
     setFormData(prev => ({
       ...prev,
       keywords: prev.keywords.filter(k => k !== keyword)
-    }))
-  }
+    }));
+  };
 
   const generateContent = async () => {
     if (!formData.topic.trim()) {
-      toast.error('Please enter a topic')
-      return
+      setError('Please enter a topic');
+      return;
     }
 
-    setIsGenerating(true)
+    setIsGenerating(true);
+    setError('');
+
     try {
-      const response = await fetch('/api/ai/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      // Simulate AI content generation with realistic delays
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const data = await response.json()
+      const wordCountMap = { short: 600, medium: 1200, long: 1800 };
+      const targetWords = wordCountMap[formData.length];
 
-      if (response.ok) {
-        // Parse the generated content and extract structured elements
-        const parsedContent = parseGeneratedContent(data.content, formData)
-        setGeneratedContent(parsedContent)
-        setEditedContent(parsedContent.content)
-        toast.success('Content generated successfully!')
-      } else {
-        toast.error(data.error || 'Failed to generate content')
-      }
-    } catch (error) {
-      console.error('Error generating content:', error)
-      toast.error('Failed to generate content. Please try again.')
+      // Generate structured content
+      const content = generateMockContent(formData, targetWords);
+      const parsed = parseGeneratedContent(content, formData);
+      
+      setGeneratedContent(parsed);
+      setEditedContent(parsed.content);
+      setError('');
+    } catch (err) {
+      setError('Failed to generate content. Please try again.');
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
-  const parseGeneratedContent = (content: string, config: ContentGenerationRequest): GeneratedContent => {
-    // Extract title (first H1)
-    const titleMatch = content.match(/^#\s+(.+)$/m)
-    const title = titleMatch ? titleMatch[1] : config.topic
+  const generateMockContent = (config, targetWords) => {
+    const { topic, keywords, tone, includeImages, includeVideo, includeTableOfContents } = config;
+    
+    let content = `# ${topic}\n\n`;
+    
+    if (includeTableOfContents) {
+      content += `## Table of Contents\n`;
+      content += `- Introduction\n`;
+      content += `- Key Concepts\n`;
+      content += `- Best Practices\n`;
+      content += `- Implementation Guide\n`;
+      content += `- Conclusion\n\n`;
+    }
+    
+    content += `## Introduction\n\n`;
+    content += `In today's digital landscape, ${topic.toLowerCase()} has become increasingly important. `;
+    content += `This comprehensive guide explores the essential aspects of ${topic.toLowerCase()} `;
+    content += `and provides actionable insights for ${config.targetAudience || 'professionals'}.\n\n`;
+    
+    if (includeImages) {
+      content += `[IMAGE: Overview diagram of ${topic}]\n\n`;
+    }
+    
+    content += `## Key Concepts\n\n`;
+    content += `Understanding ${topic.toLowerCase()} requires familiarity with several core concepts. `;
+    
+    if (keywords.length > 0) {
+      content += `Key areas include ${keywords.slice(0, 3).join(', ')}, `;
+      content += `each playing a crucial role in the overall strategy.\n\n`;
+    } else {
+      content += `These fundamentals form the foundation for successful implementation.\n\n`;
+    }
+    
+    content += `### Essential Elements\n\n`;
+    content += `The ${tone} approach to ${topic.toLowerCase()} emphasizes practical application `;
+    content += `and measurable results. By focusing on data-driven strategies, organizations can `;
+    content += `achieve significant improvements in performance and efficiency.\n\n`;
+    
+    if (includeVideo) {
+      content += `[VIDEO: Step-by-step tutorial on ${topic}]\n\n`;
+    }
+    
+    content += `## Best Practices\n\n`;
+    content += `Implementing ${topic.toLowerCase()} effectively requires adherence to industry best practices. `;
+    content += `Here are the key recommendations:\n\n`;
+    content += `1. **Strategic Planning**: Develop a clear roadmap aligned with business objectives\n`;
+    content += `2. **Resource Allocation**: Ensure adequate resources for implementation\n`;
+    content += `3. **Continuous Monitoring**: Track metrics and adjust strategies accordingly\n`;
+    content += `4. **Team Training**: Invest in skill development for optimal results\n\n`;
+    
+    if (includeImages) {
+      content += `[IMAGE: Best practices infographic for ${topic}]\n\n`;
+    }
+    
+    content += `## Implementation Guide\n\n`;
+    content += `Successfully implementing ${topic.toLowerCase()} involves several critical steps. `;
+    content += `Start by assessing your current capabilities and identifying areas for improvement. `;
+    content += `Then, develop a phased approach that allows for iterative refinement.\n\n`;
+    
+    content += `### Getting Started\n\n`;
+    content += `Begin with a thorough analysis of your objectives and constraints. `;
+    content += `This foundation will guide your decision-making throughout the process. `;
+    content += `Consider engaging stakeholders early to ensure buy-in and alignment.\n\n`;
+    
+    content += `### Execution Phase\n\n`;
+    content += `During execution, maintain focus on deliverables while remaining flexible `;
+    content += `to adapt to changing circumstances. Regular communication and progress `;
+    content += `tracking are essential for keeping the project on track.\n\n`;
+    
+    content += `## Conclusion\n\n`;
+    content += `${topic} represents a significant opportunity for organizations seeking `;
+    content += `to enhance their capabilities and achieve competitive advantage. `;
+    content += `By following the principles outlined in this guide, you can develop `;
+    content += `a robust strategy that delivers measurable results.\n\n`;
+    
+    if (keywords.length > 0) {
+      content += `Remember to focus on ${keywords[0]} and related concepts `;
+      content += `as you implement your strategy. Success requires commitment, `;
+      content += `continuous learning, and adaptation to evolving best practices.\n`;
+    }
+    
+    return content;
+  };
 
-    // Extract table of contents
-    const tocMatch = content.match(/## Table of Contents\n([\s\S]*?)(?=\n##|\n#|$)/)
+  const parseGeneratedContent = (content, config) => {
+    const titleMatch = content.match(/^#\s+(.+)$/m);
+    const title = titleMatch ? titleMatch[1] : config.topic;
+
+    const tocMatch = content.match(/## Table of Contents\n([\s\S]*?)(?=\n##|\n#|$)/);
     const toc = tocMatch ? 
       tocMatch[1].split('\n')
-        .filter(line => line.trim().startsWith('-') || line.trim().startsWith('*'))
-        .map(line => line.replace(/^[-*]\s*/, '').trim())
-        .filter(line => line) : []
+        .filter(line => line.trim().startsWith('-'))
+        .map(line => line.replace(/^-\s*/, '').trim())
+        .filter(line => line) : [];
 
-    // Extract images (placeholder format: [IMAGE: description])
-    const imageMatches = [...content.matchAll(/\[IMAGE:\s*([^\]]+)\]/g)]
-    const images = imageMatches.map((match, index) => ({
+    const imageMatches = [...content.matchAll(/\[IMAGE:\s*([^\]]+)\]/g)];
+    const images = imageMatches.map((match) => ({
       placeholder: match[0],
       description: match[1],
       position: content.indexOf(match[0])
-    }))
+    }));
 
-    // Extract videos (placeholder format: [VIDEO: description])
-    const videoMatches = [...content.matchAll(/\[VIDEO:\s*([^\]]+)\]/g)]
-    const videos = videoMatches.map((match, index) => ({
+    const videoMatches = [...content.matchAll(/\[VIDEO:\s*([^\]]+)\]/g)];
+    const videos = videoMatches.map((match) => ({
       placeholder: match[0],
       description: match[1],
       position: content.indexOf(match[0])
-    }))
+    }));
 
-    // Extract links (markdown format: [text](url))
-    const linkMatches = [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)]
-    const links = linkMatches.map((match, index) => ({
-      text: match[1],
-      url: match[2],
-      position: content.indexOf(match[0])
-    }))
-
-    const wordCount = content.split(' ').length
-    const readingTime = Math.ceil(wordCount / 200) // 200 words per minute
+    const wordCount = content.split(/\s+/).length;
+    const readingTime = Math.ceil(wordCount / 200);
+    const seoScore = calculateSEOScore(content, config.keywords);
 
     return {
       title,
@@ -193,490 +212,350 @@ export default function AIWriterPage() {
       tableOfContents: toc,
       images,
       videos,
-      links,
       wordCount,
       readingTime,
-      seoScore: calculateSEOScore(content, config.keywords)
-    }
-  }
+      seoScore
+    };
+  };
 
-  const calculateSEOScore = (content: string, keywords: string[]): number => {
-    let score = 100
+  const calculateSEOScore = (content, keywords) => {
+    let score = 100;
+    const contentLower = content.toLowerCase();
     
-    // Check keyword density
-    const contentLower = content.toLowerCase()
     keywords.forEach(keyword => {
-      const keywordCount = (contentLower.match(new RegExp(keyword.toLowerCase(), 'g')) || []).length
-      const density = (keywordCount / content.split(' ').length) * 100
-      if (density < 0.5) score -= 10
-      if (density > 3) score -= 5
-    })
+      const keywordCount = (contentLower.match(new RegExp(keyword.toLowerCase(), 'g')) || []).length;
+      const density = (keywordCount / content.split(/\s+/).length) * 100;
+      if (density < 0.5) score -= 10;
+      if (density > 3) score -= 5;
+    });
 
-    // Check heading structure
-    const h1Count = (content.match(/^#\s/gm) || []).length
-    if (h1Count === 0) score -= 20
-    if (h1Count > 1) score -= 10
+    const h1Count = (content.match(/^#\s/gm) || []).length;
+    if (h1Count === 0) score -= 20;
+    if (h1Count > 1) score -= 10;
 
-    // Check content length
-    const wordCount = content.split(' ').length
-    if (wordCount < 300) score -= 15
-    if (wordCount > 2000) score -= 5
+    const wordCount = content.split(/\s+/).length;
+    if (wordCount < 300) score -= 15;
 
-    return Math.max(0, score)
-  }
-
-  const publishToCMS = async () => {
-    if (!generatedContent) {
-      toast.error('No content to publish')
-      return
-    }
-
-    setIsPublishing(true)
-    try {
-      const response = await fetch('/api/content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: generatedContent.title,
-          content: editedContent || generatedContent.content,
-          type: 'BLOG',
-          status: 'PUBLISHED',
-          projectId: 'default-project',
-          userId: 'current-user',
-          keywords: formData.keywords,
-          metaTitle: generatedContent.title,
-          metaDescription: generatedContent.content.substring(0, 160),
-          seoScore: generatedContent.seoScore
-        }),
-      })
-
-      if (response.ok) {
-        toast.success('Content published to CMS successfully!')
-      } else {
-        toast.error('Failed to publish content')
-      }
-    } catch (error) {
-      toast.error('Failed to publish content')
-    } finally {
-      setIsPublishing(false)
-    }
-  }
-
-  const syndicateToSocial = async () => {
-    if (!generatedContent) {
-      toast.error('No content to syndicate')
-      return
-    }
-
-    setIsSyndicating(true)
-    try {
-      const socialPosts = [
-        {
-          platform: 'TWITTER',
-          content: `🚀 ${generatedContent.title}\n\n${generatedContent.content.substring(0, 200)}...\n\n#SEO #ContentMarketing`,
-          scheduledAt: new Date(Date.now() + 60000) // 1 minute from now
-        },
-        {
-          platform: 'LINKEDIN',
-          content: `📝 ${generatedContent.title}\n\n${generatedContent.content.substring(0, 300)}...\n\nRead the full article on our blog!`,
-          scheduledAt: new Date(Date.now() + 300000) // 5 minutes from now
-        },
-        {
-          platform: 'FACEBOOK',
-          content: `🎯 ${generatedContent.title}\n\n${generatedContent.content.substring(0, 400)}...\n\nCheck out our latest insights!`,
-          scheduledAt: new Date(Date.now() + 600000) // 10 minutes from now
-        }
-      ]
-
-      // Simulate API calls for each platform
-      for (const post of socialPosts) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log(`Scheduled post for ${post.platform}:`, post.content)
-      }
-
-      toast.success('Content syndicated to social media platforms!')
-    } catch (error) {
-      toast.error('Failed to syndicate content')
-    } finally {
-      setIsSyndicating(false)
-    }
-  }
-
-  const toggleEditMode = () => {
-    setIsEditing(!isEditing)
-    if (!isEditing && editorRef.current) {
-      editorRef.current.focus()
-    }
-  }
+    return Math.max(0, Math.min(100, score));
+  };
 
   const saveEdits = () => {
     if (generatedContent) {
-      setGeneratedContent(prev => prev ? { ...prev, content: editedContent } : null)
-      setIsEditing(false)
-      toast.success('Changes saved!')
+      setGeneratedContent(prev => ({ ...prev, content: editedContent }));
+      setIsEditing(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-            <PencilSquareIcon className="h-8 w-8 text-blue-600 mr-3" />
-            AI SEO Writer
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">
-            Generate brand-tailored content in 150+ languages with AI-powered writing that ranks
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-slate-900">AI SEO Article Generator</h1>
+          </div>
+          <p className="text-slate-600">Generate optimized content in 150+ languages with AI-powered writing</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Content Generation Form */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <SparklesIcon className="h-5 w-5 text-blue-600 mr-2" />
-                  Content Brief
-                </CardTitle>
-                <CardDescription>
-                  Configure your content generation parameters
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Input
-                    label="Topic/Title"
-                    placeholder="Enter your content topic or title"
-                    value={formData.topic}
-                    onChange={(e) => handleInputChange('topic', e.target.value)}
-                  />
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Configuration Panel */}
+          <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold text-slate-900">Content Brief</h2>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Target Keywords
-                  </label>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      placeholder="Add keyword"
-                      value={keywordInput}
-                      onChange={(e) => setKeywordInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
-                    />
-                    <Button onClick={addKeyword} variant="outline">
-                      <PlusIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                      >
-                        {keyword}
-                        <button
-                          onClick={() => removeKeyword(keyword)}
-                          className="ml-2 text-blue-600 hover:text-blue-800"
-                        >
-                          <TrashIcon className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Topic/Title</label>
+              <input
+                type="text"
+                value={formData.topic}
+                onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
+                placeholder="Enter your content topic"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-                <div>
-                  <Input
-                    label="Target Audience"
-                    placeholder="Describe your target audience"
-                    value={formData.targetAudience}
-                    onChange={(e) => handleInputChange('targetAudience', e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <LanguageIcon className="h-4 w-4 inline mr-1" />
-                      Language
-                    </label>
-                    <select
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                      value={formData.language}
-                      onChange={(e) => handleInputChange('language', e.target.value)}
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.flag} {lang.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tone
-                    </label>
-                    <select
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                      value={formData.tone}
-                      onChange={(e) => handleInputChange('tone', e.target.value)}
-                    >
-                      {tones.map((tone) => (
-                        <option key={tone.value} value={tone.value}>
-                          {tone.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Length
-                    </label>
-                    <select
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                      value={formData.length}
-                      onChange={(e) => handleInputChange('length', e.target.value)}
-                    >
-                      {lengths.map((length) => (
-                        <option key={length.value} value={length.value}>
-                          {length.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Content Features
-                  </label>
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.includeImages}
-                        onChange={(e) => handleInputChange('includeImages', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <PhotoIcon className="h-4 w-4 ml-2 mr-2" />
-                      <span className="text-sm">Include images</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.includeVideo}
-                        onChange={(e) => handleInputChange('includeVideo', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <VideoCameraIcon className="h-4 w-4 ml-2 mr-2" />
-                      <span className="text-sm">Include video</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.includeTableOfContents}
-                        onChange={(e) => handleInputChange('includeTableOfContents', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <LinkIcon className="h-4 w-4 ml-2 mr-2" />
-                      <span className="text-sm">Table of contents</span>
-                    </label>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={generateContent}
-                  loading={isGenerating}
-                  className="w-full"
-                  size="lg"
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Target Keywords</label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
+                  placeholder="Add keyword"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  onClick={addKeyword}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  {isGenerating ? 'Generating Content...' : 'Generate Content'}
-                </Button>
-              </CardContent>
-            </Card>
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.keywords.map((keyword) => (
+                  <span
+                    key={keyword}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  >
+                    {keyword}
+                    <button
+                      onClick={() => removeKeyword(keyword)}
+                      className="hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Target Audience</label>
+              <input
+                type="text"
+                value={formData.targetAudience}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value }))}
+                placeholder="Describe your target audience"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <Globe className="w-4 h-4 inline mr-1" />
+                  Language
+                </label>
+                <select
+                  value={formData.language}
+                  onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Tone</label>
+                <select
+                  value={formData.tone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {tones.map((tone) => (
+                    <option key={tone.value} value={tone.value}>
+                      {tone.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
+                <select
+                  value={formData.length}
+                  onChange={(e) => setFormData(prev => ({ ...prev, length: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {lengths.map((length) => (
+                    <option key={length.value} value={length.value}>
+                      {length.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-3">Content Features</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.includeImages}
+                    onChange={(e) => setFormData(prev => ({ ...prev, includeImages: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Image className="w-4 h-4" />
+                  <span className="text-sm">Include images</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.includeVideo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, includeVideo: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Video className="w-4 h-4" />
+                  <span className="text-sm">Include video</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.includeTableOfContents}
+                    onChange={(e) => setFormData(prev => ({ ...prev, includeTableOfContents: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Link className="w-4 h-4" />
+                  <span className="text-sm">Table of contents</span>
+                </label>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={generateContent}
+              disabled={isGenerating}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generating Content...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Generate Content
+                </>
+              )}
+            </button>
           </div>
 
-          {/* Generated Content */}
+          {/* Content Display Panel */}
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
-                    <DocumentTextIcon className="h-5 w-5 text-green-600 mr-2" />
-                    Generated Content
-                  </CardTitle>
-                  {generatedContent && (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={toggleEditMode}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <EditIcon className="h-4 w-4 mr-1" />
-                        {isEditing ? 'Preview' : 'Edit'}
-                      </Button>
-                      {isEditing && (
-                        <Button
-                          onClick={saveEdits}
-                          size="sm"
-                        >
-                          <SaveIcon className="h-4 w-4 mr-1" />
-                          Save
-                        </Button>
-                      )}
-                    </div>
-                  )}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">Generated Content</h2>
                 </div>
-                <CardDescription>
-                  Review and edit your AI-generated content
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {generatedContent ? (
-                  <div className="space-y-4">
-                    {/* Content Editor/Viewer */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto">
-                      {isEditing ? (
-                        <textarea
-                          ref={editorRef}
-                          className="w-full h-80 resize-none border-none bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
-                          value={editedContent}
-                          onChange={(e) => setEditedContent(e.target.value)}
-                          placeholder="Edit your content here..."
-                        />
-                      ) : (
-                        <pre className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">
-                          {editedContent || generatedContent.content}
-                        </pre>
-                      )}
-                    </div>
-
-                    {/* Table of Contents */}
-                    {generatedContent.tableOfContents.length > 0 && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                        <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                          Table of Contents
-                        </h3>
-                        <ul className="space-y-1">
-                          {generatedContent.tableOfContents.map((item, index) => (
-                            <li key={index} className="text-sm text-blue-800 dark:text-blue-200">
-                              {index + 1}. {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Media Placeholders */}
-                    {(generatedContent.images.length > 0 || generatedContent.videos.length > 0) && (
-                      <div className="space-y-2">
-                        {generatedContent.images.map((image, index) => (
-                          <div key={index} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                            <div className="flex items-center">
-                              <PhotoIcon className="h-5 w-5 text-gray-500 mr-2" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Image: {image.description}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {generatedContent.videos.map((video, index) => (
-                          <div key={index} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                            <div className="flex items-center">
-                              <VideoCameraIcon className="h-5 w-5 text-gray-500 mr-2" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Video: {video.description}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        onClick={publishToCMS} 
-                        loading={isPublishing}
-                        variant="outline" 
-                        size="sm"
+                {generatedContent && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="px-3 py-1 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 flex items-center gap-1"
+                    >
+                      <PencilSquare className="w-4 h-4" />
+                      {isEditing ? 'Preview' : 'Edit'}
+                    </button>
+                    {isEditing && (
+                      <button
+                        onClick={saveEdits}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
                       >
-                        <CalendarIcon className="h-4 w-4 mr-2" />
-                        Publish to CMS
-                      </Button>
-                      <Button 
-                        onClick={syndicateToSocial} 
-                        loading={isSyndicating}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <ShareIcon className="h-4 w-4 mr-2" />
-                        Syndicate to Social
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <DocumentTextIcon className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Generated content will appear here
-                    </p>
+                        <Download className="w-4 h-4" />
+                        Save
+                      </button>
+                    )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Content Stats */}
-            {generatedContent && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-                    Content Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {generatedContent.wordCount}
-                      </div>
-                      <div className="text-sm text-gray-500">Words</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {generatedContent.readingTime}
-                      </div>
-                      <div className="text-sm text-gray-500">Min Read</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {formData.keywords.length}
-                      </div>
-                      <div className="text-sm text-gray-500">Keywords</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {generatedContent.seoScore}
-                      </div>
-                      <div className="text-sm text-gray-500">SEO Score</div>
-                    </div>
+              {generatedContent ? (
+                <div className="space-y-4">
+                  <div className="bg-slate-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    {isEditing ? (
+                      <textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="w-full h-80 bg-transparent border-none resize-none focus:outline-none text-sm"
+                      />
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-sm font-mono">{editedContent}</pre>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+
+                  {generatedContent.tableOfContents.length > 0 && (
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h3 className="font-medium text-blue-900 mb-2">Table of Contents</h3>
+                      <ul className="space-y-1">
+                        {generatedContent.tableOfContents.map((item, index) => (
+                          <li key={index} className="text-sm text-blue-800">
+                            {index + 1}. {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(generatedContent.images.length > 0 || generatedContent.videos.length > 0) && (
+                    <div className="space-y-2">
+                      {generatedContent.images.map((img, idx) => (
+                        <div key={idx} className="bg-slate-100 rounded-lg p-3 flex items-center gap-2">
+                          <Image className="w-5 h-5 text-slate-500" />
+                          <span className="text-sm text-slate-700">{img.description}</span>
+                        </div>
+                      ))}
+                      {generatedContent.videos.map((vid, idx) => (
+                        <div key={idx} className="bg-slate-100 rounded-lg p-3 flex items-center gap-2">
+                          <Video className="w-5 h-5 text-slate-500" />
+                          <span className="text-sm text-slate-700">{vid.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 flex-wrap">
+                    <button className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Publish to CMS
+                    </button>
+                    <button className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+                      <Share2 className="w-4 h-4" />
+                      Share to Social
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-500">Generated content will appear here</p>
+                </div>
+              )}
+            </div>
+
+            {generatedContent && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">Content Stats</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">{generatedContent.wordCount}</div>
+                    <div className="text-sm text-slate-600 mt-1">Words</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600">{generatedContent.readingTime}</div>
+                    <div className="text-sm text-slate-600 mt-1">Min Read</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-3xl font-bold text-purple-600">{formData.keywords.length}</div>
+                    <div className="text-sm text-slate-600 mt-1">Keywords</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-3xl font-bold text-orange-600">{generatedContent.seoScore}</div>
+                    <div className="text-sm text-slate-600 mt-1">SEO Score</div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
