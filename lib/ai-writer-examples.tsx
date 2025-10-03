@@ -240,7 +240,7 @@ function calculateSEOScore(content: string): number {
 // Example usage in a React component
 export const AIWriterIntegrationExample = () => {
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedContent, setGeneratedContent] = useState(null)
+  const [generatedContent, setGeneratedContent] = useState<any>(null)
 
   const handleGenerateContent = async () => {
     setIsGenerating(true)

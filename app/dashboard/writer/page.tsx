@@ -29,7 +29,7 @@ const lengths = [
 export default function AIArticleGenerator() {
   const [formData, setFormData] = useState({
     topic: '',
-    keywords: [],
+    keywords: [] as string[],
     language: 'en',
     tone: 'professional',
     length: 'medium',
@@ -41,7 +41,7 @@ export default function AIArticleGenerator() {
   
   const [keywordInput, setKeywordInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState(null);
+  const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [error, setError] = useState('');
@@ -56,7 +56,7 @@ export default function AIArticleGenerator() {
     }
   };
 
-  const removeKeyword = (keyword) => {
+  const removeKeyword = (keyword: string) => {
     setFormData(prev => ({
       ...prev,
       keywords: prev.keywords.filter(k => k !== keyword)
@@ -76,7 +76,7 @@ export default function AIArticleGenerator() {
       // Simulate AI content generation with realistic delays
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const wordCountMap = { short: 600, medium: 1200, long: 1800 };
+      const wordCountMap: { [key: string]: number } = { short: 600, medium: 1200, long: 1800 };
       const targetWords = wordCountMap[formData.length];
 
       // Generate structured content
@@ -93,7 +93,7 @@ export default function AIArticleGenerator() {
     }
   };
 
-  const generateMockContent = (config, targetWords) => {
+  const generateMockContent = (config: any, targetWords: number) => {
     const { topic, keywords, tone, includeImages, includeVideo, includeTableOfContents } = config;
     
     let content = `# ${topic}\n\n`;
@@ -177,7 +177,7 @@ export default function AIArticleGenerator() {
     return content;
   };
 
-  const parseGeneratedContent = (content, config) => {
+  const parseGeneratedContent = (content: string, config: any) => {
     const titleMatch = content.match(/^#\s+(.+)$/m);
     const title = titleMatch ? titleMatch[1] : config.topic;
 
@@ -218,7 +218,7 @@ export default function AIArticleGenerator() {
     };
   };
 
-  const calculateSEOScore = (content, keywords) => {
+  const calculateSEOScore = (content: string, keywords: string[]) => {
     let score = 100;
     const contentLower = content.toLowerCase();
     
@@ -241,7 +241,7 @@ export default function AIArticleGenerator() {
 
   const saveEdits = () => {
     if (generatedContent) {
-      setGeneratedContent(prev => ({ ...prev, content: editedContent }));
+      setGeneratedContent((prev: any) => ({ ...prev, content: editedContent }));
       setIsEditing(false);
     }
   };
@@ -482,7 +482,7 @@ export default function AIArticleGenerator() {
                     <div className="bg-blue-50 rounded-lg p-4">
                       <h3 className="font-medium text-blue-900 mb-2">Table of Contents</h3>
                       <ul className="space-y-1">
-                        {generatedContent.tableOfContents.map((item, index) => (
+                        {generatedContent.tableOfContents.map((item: string, index: number) => (
                           <li key={index} className="text-sm text-blue-800">
                             {index + 1}. {item}
                           </li>
@@ -493,13 +493,13 @@ export default function AIArticleGenerator() {
 
                   {(generatedContent.images.length > 0 || generatedContent.videos.length > 0) && (
                     <div className="space-y-2">
-                      {generatedContent.images.map((img, idx) => (
+                      {generatedContent.images.map((img: any, idx: number) => (
                         <div key={idx} className="bg-slate-100 rounded-lg p-3 flex items-center gap-2">
                           <Image className="w-5 h-5 text-slate-500" />
                           <span className="text-sm text-slate-700">{img.description}</span>
                         </div>
                       ))}
-                      {generatedContent.videos.map((vid, idx) => (
+                      {generatedContent.videos.map((vid: any, idx: number) => (
                         <div key={idx} className="bg-slate-100 rounded-lg p-3 flex items-center gap-2">
                           <Video className="w-5 h-5 text-slate-500" />
                           <span className="text-sm text-slate-700">{vid.description}</span>

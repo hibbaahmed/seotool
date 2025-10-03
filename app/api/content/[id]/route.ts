@@ -85,13 +85,14 @@ export async function PUT(
     const updateData = updateContentSchema.parse(body)
 
     // Convert publishedAt string to Date if provided
-    if (updateData.publishedAt) {
-      updateData.publishedAt = new Date(updateData.publishedAt)
+    const dataToUpdate: any = { ...updateData }
+    if (dataToUpdate.publishedAt) {
+      dataToUpdate.publishedAt = new Date(dataToUpdate.publishedAt)
     }
 
     const content = await prisma.content.update({
       where: { id },
-      data: updateData,
+      data: dataToUpdate,
       include: {
         project: {
           select: {
@@ -123,7 +124,7 @@ export async function PUT(
       )
     }
 
-    if (error.code === 'P2025') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Content not found' },
         { status: 404 }
@@ -156,7 +157,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Content not found' },
         { status: 404 }

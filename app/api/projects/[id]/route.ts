@@ -97,7 +97,7 @@ export async function PUT(
       )
     }
 
-    if (error.code === 'P2025') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
@@ -130,7 +130,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }

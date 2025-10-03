@@ -440,7 +440,7 @@ export default function AutoblogPage() {
                         <div>
                           <span className="text-sm text-gray-500">Keywords</span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {rule.config.keywords.map((keyword, index) => (
+                            {rule.config.keywords.map((keyword: string, index: number) => (
                               <span
                                 key={index}
                                 className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full dark:bg-blue-900 dark:text-blue-200"
