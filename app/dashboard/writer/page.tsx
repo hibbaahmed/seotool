@@ -272,7 +272,7 @@ export default function AIArticleGenerator() {
                 value={formData.topic}
                 onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
                 placeholder="Enter your content topic"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -285,7 +285,7 @@ export default function AIArticleGenerator() {
                   onChange={(e) => setKeywordInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
                   placeholder="Add keyword"
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900 placeholder:text-slate-400"
                 />
                 <button
                   onClick={addKeyword}
@@ -319,7 +319,7 @@ export default function AIArticleGenerator() {
                 value={formData.targetAudience}
                 onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value }))}
                 placeholder="Describe your target audience"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -332,7 +332,7 @@ export default function AIArticleGenerator() {
                 <select
                   value={formData.language}
                   onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900"
                 >
                   {languages.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -347,7 +347,7 @@ export default function AIArticleGenerator() {
                 <select
                   value={formData.tone}
                   onChange={(e) => setFormData(prev => ({ ...prev, tone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900"
                 >
                   {tones.map((tone) => (
                     <option key={tone.value} value={tone.value}>
@@ -362,7 +362,7 @@ export default function AIArticleGenerator() {
                 <select
                   value={formData.length}
                   onChange={(e) => setFormData(prev => ({ ...prev, length: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900"
                 >
                   {lengths.map((length) => (
                     <option key={length.value} value={length.value}>
@@ -376,35 +376,35 @@ export default function AIArticleGenerator() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-3">Content Features</label>
               <div className="space-y-2">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-slate-700">
                   <input
                     type="checkbox"
                     checked={formData.includeImages}
                     onChange={(e) => setFormData(prev => ({ ...prev, includeImages: e.target.checked }))}
                     className="rounded"
                   />
-                  <Image className="w-4 h-4" />
-                  <span className="text-sm">Include images</span>
+                  <Image className="w-4 h-4 text-slate-600" />
+                  <span className="text-sm text-slate-700">Include images</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-slate-700">
                   <input
                     type="checkbox"
                     checked={formData.includeVideo}
                     onChange={(e) => setFormData(prev => ({ ...prev, includeVideo: e.target.checked }))}
                     className="rounded"
                   />
-                  <Video className="w-4 h-4" />
-                  <span className="text-sm">Include video</span>
+                  <Video className="w-4 h-4 text-slate-600" />
+                  <span className="text-sm text-slate-700">Include video</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-slate-700">
                   <input
                     type="checkbox"
                     checked={formData.includeTableOfContents}
                     onChange={(e) => setFormData(prev => ({ ...prev, includeTableOfContents: e.target.checked }))}
                     className="rounded"
                   />
-                  <Link className="w-4 h-4" />
-                  <span className="text-sm">Table of contents</span>
+                  <Link className="w-4 h-4 text-slate-600" />
+                  <span className="text-sm text-slate-700">Table of contents</span>
                 </label>
               </div>
             </div>
@@ -471,10 +471,10 @@ export default function AIArticleGenerator() {
                       <textarea
                         value={editedContent}
                         onChange={(e) => setEditedContent(e.target.value)}
-                        className="w-full h-80 bg-transparent border-none resize-none focus:outline-none text-sm"
+                        className="w-full h-80 bg-white border border-slate-200 rounded-md resize-none focus:outline-none text-sm text-slate-900 p-2"
                       />
                     ) : (
-                      <pre className="whitespace-pre-wrap text-sm font-mono">{editedContent}</pre>
+                      <pre className="whitespace-pre-wrap text-sm font-mono text-slate-900">{editedContent}</pre>
                     )}
                   </div>
 
