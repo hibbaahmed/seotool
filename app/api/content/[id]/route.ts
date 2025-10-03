@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
 
 const updateContentSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
@@ -17,6 +14,40 @@ const updateContentSchema = z.object({
   publishedAt: z.string().datetime().optional(),
 })
 
+// Mock data storage (in a real app, this would be a database)
+let mockContent: any[] = [
+  {
+    id: '1',
+    title: 'Sample Blog Post',
+    content: 'This is a sample blog post content...',
+    type: 'BLOG',
+    status: 'PUBLISHED',
+    seoScore: 85,
+    keywords: ['seo', 'blog', 'content'],
+    metaTitle: 'Sample Meta Title',
+    metaDescription: 'Sample meta description',
+    canonicalUrl: 'https://example.com/post1',
+    publishedAt: new Date().toISOString(),
+    userId: 'user1',
+    projectId: 'project1',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    project: {
+      id: 'project1',
+      name: 'Sample Project',
+      domain: 'example.com'
+    },
+    seoIssues: [],
+    socialPosts: [],
+    analytics: [],
+    _count: {
+      seoIssues: 0,
+      socialPosts: 0,
+      analytics: 0
+    }
+  }
+]
+
 // GET /api/content/[id] - Get specific content
 export async function GET(
   request: NextRequest,
@@ -24,35 +55,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const content = await prisma.content.findUnique({
-      where: { id },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
-          }
-        },
-        seoIssues: {
-          orderBy: { createdAt: 'desc' }
-        },
-        socialPosts: {
-          orderBy: { createdAt: 'desc' }
-        },
-        analytics: {
-          orderBy: { date: 'desc' },
-          take: 30
-        },
-        _count: {
-          select: {
-            seoIssues: true,
-            socialPosts: true,
-            analytics: true,
-          }
-        }
-      }
-    })
+    const content = mockContent.find(item => item.id === id)
 
     if (!content) {
       return NextResponse.json(
@@ -69,8 +72,6 @@ export async function GET(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -88,32 +89,42 @@ export async function PUT(
     const dataToUpdate: any = { ...updateData }
     if (dataToUpdate.publishedAt) {
       dataToUpdate.publishedAt = new Date(dataToUpdate.publishedAt)
+    } else if (dataToUpdate.publishedAt) {
+      dataToUpdate.publishedAt = new Date(dataToUpdate.publishedAt).toISOString()
     }
 
-    const content = await prisma.content.update({
-      where: { id },
-      data: dataToUpdate,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
-          }
-        },
-        _count: {
-          select: {
-            seoIssues: true,
-            socialPosts: true,
-            analytics: true,
-          }
-        }
+    // Find and update content
+    const contentIndex = mockContent.findIndex(item => item.id === id)
+    if (contentIndex === -1) {
+      return NextResponse.json(
+        { error: 'Content not found' },
+        { status: 404 }
+      )
+    }
+
+    mockContent[contentIndex] = {
+      ...mockContent[contentIndex],
+      ...dataToUpdate,
+      updatedAt: new Date().toISOString()
+    }
+
+    const updatedContent = {
+      ...mockContent[contentIndex],
+      project: {
+        id: 'project1',
+        name: 'Sample Project',
+        domain: 'example.com'
+      },
+      _count: {
+        seoIssues: 0,
+        socialPosts: 0,
+        analytics: 0
       }
-    })
+    }
 
     return NextResponse.json({
       message: 'Content updated successfully',
-      content
+      content: updatedContent
     })
 
   } catch (error) {
@@ -124,20 +135,11 @@ export async function PUT(
       )
     }
 
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json(
-        { error: 'Content not found' },
-        { status: 404 }
-      )
-    }
-
     console.error('Error updating content:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -148,30 +150,26 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await prisma.content.delete({
-      where: { id }
-    })
-
-    return NextResponse.json({
-      message: 'Content deleted successfully'
-    })
-
-  } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+    
+    const contentIndex = mockContent.findIndex(item => item.id === id)
+    if (contentIndex === -1) {
       return NextResponse.json(
         { error: 'Content not found' },
         { status: 404 }
       )
     }
 
+    mockContent.splice(contentIndex, 1)
+
+    return NextResponse.json({
+      message: 'Content deleted successfully'
+    })
+
+  } catch (error) {
     console.error('Error deleting content:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
-
-

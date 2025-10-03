@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
   description: z.string().optional(),
   domain: z.string().url('Invalid domain URL'),
 })
+
+// Mock data storage (in a real app, this would be a database)
+let mockProjects: any[] = [
+  {
+    id: 'project1',
+    name: 'Sample Project',
+    description: 'A sample project for testing',
+    domain: 'example.com',
+    userId: 'user1',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
 
 // GET /api/projects - Get all projects for a user
 export async function GET(request: NextRequest) {
@@ -23,19 +33,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const projects = await prisma.project.findMany({
-      where: { userId },
-      include: {
-        _count: {
-          select: {
-            content: true,
-            rssFeeds: true,
-            automationRules: true,
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const projects = mockProjects.filter(project => project.userId === userId)
 
     return NextResponse.json({ projects })
 
@@ -45,45 +43,31 @@ export async function GET(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-// POST /api/projects - Create a new project
+// POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, domain, userId } = { ...body, ...projectSchema.parse(body) }
+    const projectData = projectSchema.parse(body)
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      )
+    // In a real app, you'd get this from authentication
+    const userId = 'user1'
+
+    const newProject = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId,
+      ...projectData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
-    const project = await prisma.project.create({
-      data: {
-        name,
-        description,
-        domain,
-        userId,
-      },
-      include: {
-        _count: {
-          select: {
-            content: true,
-            rssFeeds: true,
-            automationRules: true,
-          }
-        }
-      }
-    })
+    mockProjects.push(newProject)
 
     return NextResponse.json({
       message: 'Project created successfully',
-      project
+      project: newProject
     }, { status: 201 })
 
   } catch (error) {
@@ -99,9 +83,5 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
-
-

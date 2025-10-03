@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
 
 const contentSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
-  type: z.enum(['BLOG', 'PAGE', 'PRODUCT']).default('BLOG'),
   status: z.enum(['DRAFT', 'PUBLISHED', 'SCHEDULED']).default('DRAFT'),
   projectId: z.string().min(1, 'Project ID is required'),
   userId: z.string().min(1, 'User ID is required'),
@@ -18,62 +14,42 @@ const contentSchema = z.object({
   canonicalUrl: z.string().url().optional(),
 })
 
-// GET /api/content - Get all content for a user or project
+// Mock data storage (in a real app, this would be a database)
+let mockContent: any[] = []
+
+// GET /api/content - Get all content
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
     const projectId = searchParams.get('projectId')
     const status = searchParams.get('status')
-    const type = searchParams.get('type')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      )
+    let filteredContent = [...mockContent]
+
+    if (projectId) {
+      filteredContent = filteredContent.filter(item => item.projectId === projectId)
     }
 
-    const where: any = { userId }
-    if (projectId) where.projectId = projectId
-    if (status) where.status = status
-    if (type) where.type = type
+    if (status) {
+      filteredContent = filteredContent.filter(item => item.status === status)
+    }
 
-    const [content, total] = await Promise.all([
-      prisma.content.findMany({
-        where,
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true,
-              domain: true,
-            }
-          },
-          _count: {
-            select: {
-              seoIssues: true,
-              socialPosts: true,
-              analytics: true,
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.content.count({ where })
-    ])
+    const totalCount = filteredContent.length
+    const totalPages = Math.ceil(totalCount / limit)
+    const offset = (page - 1) * limit
+    const paginatedContent = filteredContent.slice(offset, offset + limit)
 
     return NextResponse.json({
-      content,
+      content: paginatedContent,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     })
 
@@ -83,8 +59,6 @@ export async function GET(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -94,29 +68,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const contentData = contentSchema.parse(body)
 
-    const content = await prisma.content.create({
-      data: contentData,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
-          }
-        },
-        _count: {
-          select: {
-            seoIssues: true,
-            socialPosts: true,
-            analytics: true,
-          }
-        }
-      }
-    })
+    const newContent = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...contentData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      publishedAt: contentData.status === 'PUBLISHED' ? new Date().toISOString() : null,
+    }
+
+    mockContent.push(newContent)
 
     return NextResponse.json({
       message: 'Content created successfully',
-      content
+      content: newContent
     }, { status: 201 })
 
   } catch (error) {
@@ -132,9 +96,5 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
-
-

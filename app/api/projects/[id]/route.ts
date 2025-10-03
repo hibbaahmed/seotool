@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
 
 const updateProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').optional(),
   description: z.string().optional(),
   domain: z.string().url('Invalid domain URL').optional(),
 })
+
+// Mock data storage (in a real app, this would be a database)
+let mockProjects: any[] = [
+  {
+    id: 'project1',
+    name: 'Sample Project',
+    description: 'A sample project for testing',
+    domain: 'example.com',
+    userId: 'user1',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    content: [],
+    rssFeeds: [],
+    automationRules: [],
+    _count: {
+      content: 0,
+      rssFeeds: 0,
+      automationRules: 0
+    }
+  }
+]
 
 // GET /api/projects/[id] - Get a specific project
 export async function GET(
@@ -17,28 +35,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: {
-        content: {
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        },
-        rssFeeds: {
-          orderBy: { createdAt: 'desc' }
-        },
-        automationRules: {
-          orderBy: { createdAt: 'desc' }
-        },
-        _count: {
-          select: {
-            content: true,
-            rssFeeds: true,
-            automationRules: true,
-          }
-        }
-      }
-    })
+    const project = mockProjects.find(p => p.id === id)
 
     if (!project) {
       return NextResponse.json(
@@ -55,8 +52,6 @@ export async function GET(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -70,23 +65,32 @@ export async function PUT(
     const body = await request.json()
     const updateData = updateProjectSchema.parse(body)
 
-    const project = await prisma.project.update({
-      where: { id },
-      data: updateData,
-      include: {
-        _count: {
-          select: {
-            content: true,
-            rssFeeds: true,
-            automationRules: true,
-          }
-        }
+    const projectIndex = mockProjects.findIndex(p => p.id === id)
+    if (projectIndex === -1) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    mockProjects[projectIndex] = {
+      ...mockProjects[projectIndex],
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    }
+
+    const updatedProject = {
+      ...mockProjects[projectIndex],
+      _count: {
+        content: 0,
+        rssFeeds: 0,
+        automationRules: 0
       }
-    })
+    }
 
     return NextResponse.json({
       message: 'Project updated successfully',
-      project
+      project: updatedProject
     })
 
   } catch (error) {
@@ -97,20 +101,11 @@ export async function PUT(
       )
     }
 
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      )
-    }
-
     console.error('Error updating project:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -121,30 +116,26 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await prisma.project.delete({
-      where: { id }
-    })
-
-    return NextResponse.json({
-      message: 'Project deleted successfully'
-    })
-
-  } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+    
+    const projectIndex = mockProjects.findIndex(p => p.id === id)
+    if (projectIndex === -1) {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
       )
     }
 
-    console.error('Error deleting project:', error)
+    mockProjects.splice(projectIndex, 1)
+
+    return NextResponse.json({
+      message: 'Project deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('Error deleting status:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
-
-
