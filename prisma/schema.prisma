@@ -103,7 +103,7 @@ model SocialMediaPost {
 
   // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentItem Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   @@map("social_media_posts")
 }
