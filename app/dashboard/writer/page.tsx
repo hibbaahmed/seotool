@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react';
-import { Sparkles, FileText, Globe, Image, Video, Link, Check, Clock, TrendingUp, PencilSquare, Download, Share2, Calendar } from 'lucide-react';
+import { Sparkles, FileText, Globe, Image, Video, Link, Check, Clock, TrendingUp, Edit, Save, Share2, Calendar } from 'lucide-react';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -448,7 +448,7 @@ export default function AIArticleGenerator() {
                       onClick={() => setIsEditing(!isEditing)}
                       className="px-3 py-1 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 flex items-center gap-1"
                     >
-                      <PencilSquare className="w-4 h-4" />
+                      <Edit className="w-4 h-4" />
                       {isEditing ? 'Preview' : 'Edit'}
                     </button>
                     {isEditing && (
@@ -456,7 +456,7 @@ export default function AIArticleGenerator() {
                         onClick={saveEdits}
                         className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
                       >
-                        <Download className="w-4 h-4" />
+                        <Save className="w-4 h-4" />
                         Save
                       </button>
                     )}

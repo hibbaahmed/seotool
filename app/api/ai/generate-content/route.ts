@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     - Includes actionable insights and practical examples`
 
     // Generate content using selected AI provider
-    let generatedContent: string | undefined
+    let generatedContent: string | null | undefined
     
     if (AI_PROVIDER === 'claude') {
       generatedContent = await generateWithClaude(prompt)
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     console.error('Error generating content:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
