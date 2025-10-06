@@ -12,16 +12,16 @@
     "@headlessui/react": "^2.0.4",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.0",
-    "@mastra/core": "^0.15.3",
-    "@mastra/deployer-vercel": "^0.11.23",
-    "@mastra/mcp": "^0.10.12",
-    "@openrouter/ai-sdk-provider": "^0.7.5",
-    "@opentelemetry/auto-instrumentations-node": "^0.62.2",
-    "@opentelemetry/resources": "^2.1.0",
+    "@mastra/core": "^0.14.1",
+    "@mastra/deployer-vercel": "^0.11.13",
+    "@mastra/mcp": "^0.10.11",
+    "@openrouter/ai-sdk-provider": "0.7.5",
+    "@opentelemetry/auto-instrumentations-node": "^0.62.1",
+    "@opentelemetry/resources": "^2.0.1",
     "@opentelemetry/sdk-node": "^0.203.0",
-    "@opentelemetry/sdk-trace-node": "^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.37.0",
-    "@tavily/core": "^0.5.12",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "@opentelemetry/semantic-conventions": "^1.36.0",
+    "@tavily/core": "^0.5.10",
     "ai": "^5.0.60",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
@@ -53,5 +53,11 @@
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@mastra/core": "^0.14.1"
+  },
+  "engines": {
+    "npm": ">=8.0.0"
   }
 }
