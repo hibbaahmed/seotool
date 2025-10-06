@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core';
 import { getFilteredTools } from '../tools/mcp';
 import { getOpenRouter } from './router';
-import { GPT_4O } from '../constants/models';
+import { GPT_4O } from '../constants';
 
 const openrouter = getOpenRouter();
 

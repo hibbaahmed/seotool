@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core';
 import { getFilteredTools } from '../tools/mcp';
 import { getOpenRouter } from './router';
-import { CLAUDE_SONNET_4 } from '../constants/models';
+import { CLAUDE_SONNET_4 } from '../constants';
 
 const openrouter = getOpenRouter();
 

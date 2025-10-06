@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core';
 import { getFilteredTools } from '../tools/mcp';
 import { perplexityAskTool } from '../tools/perplexity-research';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { GPT_4O } from '../constants/models';
+import { GPT_4O } from '../constants';
 
 // Initialize OpenRouter provider
 const openrouter = createOpenRouter({

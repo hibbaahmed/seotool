@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core';
 import { todoWriteTool } from '../tools/todo';
 import { todoReadTool } from '../tools/todo';
 import { getOpenRouter } from './router';
-import { GPT_4O } from '../constants/models';
+import { GPT_4O } from '../constants';
 
 const openrouter = getOpenRouter();
 
