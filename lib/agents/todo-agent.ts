@@ -1,4 +1,4 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core';
 import { todoWriteTool } from '../tools/todo';
 import { todoReadTool } from '../tools/todo';
 import { getOpenRouter } from './router';

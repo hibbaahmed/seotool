@@ -1,4 +1,4 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core';
 import { getFilteredTools } from '../tools/mcp';
 import { perplexityAskTool } from '../tools/perplexity-research';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';

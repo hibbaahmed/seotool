@@ -1,4 +1,4 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core';
 import { getFilteredTools } from '../tools/mcp';
 import { getOpenRouter } from './router';
 import { GPT_4O } from '../constants/models';
