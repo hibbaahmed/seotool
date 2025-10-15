@@ -304,7 +304,7 @@ export default function HomePage() {
                   <Link href="/dashboard" className="block">
                     <Button 
                       className={`mt-8 w-full ${plan.popular ? '' : 'variant-outline'}`}
-                      variant={plan.popular ? 'primary' : 'outline'}
+                      variant={plan.popular ? 'default' : 'outline'}
                     >
                       {plan.cta}
                     </Button>

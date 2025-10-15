@@ -258,21 +258,21 @@ export default function SEOEditorPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant={editMode === 'content' ? 'primary' : 'outline'}
+                      variant={editMode === 'content' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setEditMode('content')}
                     >
                       Content
                     </Button>
                     <Button
-                      variant={editMode === 'seo' ? 'primary' : 'outline'}
+                      variant={editMode === 'seo' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setEditMode('seo')}
                     >
                       SEO
                     </Button>
                     <Button
-                      variant={editMode === 'links' ? 'primary' : 'outline'}
+                      variant={editMode === 'links' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setEditMode('links')}
                     >

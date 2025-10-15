@@ -274,7 +274,7 @@ export default function PricingPage() {
                   <Link href={plan.href} className="block">
                     <Button 
                       className={`mt-8 w-full ${plan.popular ? '' : 'variant-outline'}`}
-                      variant={plan.popular ? 'primary' : 'outline'}
+                      variant={plan.popular ? 'default' : 'outline'}
                     >
                       {plan.cta}
                       <ArrowRightIcon className="ml-2 h-4 w-4" />
