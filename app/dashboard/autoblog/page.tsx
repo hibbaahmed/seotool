@@ -274,7 +274,7 @@ export default function AutoblogPage() {
                 RSS Feeds
               </h2>
               <div className="flex gap-2">
-                <Button onClick={fetchFeeds} loading={isProcessing} variant="outline">
+                <Button onClick={fetchFeeds} disabled={isProcessing} variant="outline">
                   <ArrowPathIcon className="h-4 w-4 mr-2" />
                   Fetch All
                 </Button>

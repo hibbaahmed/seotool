@@ -305,7 +305,7 @@ export default function SEOEditorPage() {
                         <ArrowPathIcon className="h-4 w-4 mr-2" />
                         Rewrite with AI
                       </Button>
-                      <Button onClick={optimizeContent} loading={isOptimizing} size="sm">
+                      <Button onClick={optimizeContent} disabled={isOptimizing} size="sm">
                         <SparklesIcon className="h-4 w-4 mr-2" />
                         Optimize Content
                       </Button>
