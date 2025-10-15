@@ -382,7 +382,6 @@ export default function SEOAgentPage() {
                   </div>
                   <Button 
                     onClick={fixAllIssues} 
-                    loading={isFixing}
                     disabled={isFixing || issues.every(issue => issue.isFixed)}
                   >
                     <SparklesIcon className="h-4 w-4 mr-2" />
