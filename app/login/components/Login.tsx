@@ -54,20 +54,14 @@ export const Login = ({
       await signInWithMagicLink(data.email);
       setTimeout(() => {
         setIsSubmitting(false);
-        toast({
-          title: "Email sent",
-          description: "Check your inbox for a magic link to sign in.",
+        toast.success("Email sent! Check your inbox for a magic link to sign in.", {
           duration: 5000,
         });
         setIsMagicLinkSent(true);
       }, 1000);
     } catch (error) {
       setIsSubmitting(false);
-      toast({
-        title: "Something went wrong",
-        variant: "destructive",
-        description:
-          "Please try again, if the problem persists, contact us at hello@vidfix.io",
+      toast.error("Something went wrong. Please try again, if the problem persists, contact us at hello@vidfix.io", {
         duration: 5000,
       });
     }
