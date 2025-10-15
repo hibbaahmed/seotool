@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { z } from "zod";
 import { createTool } from "@mastra/core";
-import { PERPLEXITY_SONAR } from "../constants/models";
+// import { PERPLEXITY_SONAR } from "../constants/models";
 
 const perplexityAskSchema = z.object({
   messages: z.array(z.object({
@@ -41,7 +41,7 @@ if (!OPENROUTER_API_KEY) {
 
 async function performChatCompletion(
   messages: Array<{ role: string; content: string }>,
-  model: string = PERPLEXITY_SONAR
+  model: string = "perplexity/llama-3.1-sonar-small-128k-online"
 ): Promise<string> {
   const url = "https://openrouter.ai/api/v1/chat/completions";
   const body = {

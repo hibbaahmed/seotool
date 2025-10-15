@@ -10,7 +10,7 @@ export default function CompetitiveAnalysisForm() {
     analysisType: 'content-gaps'
   });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<{ analysis: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +101,7 @@ export default function CompetitiveAnalysisForm() {
         </button>
       </form>
 
-      {result && (
+      {result && result.analysis && (
         <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Analysis Results:</h3>
           <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-600">

@@ -1,11 +1,11 @@
-import { researchAgent } from "../agents/seo-research-agent";
+import { seoResearchAgent as researchAgent } from "../agents/seo-research-agent";
 import { createStep, createWorkflow } from "@mastra/core";
 import { z } from "zod";
-import { getBrandFundamentals } from "../tools/get-brand-fundamentals-tool";
+import { getBrandFundamentals } from "../../../lib/tools/get-brand-fundamentals-tool";
 import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
 
-import { writeBlogPost } from "../tools/write-report";
+import { writeBlogPost } from "../../../lib/tools/write-report";
 
 const seoResearchOutputSchema = z.object({
     primaryKeyword: z.object({

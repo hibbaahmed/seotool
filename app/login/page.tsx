@@ -24,7 +24,7 @@ export default async function LoginPage({
     redirect("/");
   }
 
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get("host");
   
   const params = await searchParams;
