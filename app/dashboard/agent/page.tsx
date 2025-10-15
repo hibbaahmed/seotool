@@ -23,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { SEOIssue } from '@/lib/types'
 import toast from 'react-hot-toast'
+import CompetitiveAnalysisForm from '@/components/CompetitiveAnalysisForm'
+import ContentGenerator from '@/components/ContentGenerator'
 
 interface SiteAnalysis {
   url: string
@@ -129,6 +131,7 @@ export default function SEOAgentPage() {
   const [isScanning, setIsScanning] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
 
+
   const startScan = async () => {
     if (!siteUrl.trim()) {
       toast.error('Please enter a valid URL')
@@ -220,9 +223,10 @@ export default function SEOAgentPage() {
     return issues.filter(issue => issue.type === type && !issue.isFixed).length
   }
 
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
             <CogIcon className="h-8 w-8 text-blue-600 mr-3" />
@@ -231,6 +235,16 @@ export default function SEOAgentPage() {
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             Automatically detect and fix SEO issues across your entire website
           </p>
+        </div>
+
+        {/* Mastra Agents Integration */}
+        <div className="mb-8">
+          <CompetitiveAnalysisForm />
+        </div>
+
+        {/* AI Content Generator */}
+        <div className="mb-8">
+          <ContentGenerator />
         </div>
 
         {/* Site Analysis */}

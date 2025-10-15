@@ -1,6 +1,7 @@
 import { MCPClient } from "@mastra/mcp";
 import dotenv from 'dotenv';
-dotenv.config({ path: '/Users/alexandergirardet/Code/vibeflow-projects/seo-blogs/.env' });
+// Load env from project root .env (avoid hardcoded paths)
+dotenv.config();
 
 // Singleton MCP Client instance
 let mcpClientInstance: MCPClient | null = null;
@@ -22,7 +23,11 @@ export function getMCPClient(): MCPClient {
                         process.env.DATA_FOR_SEO_KEY!,
                         "--profile",
                         "characteristic-walrus-1kqMhO"
-                    ]
+                    ],
+                    env: {
+                        // Smithery cloud API key for remote MCP
+                        SMITHERY_API_KEY: process.env.SMITHERY_API_KEY ?? ''
+                    }
                 },
                 // Commented out firecrawlMCP - uncomment if needed
                 firecrawlMCP: {
@@ -59,9 +64,44 @@ export async function getFilteredTools(options: {
         return toolCache.get(cacheKey);
     }
 
-    // Use singleton MCP client
-    const mcpClient = getMCPClient();
-    const allTools = await mcpClient.getTools();
+    // Determine if any MCP servers/tools are needed
+    const wantsDataForSEO = options.allowedTools?.some(t => t.startsWith('dataForSEO_'))
+      || options.serverFilter?.includes('dataForSEO')
+      || options.startsWith?.some(p => p.startsWith('dataForSEO'));
+    const hasSmitheryAuth = Boolean(process.env.SMITHERY_API_KEY);
+    if (wantsDataForSEO) {
+        if (!process.env.DATA_FOR_SEO_KEY) {
+            console.warn('[MCP] DATA_FOR_SEO_KEY missing. Skipping DataForSEO tool discovery.');
+            return {};
+        }
+        if (!hasSmitheryAuth) {
+            console.warn('[MCP] SMITHERY_API_KEY missing. Skipping DataForSEO tool discovery to avoid 401.');
+            return {};
+        }
+    }
+    const wantsFirecrawl = options.allowedTools?.some(t => t.startsWith('firecrawlMCP_'))
+      || options.serverFilter?.includes('firecrawlMCP')
+      || options.startsWith?.some(p => p.startsWith('firecrawlMCP'));
+    if (wantsFirecrawl && !process.env.FIRECRAWL_API_KEY) {
+        console.warn('[MCP] FIRECRAWL_API_KEY missing. Skipping Firecrawl tool discovery.');
+        return {};
+    }
+
+    // If no MCP servers/tools are requested, avoid constructing the MCP client
+    const wantsAnyMCP = wantsDataForSEO || wantsFirecrawl;
+    if (!wantsAnyMCP) {
+        return {};
+    }
+
+    // Use singleton MCP client (with graceful failure)
+    let allTools: Record<string, any> = {};
+    try {
+        const mcpClient = getMCPClient();
+        allTools = await mcpClient.getTools();
+    } catch (err) {
+        console.error('[MCP] Failed to fetch tools. Proceeding without MCP tools.', err);
+        return {};
+    }
     let filteredTools: any = {};
 
     for (const [toolName, toolDef] of Object.entries(allTools)) {

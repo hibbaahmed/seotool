@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Marketing Suite - Your Complete SEO & Content Toolkit</title>
+    <style>
+      body { 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif; 
+        margin: 0; 
+        padding: 0; 
+        background: #0b1220; 
+        color: #e5e7eb; 
+      }
+      .container { 
+        max-width: 1200px; 
+        margin: 0 auto; 
+        padding: 24px; 
+      }
+      .hero {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        border-radius: 16px;
+        padding: 60px 40px;
+        text-align: center;
+        margin-bottom: 60px;
+      }
+      .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 0 0 20px;
+        color: white;
+        line-height: 1.1;
+      }
+      .hero p {
+        font-size: 1.25rem;
+        color: #e0e7ff;
+        margin: 0 0 40px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 30px;
+      }
+      .cta-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+      }
+      .btn-primary {
+        background: white;
+        color: #1e3a8a;
+      }
+      .btn-primary:hover {
+        background: #f8fafc;
+        transform: translateY(-2px);
+      }
+      .btn-secondary {
+        background: transparent;
+        color: white;
+        border-color: white;
+      }
+      .btn-secondary:hover {
+        background: white;
+        color: #1e3a8a;
+      }
+      .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        margin: 60px 0;
+      }
+      .tool-card {
+        background: #0f172a;
+        border: 1px solid #1f2937;
+        border-radius: 16px;
+        padding: 32px;
+        text-align: center;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .tool-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-4px);
+      }
+      .tool-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        display: block;
+      }
+      .tool-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 12px;
+        color: #e5e7eb;
+      }
+      .tool-card p {
+        color: #9ca3af;
+        margin: 0 0 20px;
+        line-height: 1.6;
+      }
+      .tool-features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .tool-features li {
+        color: #d1d5db;
+        font-size: 0.875rem;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tool-features li:before {
+        content: "✓";
+        color: #10b981;
+        font-weight: bold;
+      }
+      .features-section {
+        background: #0f172a;
+        border-radius: 16px;
+        padding: 60px 40px;
+        margin: 60px 0;
+        text-align: center;
+      }
+      .features-section h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 20px;
+        color: #e5e7eb;
+      }
+      .features-section p {
+        font-size: 1.125rem;
+        color: #9ca3af;
+        margin: 0 0 40px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 32px;
+        margin-top: 40px;
+      }
+      .feature-item {
+        text-align: center;
+      }
+      .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 16px;
+        display: block;
+      }
+      .feature-item h4 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 8px;
+        color: #e5e7eb;
+      }
+      .feature-item p {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        margin: 0;
+      }
+      .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 32px;
+        margin: 60px 0;
+        text-align: center;
+      }
+      .stat-item h3 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0;
+        color: #3b82f6;
+      }
+      .stat-item p {
+        color: #9ca3af;
+        margin: 8px 0 0;
+        font-weight: 500;
+      }
+      .testimonials {
+        background: #0f172a;
+        border-radius: 16px;
+        padding: 60px 40px;
+        margin: 60px 0;
+      }
+      .testimonials h2 {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 40px;
+        color: #e5e7eb;
+      }
+      .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+      }
+      .testimonial {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .testimonial p {
+        color: #d1d5db;
+        margin: 0 0 16px;
+        font-style: italic;
+      }
+      .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .author-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+      }
+      .author-info h4 {
+        margin: 0;
+        color: #e5e7eb;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      .author-info p {
+        margin: 0;
+        color: #9ca3af;
+        font-size: 0.75rem;
+      }
+      .final-cta {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        border-radius: 16px;
+        padding: 60px 40px;
+        text-align: center;
+        margin: 60px 0;
+      }
+      .final-cta h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 20px;
+        color: white;
+      }
+      .final-cta p {
+        font-size: 1.125rem;
+        color: #e0e7ff;
+        margin: 0 0 40px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+        .hero {
+          padding: 40px 20px;
+        }
+        .features-section, .testimonials, .final-cta {
+          padding: 40px 20px;
+        }
+        .cta-buttons {
+          flex-direction: column;
+          align-items: center;
+        }
+        .btn {
+          width: 100%;
+          max-width: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Hero Section -->
+      <div class="hero">
+        <div class="hero-badge">🚀 Complete AI Marketing Suite</div>
+        <h1>Transform Your SEO & Content Strategy</h1>
+        <p>Professional-grade AI tools for competitive analysis, content creation, keyword research, and image discovery. Everything you need to dominate search rankings.</p>
+        <div class="cta-buttons">
+          <a href="#tools" class="btn btn-primary">Explore Tools</a>
+          <a href="/index.html" class="btn btn-secondary">Start with Weather Chat</a>
+        </div>
+      </div>
+
+      <!-- Tools Grid -->
+      <div class="tools-grid">
+        <div class="tool-card" onclick="window.location.href='/competitive-analysis.html'">
+          <div class="tool-icon">🔍</div>
+          <h3>Competitive Analysis</h3>
+          <p>Analyze content gaps and opportunities in your market. Reverse-engineer what makes content rank and find angles competitors missed.</p>
+          <ul class="tool-features">
+            <li>Content gap identification</li>
+            <li>Competitor strategy analysis</li>
+            <li>Keyword opportunity mapping</li>
+            <li>Market positioning insights</li>
+          </ul>
+        </div>
+
+        <div class="tool-card" onclick="window.location.href='/content-writer.html'">
+          <div class="tool-icon">✍️</div>
+          <h3>Content Writer</h3>
+          <p>Create value-dense SaaS content that converts. Expert writing for blog posts, landing pages, email sequences, and more.</p>
+          <ul class="tool-features">
+            <li>Multi-format content creation</li>
+            <li>SEO-optimized structure</li>
+            <li>Brand voice customization</li>
+            <li>Conversion-focused copy</li>
+          </ul>
+        </div>
+
+        <div class="tool-card" onclick="window.location.href='/image-search.html'">
+          <div class="tool-icon">🖼️</div>
+          <h3>Image Search</h3>
+          <p>Find relevant images for your content and projects. Real web image search powered by advanced AI technology.</p>
+          <ul class="tool-features">
+            <li>Real-time web image search</li>
+            <li>High-quality image discovery</li>
+            <li>Multiple format support</li>
+            <li>Instant URL copying</li>
+          </ul>
+        </div>
+
+        <div class="tool-card" onclick="window.location.href='/seo-research.html'">
+          <div class="tool-icon">📊</div>
+          <h3>SEO Research</h3>
+          <p>Discover high-value keywords and optimize your content strategy. Comprehensive keyword research and search intent analysis.</p>
+          <ul class="tool-features">
+            <li>Keyword difficulty analysis</li>
+            <li>Search intent classification</li>
+            <li>Competitor gap analysis</li>
+            <li>Content strategy recommendations</li>
+          </ul>
+        </div>
+
+        <div class="tool-card" onclick="window.location.href='/index.html'">
+          <div class="tool-icon">🌤️</div>
+          <h3>Weather Chat</h3>
+          <p>Experience our AI chat capabilities with weather information. A demonstration of our conversational AI technology.</p>
+          <ul class="tool-features">
+            <li>Real-time weather data</li>
+            <li>Natural language processing</li>
+            <li>Interactive chat interface</li>
+            <li>Location-based insights</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Features Section -->
+      <div class="features-section">
+        <h2>Why Choose Our AI Marketing Suite?</h2>
+        <p>Built for professionals who demand results. Our tools combine cutting-edge AI with proven marketing strategies.</p>
+        
+        <div class="features-grid">
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <h4>Lightning Fast</h4>
+            <p>Get results in seconds, not hours. Our AI processes complex data instantly.</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🎯</div>
+            <h4>Precision Targeting</h4>
+            <p>Find exactly what you need with intelligent filtering and analysis.</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🔒</div>
+            <h4>Secure & Private</h4>
+            <p>Your data stays private. No external API dependencies for core features.</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📈</div>
+            <h4>Results-Driven</h4>
+            <p>Every tool is designed to deliver measurable business outcomes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="stats-section">
+        <div class="stat-item">
+          <h3>5</h3>
+          <p>Professional Tools</p>
+        </div>
+        <div class="stat-item">
+          <h3>100%</h3>
+          <p>AI-Powered</p>
+        </div>
+        <div class="stat-item">
+          <h3>24/7</h3>
+          <p>Always Available</p>
+        </div>
+        <div class="stat-item">
+          <h3>0</h3>
+          <p>External Dependencies</p>
+        </div>
+      </div>
+
+      <!-- Testimonials -->
+      <div class="testimonials">
+        <h2>What Users Are Saying</h2>
+        <div class="testimonials-grid">
+          <div class="testimonial">
+            <p>"The competitive analysis tool helped me identify content gaps that led to a 40% increase in organic traffic."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">SM</div>
+              <div class="author-info">
+                <h4>Sarah Martinez</h4>
+                <p>SEO Director</p>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial">
+            <p>"The content writer creates better copy than our in-house team. It's like having a senior copywriter on demand."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">MJ</div>
+              <div class="author-info">
+                <h4>Michael Johnson</h4>
+                <p>Marketing Manager</p>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial">
+            <p>"The SEO research tool found keywords we never would have discovered. Our rankings improved dramatically."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">EC</div>
+              <div class="author-info">
+                <h4>Emily Chen</h4>
+                <p>Content Strategist</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final CTA -->
+      <div class="final-cta">
+        <h2>Ready to Transform Your Marketing?</h2>
+        <p>Join thousands of marketers who are already using our AI tools to dominate their markets.</p>
+        <div class="cta-buttons">
+          <a href="#tools" class="btn btn-primary">Get Started Now</a>
+          <a href="/competitive-analysis.html" class="btn btn-secondary">Try Competitive Analysis</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Add scroll effect to hero section
+      window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const hero = document.querySelector('.hero');
+        if (hero) {
+          hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+        }
+      });
+    </script>
+  </body>
+</html>

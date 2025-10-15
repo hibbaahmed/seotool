@@ -1,21 +1,16 @@
-import { Header } from '@/components/layout/Header'
+import { Nav } from '@/components/Nav'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Link from 'next/link'
 import { 
-  RocketLaunchIcon,
   PencilSquareIcon,
   WrenchScrewdriverIcon,
   CogIcon,
   ChartBarIcon,
-  GlobeAltIcon,
   CheckIcon,
   StarIcon,
   ArrowRightIcon,
-  SparklesIcon,
-  DocumentTextIcon,
-  LinkIcon,
   CalendarIcon,
   ShareIcon
 } from '@heroicons/react/24/outline'
@@ -168,27 +163,24 @@ const testimonials = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Header />
+      <Nav />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-2xl flex-shrink-0 lg:mx-0 lg:max-w-xl lg:pt-8">
-            <div className="mt-24 sm:mt-32 lg:mt-16">
-              <a href="#" className="inline-flex space-x-6">
-                <span className="rounded-full bg-blue-600/10 px-3 py-1 text-sm font-semibold leading-6 text-blue-600 ring-1 ring-inset ring-blue-600/10">
-                  New: ChatGPT Integration
-                </span>
-              </a>
-            </div>
-            <h1 className="mt-10 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
+        <div className="mx-auto max-w-4xl px-6 pb-20 pt-32 sm:pb-24 sm:pt-40 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <a href="#" className="inline-flex">
+              <span className="rounded-full bg-blue-600/10 px-3 py-1 text-sm font-semibold leading-6 text-blue-600 ring-1 ring-inset ring-blue-600/10">
+                New: ChatGPT Integration
+              </span>
+            </a>
+            <h1 className="mt-8 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
               Rank Clients on Google and Get Cited on ChatGPT – In One Place
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              The ultimate SEO automation system for agencies and marketers. AI-powered content creation, 
-              optimization, and syndication that delivers results.
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 dark:text-gray-300">
+              The ultimate SEO automation system for agencies and marketers. AI-powered content creation, optimization, and syndication that delivers results.
             </p>
-            <div className="mt-10 flex items-center gap-x-6">
+            <div className="mt-10 flex items-center justify-center gap-x-4">
               <Link href="/dashboard">
                 <Button size="lg" className="text-lg px-8 py-4">
                   Get Started
@@ -198,37 +190,6 @@ export default function HomePage() {
               <a href="#demo" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
                 Watch Demo <span aria-hidden="true">→</span>
               </a>
-            </div>
-          </div>
-          <div className="mx-auto mt-16 flex max-w-2xl sm:mt-24 lg:ml-10 lg:mr-0 lg:mt-0 lg:max-w-none lg:flex-none xl:ml-32">
-            <div className="max-w-3xl flex-none sm:max-w-5xl lg:max-w-none">
-              <div className="relative rounded-2xl bg-gray-900 p-8 shadow-2xl ring-1 ring-gray-900/10 dark:ring-gray-700">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <SparklesIcon className="h-5 w-5 text-blue-400" />
-                    <span className="text-white font-medium">AI SEO Writer</span>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <div className="text-green-400 text-sm mb-2">✓ Generated: "Ultimate Guide to SEO in 2024"</div>
-                    <div className="text-gray-300 text-sm">• 2,500 words • 15 keywords • 3 languages</div>
-                    <div className="text-gray-300 text-sm">• Published to WordPress • Shared on 5 platforms</div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CogIcon className="h-5 w-5 text-green-400" />
-                    <span className="text-white font-medium">SEO Agent</span>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <div className="text-green-400 text-sm mb-2">✓ Fixed 12 SEO issues</div>
-                    <div className="text-gray-300 text-sm">• Added schema markup • Optimized meta tags</div>
-                    <div className="text-gray-300 text-sm">• Improved internal linking • Enhanced alt texts</div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

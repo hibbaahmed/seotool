@@ -10,3 +10,5 @@ export const seoBlogsMCP = new MCPServer({
     },
     releaseDate: new Date().toISOString(),
 });
+
+

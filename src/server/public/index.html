@@ -1,0 +1,2107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Marketing Suite - Your Complete SEO & Content Toolkit</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+        background: #ffffff;
+        color: #1e293b;
+        line-height: 1.6;
+      }
+
+      /* Navigation Styles */
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #e2e8f0;
+        z-index: 1000;
+        padding: 0 2rem;
+      }
+
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 70px;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .logo-icon::before {
+        content: '✨';
+        font-size: 18px;
+        color: white;
+      }
+
+      .logo-icon::after {
+        content: '⭐';
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        font-size: 8px;
+        color: white;
+      }
+
+      .logo-text {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        color: #475569;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: #1e293b;
+      }
+
+      .nav-links .chevron {
+        width: 12px;
+        height: 12px;
+        fill: #64748b;
+      }
+
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .nav-login {
+        color: #475569;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 15px;
+        transition: color 0.2s;
+      }
+
+      .nav-login:hover {
+        color: #1e293b;
+      }
+
+      .nav-cta {
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        color: white;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      }
+
+      .nav-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+      }
+
+      .nav-cta::after {
+        content: '→';
+        font-size: 16px;
+      }
+
+      /* Mobile Navigation */
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #475569;
+        cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
+        .navbar {
+          padding: 0 1rem;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .mobile-menu-toggle {
+          display: block;
+        }
+
+        .nav-actions {
+          gap: 12px;
+        }
+
+        .nav-cta {
+          padding: 10px 16px;
+          font-size: 14px;
+        }
+      }
+
+      /* Main Content */
+      .main-content {
+        margin-top: 70px;
+        min-height: calc(100vh - 70px);
+      }
+
+      /* Light gradient background */
+      .hero-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+        min-height: calc(100vh - 70px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Subtle animated background elements */
+      .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(1deg); }
+      }
+
+      /* Subtle grid pattern overlay */
+      .hero-section::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          radial-gradient(circle at 1px 1px, rgba(226, 232, 240, 0.3) 1px, transparent 0);
+        background-size: 20px 20px;
+        opacity: 0.5;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 70px);
+        padding: 2rem;
+      }
+
+      .hero-inner {
+        max-width: 1200px;
+        text-align: center;
+      }
+
+      /* Badge */
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #f3e8ff 0%, #dbeafe 100%);
+        border: 1px solid #e0e7ff;
+        border-radius: 50px;
+        padding: 8px 16px;
+        margin-bottom: 2rem;
+        font-size: 14px;
+        font-weight: 600;
+        color: #7c3aed;
+      }
+
+      .hero-badge::before {
+        content: '✨';
+        font-size: 16px;
+      }
+
+      .hero-title {
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 2rem;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-title .gradient-text {
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-subtitle {
+        font-size: clamp(1.25rem, 3vw, 1.5rem);
+        color: #64748b;
+        margin-bottom: 3rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        font-weight: 500;
+        line-height: 1.6;
+      }
+
+      /* CTA Buttons */
+      .hero-cta {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 4rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 18px;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        color: white;
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(139, 92, 246, 0.4);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      .btn-secondary:hover {
+        background: #f8fafc;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn::after {
+        content: '→';
+        font-size: 16px;
+      }
+
+      @media (min-width: 640px) {
+        .hero-cta {
+          flex-direction: row;
+        }
+      }
+
+      /* Interactive Demo Input */
+      .demo-input {
+        max-width: 800px;
+        margin: 0 auto 4rem;
+      }
+
+      .demo-card {
+        background: white;
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid rgba(226, 232, 240, 0.5);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .demo-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .demo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+      }
+
+      .demo-input-field {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #475569;
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .demo-input-field::placeholder {
+        color: #94a3b8;
+      }
+
+      .demo-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .demo-features {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .demo-feature {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+      }
+
+      .demo-feature.active {
+        color: #059669;
+      }
+
+      .demo-feature::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #64748b;
+      }
+
+      .demo-feature.active::before {
+        background: #059669;
+      }
+
+      .demo-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .demo-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: none;
+        background: #f1f5f9;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .demo-btn:hover {
+        background: #e2e8f0;
+      }
+
+      .demo-btn.primary {
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        color: white;
+      }
+
+      .demo-btn.primary:hover {
+        transform: scale(1.05);
+      }
+
+      /* Example Projects */
+      .example-projects {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 4rem;
+      }
+
+      .example-project {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        color: #64748b;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid rgba(226, 232, 240, 0.5);
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .example-project:hover {
+        background: white;
+        color: #475569;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Social Proof */
+      .social-proof {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        color: #64748b;
+        font-size: 14px;
+        flex-wrap: wrap;
+      }
+
+      .social-proof-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .social-proof-item::before {
+        content: '';
+        width: 16px;
+        height: 16px;
+        background: #fbbf24;
+        border-radius: 50%;
+      }
+
+      /* Tools Section */
+      .tools-section {
+        padding: 80px 2rem;
+        background: white;
+      }
+
+      .section-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .section-title {
+        text-align: center;
+        margin-bottom: 4rem;
+      }
+
+      .section-title h2 {
+        font-size: clamp(2.5rem, 5vw, 3.5rem);
+        font-weight: 800;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+      }
+
+      .section-title .gradient-text {
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .section-title p {
+        font-size: 1.25rem;
+        color: #64748b;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 32px;
+        margin-bottom: 4rem;
+      }
+
+      .tool-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 32px;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tool-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        transform: scaleX(0);
+        transition: transform 0.3s;
+      }
+
+      .tool-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .tool-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border-color: #c7d2fe;
+      }
+
+      .tool-icon {
+        font-size: 3rem;
+        margin-bottom: 24px;
+        display: block;
+      }
+
+      .tool-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: #1e293b;
+      }
+
+      .tool-card p {
+        color: #64748b;
+        margin-bottom: 24px;
+        line-height: 1.6;
+      }
+
+      .tool-features {
+        list-style: none;
+        text-align: left;
+      }
+
+      .tool-features li {
+        color: #475569;
+        font-size: 14px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .tool-features li::before {
+        content: '✓';
+        color: #059669;
+        font-weight: bold;
+        width: 16px;
+        height: 16px;
+        background: #d1fae5;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+
+      /* Navigation buttons for tools */
+      .tool-nav {
+        text-align: center;
+        margin: 4rem 0;
+        padding: 2rem;
+        background: #f8fafc;
+        border-radius: 16px;
+      }
+
+      .tool-nav h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #1e293b;
+      }
+
+      .tool-nav-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .tool-nav-btn {
+        color: #3b82f6;
+        text-decoration: none;
+        padding: 12px 24px;
+        border: 1px solid #3b82f6;
+        border-radius: 8px;
+        background: white;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .tool-nav-btn:hover {
+        background: #3b82f6;
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      /* Login Modal Styles */
+      .login-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 2rem;
+      }
+
+      .login-modal.active {
+        display: flex;
+      }
+
+      .login-card {
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.3s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .login-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+      }
+
+      .login-icon::before {
+        content: '⚡';
+        font-size: 28px;
+        color: white;
+      }
+
+      .login-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+
+      .login-subtitle {
+        color: #64748b;
+        font-size: 16px;
+      }
+
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        background: #f8fafc;
+        color: #475569;
+        transition: all 0.2s;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+      }
+
+      .form-input::placeholder {
+        color: #94a3b8;
+      }
+
+      .form-error {
+        color: #ef4444;
+        font-size: 14px;
+        margin-top: 0.25rem;
+      }
+
+      .login-btn {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      }
+
+      .login-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+      }
+
+      .login-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .login-divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+      }
+
+      .login-divider::before,
+      .login-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+      }
+
+      .login-divider span {
+        padding: 0 1rem;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .google-btn {
+        width: 100%;
+        padding: 12px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .google-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      .google-icon {
+        width: 20px;
+        height: 20px;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="%2334A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="%23FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="%23EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>') no-repeat center;
+        background-size: contain;
+      }
+
+      .github-btn {
+        width: 100%;
+        padding: 12px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 8px;
+      }
+
+      .github-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      .github-icon {
+        width: 20px;
+        height: 20px;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23000000"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>') no-repeat center;
+        background-size: contain;
+      }
+
+      .close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #f1f5f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 18px;
+        transition: all 0.2s;
+      }
+
+      .close-btn:hover {
+        background: #e2e8f0;
+        color: #475569;
+      }
+
+      .success-message {
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+        border-radius: 12px;
+        padding: 1rem;
+        color: #065f46;
+        font-size: 14px;
+        margin-top: 1rem;
+        display: none;
+      }
+
+      .success-message.show {
+        display: block;
+      }
+
+      /* Waiting for Magic Link Styles */
+      .waiting-screen {
+        display: none;
+      }
+
+      .waiting-screen.active {
+        display: block;
+      }
+
+      .waiting-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .waiting-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+      }
+
+      .waiting-icon::before {
+        content: '✉️';
+        font-size: 28px;
+      }
+
+      .waiting-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+
+      .waiting-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin-bottom: 1.5rem;
+      }
+
+      .waiting-info {
+        background: #dbeafe;
+        border: 1px solid #bfdbfe;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .waiting-info-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e40af;
+        margin-bottom: 0.5rem;
+      }
+
+      .waiting-info-text {
+        font-size: 12px;
+        color: #1d4ed8;
+        line-height: 1.5;
+      }
+
+      .back-btn {
+        width: 100%;
+        padding: 12px;
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .back-btn:hover {
+        background: #e2e8f0;
+        color: #334155;
+      }
+
+      .back-btn::before {
+        content: '←';
+        font-size: 16px;
+      }
+
+      /* Login Fail Screen Styles */
+      .login-fail-screen {
+        display: none;
+      }
+
+      .login-fail-screen.active {
+        display: block;
+      }
+
+      .login-fail-content {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 100%;
+        margin-top: 2rem;
+      }
+
+      .login-fail-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+      }
+
+      .login-fail-message {
+        margin-bottom: 1rem;
+      }
+
+      .login-fail-main-text {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+      }
+
+      .login-fail-hint {
+        font-size: 12px;
+        color: #94a3b8;
+        opacity: 0.8;
+        line-height: 1.4;
+      }
+
+      .login-fail-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: #3b82f6;
+        text-decoration: none;
+        font-size: 12px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        max-width: fit-content;
+        margin: 0 auto;
+      }
+
+      .login-fail-link:hover {
+        background: #f1f5f9;
+        text-decoration: underline;
+      }
+
+      .login-fail-link::after {
+        content: '↗';
+        font-size: 12px;
+      }
+
+      .error-icon {
+        width: 48px;
+        height: 48px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+      }
+
+      .error-icon::before {
+        content: '⚠️';
+        font-size: 24px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .hero-content {
+          padding: 1rem;
+        }
+
+        .tools-section {
+          padding: 40px 1rem;
+        }
+
+        .tools-grid {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .demo-features {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .social-proof {
+          gap: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="/" class="nav-logo">
+          <div class="logo-icon"></div>
+          <span class="logo-text">AI Marketing Suite</span>
+        </a>
+        
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#tools">Tools</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        
+        <div class="nav-actions">
+          <a href="#" class="nav-login" onclick="openLoginModal()">Log in</a>
+          <a href="#tools" class="nav-cta">Get Started</a>
+      </div>
+        
+        <button class="mobile-menu-toggle">☰</button>
+    </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <div class="hero-inner">
+            <!-- Badge -->
+            <div class="hero-badge">
+              AI-Powered Marketing Suite
+            </div>
+
+            <h1 class="hero-title">
+              Transform Your SEO &<br />
+              <span class="gradient-text">Content Strategy</span>
+            </h1>
+            
+            <p class="hero-subtitle">
+              Professional-grade AI tools for competitive analysis, content creation, keyword research, and image discovery. 
+              Everything you need to dominate search rankings.
+            </p>
+            
+            <!-- CTA Buttons -->
+            <div class="hero-cta">
+              <a href="#tools" class="btn btn-primary">Start Building</a>
+              <a href="#features" class="btn btn-secondary">View Features</a>
+            </div>
+            
+            <!-- Interactive Demo Input -->
+            <div class="demo-input">
+              <div class="demo-card">
+                <div class="demo-header">
+                  <div class="demo-icon">🤖</div>
+                  <input 
+                    type="text" 
+                    placeholder="Create a comprehensive SEO strategy for my SaaS product..." 
+                    class="demo-input-field"
+                  />
+                </div>
+                
+                <div class="demo-footer">
+                  <div class="demo-features">
+                    <div class="demo-feature active">AI Ready</div>
+                    <div class="demo-feature">Secure & Private</div>
+                    <div class="demo-feature">Full-Stack</div>
+                  </div>
+                  
+                  <div class="demo-actions">
+                    <button class="demo-btn">⚙️</button>
+                    <button class="demo-btn primary">→</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Example Projects -->
+            <div class="example-projects">
+              <button class="example-project">Competitive Analysis</button>
+              <button class="example-project">Content Writing</button>
+              <button class="example-project">SEO Research</button>
+              <button class="example-project">Image Search</button>
+              <button class="example-project">Keyword Analysis</button>
+            </div>
+            
+            <!-- Social Proof -->
+            <div class="social-proof">
+              <div class="social-proof-item">
+                <span>10,000+ marketers</span>
+              </div>
+              <div class="social-proof-item">
+                <span>4.9/5 rating</span>
+              </div>
+              <div class="social-proof-item">
+                <span>Trusted by startups</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tools Section -->
+      <section id="tools" class="tools-section">
+        <div class="section-container">
+          <div class="section-title">
+            <h2>Everything you need to build<br />
+            <span class="gradient-text">world-class content</span></h2>
+            <p>Our AI doesn't just create basic content. It builds complete, 
+            production-ready strategies with all the features you need.</p>
+          </div>
+
+          <div class="tools-grid">
+            <div class="tool-card" onclick="window.location.href='/competitive-analysis.html'">
+              <div class="tool-icon">🔍</div>
+              <h3>Competitive Analysis</h3>
+              <p>Analyze content gaps and opportunities in your market. Reverse-engineer what makes content rank and find angles competitors missed.</p>
+              <ul class="tool-features">
+                <li>Content gap identification</li>
+                <li>Competitor strategy analysis</li>
+                <li>Keyword opportunity mapping</li>
+                <li>Market positioning insights</li>
+              </ul>
+            </div>
+
+            <div class="tool-card" onclick="window.location.href='/content-writer.html'">
+              <div class="tool-icon">✍️</div>
+              <h3>Content Writer</h3>
+              <p>Create value-dense SaaS content that converts. Expert writing for blog posts, landing pages, email sequences, and more.</p>
+              <ul class="tool-features">
+                <li>Multi-format content creation</li>
+                <li>SEO-optimized structure</li>
+                <li>Brand voice customization</li>
+                <li>Conversion-focused copy</li>
+              </ul>
+            </div>
+
+            <div class="tool-card" onclick="window.location.href='/image-search.html'">
+              <div class="tool-icon">🖼️</div>
+              <h3>Image Search</h3>
+              <p>Find relevant images for your content and projects. Real web image search powered by advanced AI technology.</p>
+              <ul class="tool-features">
+                <li>Real-time web image search</li>
+                <li>High-quality image discovery</li>
+                <li>Multiple format support</li>
+                <li>Instant URL copying</li>
+              </ul>
+            </div>
+
+            <div class="tool-card" onclick="window.location.href='/seo-research.html'">
+              <div class="tool-icon">📊</div>
+              <h3>SEO Research</h3>
+              <p>Discover high-value keywords and optimize your content strategy. Comprehensive keyword research and search intent analysis.</p>
+              <ul class="tool-features">
+                <li>Keyword difficulty analysis</li>
+                <li>Search intent classification</li>
+                <li>Competitor gap analysis</li>
+                <li>Content strategy recommendations</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Tool Navigation -->
+          <div class="tool-nav">
+            <h3>Ready to get started? Choose your tool:</h3>
+            <div class="tool-nav-buttons">
+              <a href="/competitive-analysis.html" class="tool-nav-btn">🔍 Competitive Analysis</a>
+              <a href="/content-writer.html" class="tool-nav-btn">✍️ Content Writer</a>
+              <a href="/image-search.html" class="tool-nav-btn">🖼️ Image Search</a>
+              <a href="/seo-research.html" class="tool-nav-btn">📊 SEO Research</a>
+            </div>
+      </div>
+    </div>
+      </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal">
+      <div class="login-card">
+        <button class="close-btn" onclick="closeLoginModal()">×</button>
+        
+        <div class="login-header">
+          <div class="login-icon"></div>
+          <h1 class="login-title">Welcome to AI Marketing Suite</h1>
+          <p class="login-subtitle">Sign in or create an account to get started.</p>
+        </div>
+
+        <form class="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <input 
+              type="email" 
+              class="form-input" 
+              id="email" 
+              placeholder="Email address"
+              required
+            />
+            <div id="emailError" class="form-error"></div>
+          </div>
+
+          <button type="submit" class="login-btn" id="loginBtn">
+            Continue with Email
+          </button>
+        </form>
+
+        <div class="login-divider">
+          <span>OR</span>
+        </div>
+
+        <button class="google-btn" onclick="handleOAuthLogin('google')">
+          <div class="google-icon"></div>
+          Continue with Google
+        </button>
+
+        <button class="github-btn" onclick="handleOAuthLogin('github')">
+          <div class="github-icon"></div>
+          Continue with GitHub
+        </button>
+
+        <div id="successMessage" class="success-message">
+          ✅ Magic link sent! Check your email for a secure login link.
+        </div>
+      </div>
+
+      <!-- Waiting for Magic Link Screen -->
+      <div id="waitingScreen" class="waiting-screen">
+        <div class="login-card">
+          <div class="waiting-header">
+            <div class="waiting-icon"></div>
+            <h1 class="waiting-title">Check your email</h1>
+            <p class="waiting-subtitle">
+              We've sent you a magic link to access your AI Marketing Suite account.
+            </p>
+          </div>
+
+          <div class="waiting-info">
+            <div class="waiting-info-title">
+              Magic link sent successfully!
+            </div>
+            <div class="waiting-info-text">
+              Check your inbox (and spam folder) for the login link.
+            </div>
+          </div>
+
+          <button class="back-btn" onclick="goBackToLogin()">
+            Go back
+          </button>
+        </div>
+      </div>
+
+      <!-- Login Fail Screen -->
+      <div id="loginFailScreen" class="login-fail-screen">
+        <div class="login-card">
+          <div class="error-icon"></div>
+          <h1 class="login-fail-title">Login Error</h1>
+          
+          <div class="login-fail-content">
+            <div class="login-fail-message">
+              <p class="login-fail-main-text" id="failErrorMessage">
+                There was an error processing your login request.
+              </p>
+              <p class="login-fail-hint">
+                Hint: Please make sure you open the link on the same device / browser from which you tried to signup.
+              </p>
+            </div>
+            
+            <a href="#" onclick="goBackToLogin()" class="login-fail-link">
+              Try Again
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Authentication and redirect logic
+      function checkAuthStatus() {
+        // Check if user is already authenticated
+        const authToken = localStorage.getItem('auth_token');
+        const userEmail = localStorage.getItem('user_email');
+        
+        if (authToken && userEmail) {
+          // User is already logged in
+          console.log('User already authenticated:', userEmail);
+          
+          // Check for return URL in query parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const returnUrl = urlParams.get('returnUrl');
+          
+          if (returnUrl) {
+            // Redirect to the return URL
+            window.location.href = returnUrl;
+            return;
+          }
+          
+          // Optionally show a different UI for logged-in users
+          updateUIForLoggedInUser(userEmail);
+        }
+      }
+
+      function updateUIForLoggedInUser(email) {
+        // Update the login button to show user is logged in
+        const navLogin = document.querySelector('.nav-login');
+        const navCta = document.querySelector('.nav-cta');
+        
+        if (navLogin && navCta) {
+          navLogin.textContent = email;
+          navLogin.style.color = '#10b981';
+          navLogin.onclick = function(e) {
+            e.preventDefault();
+            showUserMenu();
+          };
+          
+          navCta.textContent = 'Dashboard';
+          navCta.href = '/dashboard';
+        }
+      }
+
+      function showUserMenu() {
+        // Create a simple user menu dropdown
+        const userMenu = document.createElement('div');
+        userMenu.className = 'user-menu';
+        userMenu.innerHTML = `
+          <div style="position: fixed; top: 70px; right: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 1rem; z-index: 1001; min-width: 200px;">
+            <div style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.5rem;">
+              <div style="font-weight: 600; color: #1e293b;">Logged in as</div>
+              <div style="font-size: 14px; color: #64748b;">${localStorage.getItem('user_email')}</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <a href="/dashboard" style="padding: 8px 12px; color: #475569; text-decoration: none; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">Dashboard</a>
+              <a href="/profile" style="padding: 8px 12px; color: #475569; text-decoration: none; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">Profile</a>
+              <button onclick="handleLogout()" style="padding: 8px 12px; color: #ef4444; text-decoration: none; border: none; background: none; text-align: left; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">Logout</button>
+            </div>
+          </div>
+        `;
+        
+        // Remove existing menu if any
+        const existingMenu = document.querySelector('.user-menu');
+        if (existingMenu) {
+          existingMenu.remove();
+          return;
+        }
+        
+        document.body.appendChild(userMenu);
+        
+        // Close menu when clicking outside
+        setTimeout(() => {
+          document.addEventListener('click', function closeMenu(e) {
+            if (!userMenu.contains(e.target)) {
+              userMenu.remove();
+              document.removeEventListener('click', closeMenu);
+            }
+          });
+        }, 100);
+      }
+
+      function handleLogout(serverSide = false) {
+        if (serverSide) {
+          // Server-side sign out - redirect to sign out endpoint
+          window.location.href = '/api/auth/signout';
+        } else {
+          // Client-side sign out - just clear local storage
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_email');
+          localStorage.removeItem('pending_auth_email');
+          
+          // Remove user menu
+          const userMenu = document.querySelector('.user-menu');
+          if (userMenu) {
+            userMenu.remove();
+          }
+          
+          // Reset UI
+          const navLogin = document.querySelector('.nav-login');
+          const navCta = document.querySelector('.nav-cta');
+          
+          if (navLogin && navCta) {
+            navLogin.textContent = 'Log in';
+            navLogin.style.color = '#475569';
+            navLogin.onclick = function() { openLoginModal(); };
+            
+            navCta.textContent = 'Get Started';
+            navCta.href = '#tools';
+          }
+          
+          console.log('User logged out successfully (client-side)');
+        }
+      }
+
+      // Handle authentication callback (for magic links, OAuth, OTP confirmation, and sign out)
+      function handleAuthCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const auth = urlParams.get('auth');
+        const signout = urlParams.get('signout');
+        const token = urlParams.get('token');
+        const email = urlParams.get('email');
+        const code = urlParams.get('code');
+        const type = urlParams.get('type');
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
+        
+        if (auth === 'success') {
+          if (code) {
+            // Handle OAuth code authentication
+            handleOAuthCodeAuth(code);
+          } else if (token && email) {
+            // Handle magic link authentication
+            handleMagicLinkAuth(token, email, urlParams.get('returnUrl'));
+          } else if (type) {
+            // Handle OTP confirmation (email verification, password reset, etc.)
+            handleOTPConfirmation(type, message);
+          }
+        } else if (signout === 'success') {
+          // Handle successful sign out
+          handleSignOutSuccess(message);
+        } else if (error) {
+          // Handle authentication error
+          showLoginFailScreen(message || 'Authentication failed', error);
+          
+          // Clean URL (remove error parameters)
+          cleanUrl();
+        }
+      }
+
+      function handleOTPConfirmation(type, message) {
+        console.log('OTP confirmation received:', type, message);
+        
+        // Show appropriate success message based on type
+        let successMessage = message || 'Confirmation successful!';
+        
+        if (type === 'email') {
+          successMessage = 'Email confirmed successfully!';
+        } else if (type === 'recovery') {
+          successMessage = 'Password reset confirmed! You can now set a new password.';
+        } else if (type === 'invite') {
+          successMessage = 'Invitation accepted! Welcome to the team.';
+        }
+        
+        // Show success notification
+        showOTPSuccessNotification(successMessage);
+        
+        // Clean URL
+        cleanUrl();
+      }
+
+      function showOTPSuccessNotification(message) {
+        // Create a success notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+          z-index: 2000;
+          font-weight: 500;
+          animation: slideInRight 0.3s ease-out;
+          max-width: 400px;
+        `;
+        notification.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>✅</span>
+            <span>${message}</span>
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          notification.remove();
+        }, 5000);
+      }
+
+      function handleSignOutSuccess(message) {
+        console.log('Sign out success received:', message);
+        
+        // Clear local storage (client-side cleanup)
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_email');
+        localStorage.removeItem('pending_auth_email');
+        
+        // Update UI to show logged out state
+        updateUIForLoggedOutUser();
+        
+        // Show success notification
+        showSignOutSuccessNotification(message || 'You have been signed out successfully.');
+        
+        // Clean URL
+        cleanUrl();
+      }
+
+      function showSignOutSuccessNotification(message) {
+        // Create a sign out success notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(107, 114, 128, 0.3);
+          z-index: 2000;
+          font-weight: 500;
+          animation: slideInRight 0.3s ease-out;
+          max-width: 400px;
+        `;
+        notification.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>👋</span>
+            <span>${message}</span>
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+          notification.remove();
+        }, 4000);
+      }
+
+      function updateUIForLoggedOutUser() {
+        // Hide user menu and show login button
+        const loginBtn = document.querySelector('.login-btn');
+        const userMenu = document.querySelector('.user-menu');
+        
+        if (loginBtn) {
+          loginBtn.style.display = 'inline-flex';
+        }
+        if (userMenu) {
+          userMenu.style.display = 'none';
+        }
+      }
+
+      function handleMagicLinkAuth(token, email, returnUrl) {
+        // Store authentication data
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user_email', email);
+        
+        // Clear pending auth email
+        localStorage.removeItem('pending_auth_email');
+        
+        if (returnUrl) {
+          // Redirect to return URL
+          window.location.href = returnUrl;
+        } else {
+          // Update UI and close login modal if open
+          updateUIForLoggedInUser(email);
+          closeLoginModal();
+          
+          // Show success message
+          showAuthSuccessMessage();
+          
+          // Clean URL (remove auth parameters)
+          cleanUrl();
+        }
+      }
+
+      async function handleOAuthCodeAuth(code) {
+        try {
+          // In a real application, you would exchange the code for a session
+          // For now, simulate OAuth success
+          const mockEmail = `user-${Date.now()}@example.com`;
+          
+          // Store authentication data
+          localStorage.setItem('auth_token', code);
+          localStorage.setItem('user_email', mockEmail);
+          
+          // Clear pending auth email
+          localStorage.removeItem('pending_auth_email');
+          
+          // Update UI and close login modal if open
+          updateUIForLoggedInUser(mockEmail);
+          closeLoginModal();
+          
+          // Show success message
+          showAuthSuccessMessage();
+          
+          // Clean URL (remove auth parameters)
+          cleanUrl();
+          
+        } catch (error) {
+          console.error('OAuth code authentication error:', error);
+          showLoginFailScreen('OAuth authentication failed', 'AuthCodeError');
+          cleanUrl();
+        }
+      }
+
+      function cleanUrl() {
+        // Remove authentication parameters from URL without page reload
+        const url = new URL(window.location);
+        url.searchParams.delete('auth');
+        url.searchParams.delete('signout');
+        url.searchParams.delete('token');
+        url.searchParams.delete('email');
+        url.searchParams.delete('code');
+        url.searchParams.delete('type');
+        url.searchParams.delete('error');
+        url.searchParams.delete('message');
+        url.searchParams.delete('returnUrl');
+        url.searchParams.delete('next');
+        url.searchParams.delete('token_hash');
+        
+        window.history.replaceState({}, document.title, url.pathname + url.search);
+      }
+
+      function showAuthSuccessMessage() {
+        // Create a temporary success notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+          z-index: 2000;
+          font-weight: 500;
+          animation: slideInRight 0.3s ease-out;
+        `;
+        notification.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>✅</span>
+            <span>Successfully logged in!</span>
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+      }
+
+      // Check auth status when page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        checkAuthStatus();
+        handleAuthCallback();
+      });
+
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Add hover effects to tool cards
+      document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      });
+
+      // Example project buttons
+      document.querySelectorAll('.example-project').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const project = this.textContent.toLowerCase();
+          if (project.includes('competitive')) {
+            window.location.href = '/competitive-analysis.html';
+          } else if (project.includes('content')) {
+            window.location.href = '/content-writer.html';
+          } else if (project.includes('seo')) {
+            window.location.href = '/seo-research.html';
+          } else if (project.includes('image')) {
+            window.location.href = '/image-search.html';
+          } else if (project.includes('keyword')) {
+            window.location.href = '/seo-research.html';
+          }
+        });
+      });
+
+      // Demo input functionality
+      const demoInput = document.querySelector('.demo-input-field');
+      const demoBtn = document.querySelector('.demo-btn.primary');
+
+      demoBtn.addEventListener('click', function() {
+        const input = demoInput.value.trim();
+        if (input) {
+          // Redirect to competitive analysis with the input as context
+          window.location.href = `/competitive-analysis.html?query=${encodeURIComponent(input)}`;
+        } else {
+          window.location.href = '/competitive-analysis.html';
+        }
+      });
+
+      // Enter key support for demo input
+      demoInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          demoBtn.click();
+        }
+      });
+
+      // Login Modal Functions
+      function openLoginModal() {
+        document.getElementById('loginModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeLoginModal() {
+        document.getElementById('loginModal').classList.remove('active');
+        document.body.style.overflow = 'auto';
+        // Reset form and screens
+        document.getElementById('email').value = '';
+        document.getElementById('emailError').textContent = '';
+        document.getElementById('successMessage').classList.remove('show');
+        document.getElementById('loginBtn').disabled = false;
+        document.getElementById('loginBtn').textContent = 'Continue with Email';
+        // Hide all screens and reset to login form
+        document.getElementById('waitingScreen').classList.remove('active');
+        document.getElementById('loginFailScreen').classList.remove('active');
+        showLoginForm();
+      }
+
+      function showLoginForm() {
+        document.querySelector('.login-form').parentElement.style.display = 'block';
+        document.getElementById('waitingScreen').classList.remove('active');
+        document.getElementById('loginFailScreen').classList.remove('active');
+      }
+
+      function showWaitingScreen() {
+        document.querySelector('.login-form').parentElement.style.display = 'none';
+        document.getElementById('waitingScreen').classList.add('active');
+      }
+
+      function showLoginFailScreen(errorMessage = null, errorCode = null) {
+        // Hide all other screens
+        document.querySelector('.login-form').parentElement.style.display = 'none';
+        document.getElementById('waitingScreen').classList.remove('active');
+        document.getElementById('loginFailScreen').classList.add('active');
+        
+        // Set error message based on error code or provided message
+        let finalErrorMessage = errorMessage || "Something went wrong, please reach out to support.";
+        
+        if (errorCode) {
+          switch (errorCode) {
+            case "AuthApiError":
+              finalErrorMessage = "Oops! It looks like you tried to open your magic link from another device or browser.";
+              break;
+            case "500":
+              finalErrorMessage = "Something went wrong, please reach out to support.";
+              break;
+            case "InvalidEmail":
+              finalErrorMessage = "Please enter a valid email address.";
+              break;
+            case "DisposableEmail":
+              finalErrorMessage = "Please use a permanent email address.";
+              break;
+            case "NetworkError":
+              finalErrorMessage = "Network error. Please check your connection and try again.";
+              break;
+            case "AuthCodeError":
+              finalErrorMessage = "Authentication code exchange failed. Please try logging in again.";
+              break;
+            case "InvalidOTP":
+              finalErrorMessage = "Invalid or expired confirmation link. Please request a new one.";
+              break;
+            case "OTPError":
+              finalErrorMessage = "Confirmation failed. Please try again or contact support.";
+              break;
+            case "SignOutError":
+              finalErrorMessage = "Sign out failed. Please try again or contact support.";
+              break;
+            default:
+              finalErrorMessage = errorMessage || "Something went wrong, please reach out to support.";
+          }
+        }
+        
+        document.getElementById('failErrorMessage').textContent = finalErrorMessage;
+      }
+
+      function goBackToLogin() {
+        showLoginForm();
+        // Reset form
+        document.getElementById('email').value = '';
+        document.getElementById('emailError').textContent = '';
+        document.getElementById('successMessage').classList.remove('show');
+        document.getElementById('loginBtn').disabled = false;
+        document.getElementById('loginBtn').textContent = 'Continue with Email';
+      }
+
+      // Close modal when clicking outside
+      document.getElementById('loginModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeLoginModal();
+        }
+      });
+
+      // Email validation
+      function validateEmail(email) {
+        const emailRegex = /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+        return emailRegex.test(email);
+      }
+
+      // Handle email login
+      async function handleLogin(event) {
+        event.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const emailError = document.getElementById('emailError');
+        const loginBtn = document.getElementById('loginBtn');
+        const successMessage = document.getElementById('successMessage');
+
+        // Clear previous errors
+        emailError.textContent = '';
+
+        // Validate email
+        if (!email) {
+          emailError.textContent = 'Email is required';
+          return;
+        }
+
+        if (!validateEmail(email)) {
+          showLoginFailScreen(null, 'InvalidEmail');
+          return;
+        }
+
+        // Check for disposable email domains (basic check)
+        const disposableDomains = ['10minutemail.com', 'tempmail.org', 'guerrillamail.com', 'mailinator.com'];
+        const domain = email.split('@')[1];
+        if (disposableDomains.includes(domain)) {
+          showLoginFailScreen(null, 'DisposableEmail');
+          return;
+        }
+
+        // Call the actual API
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Sending...';
+
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            // Show waiting screen
+            showWaitingScreen();
+            console.log('Magic link sent to:', email);
+            
+            // Store email for later authentication
+            localStorage.setItem('pending_auth_email', email);
+          } else {
+            // Show login fail screen with error message
+            const errorCode = data.errorCode || (response.status === 500 ? '500' : 'AuthApiError');
+            showLoginFailScreen(data.error || 'Something went wrong. Please try again.', errorCode);
+          }
+          
+        } catch (error) {
+          console.error('Login error:', error);
+          showLoginFailScreen('Something went wrong. Please try again.', 'NetworkError');
+        }
+      }
+
+      // Handle OAuth login (Google, GitHub, etc.)
+      async function handleOAuthLogin(provider) {
+        console.log(`${provider} OAuth login clicked`);
+        
+        // Get return URL from query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('returnUrl') || '';
+        
+        // In a real application with Supabase, you would:
+        // 1. Initialize Supabase client
+        // 2. Call signInWithOAuth with proper redirect URL
+        // 3. Handle the OAuth flow
+        
+        // For now, simulate OAuth redirect
+        const redirectUrl = `/api/auth/callback?code=${provider}_${Date.now()}&next=${encodeURIComponent(returnUrl)}`;
+        
+        // Show loading state
+        showOAuthLoading(provider);
+        
+        // Simulate OAuth redirect (in real app, this would be handled by Supabase)
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1000);
+      }
+
+      function showOAuthLoading(provider) {
+        // Close login modal
+        closeLoginModal();
+        
+        // Show loading notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+          z-index: 2000;
+          font-weight: 500;
+          animation: slideInRight 0.3s ease-out;
+        `;
+        notification.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <span>Redirecting to ${provider === 'google' ? 'Google' : 'GitHub'}...</span>
+          </div>
+        `;
+        
+        // Add spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          notification.remove();
+          style.remove();
+        }, 5000);
+      }
+    </script>
+  </body>
+  </html>

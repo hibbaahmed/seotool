@@ -1,6 +1,8 @@
 "use client"
 import React, { useState } from 'react';
 import { Sparkles, FileText, Globe, Image, Video, Link, Check, Clock, TrendingUp, Edit, Save, Share2, Calendar } from 'lucide-react';
+import BlogWriterForm from '@/components/BlogWriterForm';
+import ContentGenerator from '@/components/ContentGenerator';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -247,7 +249,7 @@ export default function AIArticleGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-24 pb-6 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -257,7 +259,12 @@ export default function AIArticleGenerator() {
           <p className="text-slate-600">Generate optimized content in 150+ languages with AI-powered writing</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Mastra Blog Writer Integration */}
+        <div className="mb-8">
+          <BlogWriterForm />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Configuration Panel */}
           <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
             <div className="flex items-center gap-2 mb-4">
@@ -434,8 +441,13 @@ export default function AIArticleGenerator() {
             </button>
           </div>
 
+          {/* AI Content Generator Panel */}
+          <div className="lg:col-span-1">
+            <ContentGenerator className="h-full" />
+          </div>
+
           {/* Content Display Panel */}
-          <div className="space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

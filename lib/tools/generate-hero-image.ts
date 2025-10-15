@@ -43,3 +43,5 @@ execute: async ({ context: { prompt } }) => {
     return await generateHeroImage(prompt);
 },
 });
+
+
