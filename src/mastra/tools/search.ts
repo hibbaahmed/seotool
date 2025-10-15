@@ -25,7 +25,7 @@ let statsReport = "";
 let relatedImages = "";
 let imageCount = 0;
 
-export async function imageSearch(query: string): Promise<string[]> {
+export async function imageSearch(query: string, maxCount: number = 6): Promise<string[]> {
   let images: string[] = [];
 
   // Initialize Tavily if not already done
@@ -39,18 +39,51 @@ export async function imageSearch(query: string): Promise<string[]> {
   }
 
   try {
-    const diagramres = await tvly.search(query, {
-      searchDepth: "basic",
-      includeImages: true,
-      includeImageDescriptions: true,
-    });
+    // Generate multiple search variations to find more images
+    const searchVariations = [
+      query,
+      `${query} images`,
+      `${query} photos`,
+      `${query} pictures`,
+      `${query} graphics`,
+      `stock photos ${query}`,
+      `free images ${query}`,
+      `${query} illustrations`,
+    ];
 
-    if (diagramres.images && diagramres.images.length > 0) {
-      const diagram = diagramres.images[0];
-      if (diagram.url) {
-        images.push(diagram.url);
+    // Perform multiple searches to collect more images
+    for (const searchQuery of searchVariations) {
+      try {
+        console.log(`Searching for: "${searchQuery}"`);
+        const diagramres = await tvly.search(searchQuery, {
+          searchDepth: "basic",
+          includeImages: true,
+          includeImageDescriptions: true,
+        });
+
+        // Collect as many image urls as available
+        if (Array.isArray(diagramres.images)) {
+          for (const img of diagramres.images) {
+            const url = img?.url ?? img?.image_url ?? img?.source;
+            if (typeof url === 'string' && url.startsWith('http')) {
+              images.push(url);
+            }
+          }
+        }
+
+        // Stop if we have enough unique images
+        const uniqueImages = Array.from(new Set(images));
+        if (uniqueImages.length >= Math.min(20, Math.max(1, maxCount))) {
+          break;
+        }
+      } catch (searchError) {
+        console.warn(`Search failed for "${searchQuery}":`, searchError);
+        // Continue with next search variation
       }
     }
+
+    // Dedupe and cap to requested count
+    images = Array.from(new Set(images)).slice(0, Math.min(20, Math.max(1, maxCount)));
 
     console.log("Found images:", images);
   } catch (error) {

@@ -14,7 +14,8 @@ import {
   WrenchScrewdriverIcon,
   CogIcon,
   CalendarIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline'
 
 interface NavProps {
@@ -32,6 +33,7 @@ const featureDropdown = [
     category: 'Content Creation',
     items: [
       { name: 'AI SEO Editor', href: '/dashboard/editor', icon: WrenchScrewdriverIcon },
+      { name: 'Image Search', href: '/image-search', icon: PhotoIcon },
     ]
   },
   {
@@ -45,6 +47,8 @@ const featureDropdown = [
     category: 'Analytics',
     items: [
       { name: 'Analytics Dashboard', href: '/dashboard', icon: ChartBarIcon },
+      { name: 'Competitive Analysis', href: '/competitive-analysis', icon: ChartBarIcon },
+      { name: 'SEO Research', href: '/seo-research', icon: ChartBarIcon },
     ]
   }
 ]
