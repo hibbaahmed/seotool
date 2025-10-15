@@ -270,7 +270,6 @@ export default function SEOAgentPage() {
                   />
                   <Button 
                     onClick={startScan} 
-                    loading={isScanning}
                     disabled={isScanning}
                   >
                     {isScanning ? (
