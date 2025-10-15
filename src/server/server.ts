@@ -321,7 +321,7 @@ app.post('/api/seo-research', async (req, res) => {
     }
 
     console.log('✅ Found seoResearchAgent, starting stream...');
-    const stream = await agent.stream(messages.map(msg => msg.content));
+    const stream = await agent.streamVNext(messages.map(msg => msg.content));
 
     // Switch to SSE only after stream is successfully created
     res.setHeader('Content-Type', 'text/event-stream');
@@ -367,7 +367,7 @@ app.post('/api/image-search', async (req, res) => {
     }
 
     console.log('✅ Found imageSearchAgent, starting stream...');
-    const stream = await agent.stream(messages.map(msg => msg.content));
+    const stream = await agent.streamVNext(messages.map(msg => msg.content));
 
     // Switch to SSE only after stream is successfully created
     res.setHeader('Content-Type', 'text/event-stream');
@@ -413,7 +413,7 @@ app.post('/api/content-writer', async (req, res) => {
     }
 
     console.log('✅ Found contentWriterAgent, starting stream...');
-    const stream = await agent.stream(messages.map(msg => msg.content));
+    const stream = await agent.streamVNext(messages.map(msg => msg.content));
 
     // Switch to SSE only after stream is successfully created
     res.setHeader('Content-Type', 'text/event-stream');
@@ -459,7 +459,7 @@ app.post('/api/competitive-analysis', async (req, res) => {
     }
 
     console.log('✅ Found competitiveAnalysisAgent, starting stream...');
-    const stream = await agent.stream(messages.map(msg => msg.content));
+    const stream = await agent.streamVNext(messages.map(msg => msg.content));
 
     // Switch to SSE only after stream is successfully created
     res.setHeader('Content-Type', 'text/event-stream');
@@ -505,7 +505,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     console.log('✅ Found weatherAgent, starting stream...');
-    const stream = await agent.stream(messages.map(msg => msg.content));
+    const stream = await agent.streamVNext(messages.map(msg => msg.content));
 
     // Switch to SSE only after stream is successfully created
     res.setHeader('Content-Type', 'text/event-stream');
