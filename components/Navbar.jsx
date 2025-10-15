@@ -77,9 +77,6 @@ export default function AuthenticatedNavbar({ user }) {
           <Link href="/dashboard" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
             Dashboard
           </Link>
-          <Link href="/dashboard/writer" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
-            AI Writer
-          </Link>
           <Link href="/dashboard/editor" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
             SEO Editor
           </Link>
@@ -158,9 +155,6 @@ export default function AuthenticatedNavbar({ user }) {
           <div className="flex flex-col space-y-2">
             <Link href="/dashboard" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Dashboard
-            </Link>
-            <Link href="/dashboard/writer" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
-              AI Writer
             </Link>
             <Link href="/dashboard/editor" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               SEO Editor

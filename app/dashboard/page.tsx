@@ -38,24 +38,6 @@ export default function DashboardPage() {
               </div>
             </Link>
 
-            <Link 
-              href="/content-writer"
-              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Content Writer
-              </h3>
-              <p className="text-slate-600 mb-4">
-                Generate high-quality content with AI
-              </p>
-              <div className="flex items-center text-green-600 font-medium group-hover:text-green-700">
-                <span>Get Started</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-              </div>
-            </Link>
 
             <Link 
               href="/image-search"

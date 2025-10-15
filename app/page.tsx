@@ -17,17 +17,6 @@ import {
 
 const features = [
   {
-    name: 'AI SEO Writer',
-    description: 'Generate brand-tailored content in 150+ languages with AI-powered writing that ranks.',
-    icon: PencilSquareIcon,
-    highlights: [
-      'Multi-language content generation',
-      'Brand voice customization',
-      'SEO-optimized structure',
-      'Auto-publishing to CMS'
-    ]
-  },
-  {
     name: 'AI SEO Editor',
     description: 'Edit and optimize existing content with intelligent suggestions and improvements.',
     icon: WrenchScrewdriverIcon,

@@ -31,7 +31,6 @@ const featureDropdown = [
   {
     category: 'Content Creation',
     items: [
-      { name: 'AI SEO Writer', href: '/dashboard/writer', icon: DocumentTextIcon },
       { name: 'AI SEO Editor', href: '/dashboard/editor', icon: WrenchScrewdriverIcon },
     ]
   },
