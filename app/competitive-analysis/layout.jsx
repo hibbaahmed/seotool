@@ -13,7 +13,7 @@ export default async function RootLayout({ children }) {
 
   return (
     <div className="min-h-screen">
-      <Navbar user={user} credits={credits} />
+      <Navbar user={user} />
       <ClientProvider>
         {children}
       </ClientProvider>
