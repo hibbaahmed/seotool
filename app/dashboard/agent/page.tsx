@@ -436,7 +436,6 @@ export default function SEOAgentPage() {
                                 e.stopPropagation()
                                 fixIssue(issue.id)
                               }}
-                              loading={isFixing}
                             >
                               Fix
                             </Button>
@@ -507,7 +506,6 @@ export default function SEOAgentPage() {
                     {!selectedIssue.isFixed && (
                       <Button
                         onClick={() => fixIssue(selectedIssue.id)}
-                        loading={isFixing}
                         className="w-full"
                       >
                         <SparklesIcon className="h-4 w-4 mr-2" />
