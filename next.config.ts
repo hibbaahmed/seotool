@@ -9,15 +9,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // API proxy configuration - forward API requests to Express server
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:5174/api/:path*',
-      },
-    ];
-  },
+  // No rewrites needed - using Next.js API routes directly
 };
 
 export default nextConfig;

@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "clean": "rm -rf .next",
+    "clean:build": "./scripts/clean-build.sh",
     "mastra:dev": "mastra dev",
     "mastra:build": "mastra build",
     "mastra:start": "mastra start",
