@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Navbar from '../../components/Navbar';
 import { Search, Image as ImageIcon, Download, Eye, ArrowRight } from 'lucide-react';
 
 export default function ImageSearchPage() {
@@ -101,7 +100,6 @@ Please provide detailed image search results with descriptions, sources, and rec
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      <Navbar />
       
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Navbar from '../../components/Navbar';
 import { Search, TrendingUp, Target, BarChart3, ArrowRight, Eye, Download } from 'lucide-react';
 
 export default function SEOResearchPage() {
@@ -98,7 +97,6 @@ Please provide comprehensive SEO research including keyword analysis, competitor
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      <Navbar />
       
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
