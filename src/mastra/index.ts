@@ -5,15 +5,11 @@ import { competitiveAnalysisAgent } from './agents/competitive-analysis-agent';
 import { contentWriterAgent } from './agents/content-writer-agent';
 import { imageSearchAgent } from './agents/image-search-agent';
 import { seoResearchAgent } from './agents/seo-research-agent';
-import { weatherAgent } from './agents/weather-agent';
-import { LibSQLStore } from '@mastra/libsql';
+// import { MemoryStore } from '@mastra/memory/storage';
 
 export const mastra = new Mastra({
-    agents: { competitiveAnalysisAgent, contentWriterAgent, imageSearchAgent, seoResearchAgent, weatherAgent },
-    storage: new LibSQLStore({
-      // stores observability, scores, ... into memory storage, if it needs to persist, change to file:../mastra.db
-      url: ":memory:",
-    }),
+    agents: { competitiveAnalysisAgent, contentWriterAgent, imageSearchAgent, seoResearchAgent },
+    // storage: new MemoryStore(),
     logger: new PinoLogger({
       name: 'Mastra',
       level: 'info',

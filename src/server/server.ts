@@ -491,50 +491,7 @@ app.post('/api/competitive-analysis', async (req, res) => {
   }
 });
 
-// Streaming chat with weatherAgent
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { messages } = req.body as { messages: { role: 'user' | 'assistant' | 'system'; content: string }[] };
-    console.log('📨 Received chat request:', { messageCount: messages.length, lastMessage: messages[messages.length - 1]?.content });
-    
-    const agent = mastra.getAgent('weatherAgent');
-    if (!agent) {
-      console.error('❌ weatherAgent not found in mastra instance');
-      res.status(500).json({ error: 'weatherAgent not found' });
-      return;
-    }
-
-    console.log('✅ Found weatherAgent, starting stream...');
-    const stream = await agent.streamVNext(messages.map(msg => msg.content));
-
-    // Switch to SSE only after stream is successfully created
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    let tokenCount = 0;
-
-    for await (const chunk of stream.textStream) {
-      tokenCount++;
-      res.write(`data: ${JSON.stringify({ type: 'token', value: chunk })}\n\n`);
-    }
-
-    console.log(`✅ Stream completed, sent ${tokenCount} tokens`);
-    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-    res.end();
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('❌ Chat error:', message, err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: message });
-    } else {
-      // If headers already sent for SSE, send an error event then end
-      try {
-        res.write(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
-      } catch {}
-      res.end();
-    }
-  }
-});
+// Chat endpoint removed - weather agent no longer available
 
 const basePort = process.env.PORT ? Number(process.env.PORT) : 5173;
 function startServer(port: number, attemptsLeft = 5) {
@@ -554,6 +511,5 @@ function startServer(port: number, attemptsLeft = 5) {
 }
 
 startServer(basePort);
-
 
 
