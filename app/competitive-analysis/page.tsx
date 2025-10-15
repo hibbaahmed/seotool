@@ -1,10 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import { Search, TrendingUp, Target, BarChart3, ArrowRight } from 'lucide-react';
+import { supabase } from '../../utils/supabaseClient';
 
 export default function CompetitiveAnalysisPage() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    getUser();
+  }, []);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState('');
   const [formData, setFormData] = useState({
@@ -85,9 +97,13 @@ Please provide a comprehensive analysis including:
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      <Navbar />
+      <Navbar user={user} />
       
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
