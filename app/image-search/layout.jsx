@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  const { user, credits } = await getNavbarData();
+  const { user } = await getNavbarData();
 
   return (
     <div className="min-h-screen">
