@@ -107,10 +107,10 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                 <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-slate-900 mb-4">
               SEO Research
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Get comprehensive SEO insights including keyword analysis, competitor research, 
               and content opportunities to boost your search rankings.
             </p>
@@ -121,7 +121,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Topic Input */}
               <div>
-                <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="topic" className="block text-sm font-medium text-slate-700 mb-2">
                   What topic or business do you want to research?
                 </label>
                 <input
@@ -131,7 +131,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                   value={formData.topic}
                   onChange={handleInputChange}
                   placeholder="e.g., digital marketing agency, sustainable fashion, SaaS tools..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 placeholder-slate-900"
                   required
                 />
               </div>
@@ -139,7 +139,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
               {/* Target Audience and Location Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="targetAudience" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="targetAudience" className="block text-sm font-medium text-slate-700 mb-2">
                     Target Audience
                   </label>
                   <input
@@ -149,12 +149,12 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                     value={formData.targetAudience}
                     onChange={handleInputChange}
                     placeholder="e.g., small business owners, marketing professionals..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 placeholder-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-2">
                     Target Location
                   </label>
                   <select
@@ -162,7 +162,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="global">Global</option>
                     <option value="US">United States</option>
@@ -179,7 +179,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
               {/* Research Type and Keyword Focus Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="researchType" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="researchType" className="block text-sm font-medium text-slate-700 mb-2">
                     Research Type
                   </label>
                   <select
@@ -187,7 +187,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                     name="researchType"
                     value={formData.researchType}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="comprehensive">Comprehensive Analysis</option>
                     <option value="keyword-focused">Keyword Research</option>
@@ -198,7 +198,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                 </div>
 
                 <div>
-                  <label htmlFor="keywordFocus" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="keywordFocus" className="block text-sm font-medium text-slate-700 mb-2">
                     Keyword Focus
                   </label>
                   <select
@@ -206,7 +206,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                     name="keywordFocus"
                     value={formData.keywordFocus}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="primary">Primary Keywords</option>
                     <option value="long-tail">Long-tail Keywords</option>
@@ -219,7 +219,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
 
               {/* Additional Context */}
               <div>
-                <label htmlFor="additionalContext" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="additionalContext" className="block text-sm font-medium text-slate-700 mb-2">
                   Additional Context (Optional)
                 </label>
                 <textarea
@@ -229,7 +229,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                   onChange={handleInputChange}
                   rows={3}
                   placeholder="e.g., specific competitors to analyze, current rankings, target keywords, business goals..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder-gray-500 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-slate-900 placeholder-slate-900 resize-none"
                 />
               </div>
 
@@ -260,12 +260,12 @@ Please provide comprehensive SEO research including keyword analysis, competitor
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Eye className="h-6 w-6 text-green-600" />
-                <h3 className="text-2xl font-bold text-gray-900">SEO Research Results</h3>
+                <h3 className="text-2xl font-bold text-slate-900">SEO Research Results</h3>
               </div>
               
               <div className="prose prose-lg max-w-none">
                 <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-900 font-mono leading-relaxed">
+                  <pre className="whitespace-pre-wrap text-sm text-slate-900 font-mono leading-relaxed">
                     {results}
                   </pre>
                 </div>

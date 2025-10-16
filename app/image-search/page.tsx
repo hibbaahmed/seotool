@@ -110,10 +110,10 @@ Please provide detailed image search results with descriptions, sources, and rec
                 <ImageIcon className="h-8 w-8 text-blue-600" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-slate-900 mb-4">
               AI Image Search
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Find and analyze images using AI-powered search capabilities. Get detailed descriptions, 
               sources, and recommendations for your visual content needs.
             </p>
@@ -124,7 +124,7 @@ Please provide detailed image search results with descriptions, sources, and rec
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Query Input */}
               <div>
-                <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="query" className="block text-sm font-medium text-slate-700 mb-2">
                   What images are you looking for?
                 </label>
                 <input
@@ -134,7 +134,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                   value={formData.query}
                   onChange={handleInputChange}
                   placeholder="e.g., modern office spaces, nature landscapes, product photography..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
                   required
                 />
               </div>
@@ -142,7 +142,7 @@ Please provide detailed image search results with descriptions, sources, and rec
               {/* Style and Count Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="style" className="block text-sm font-medium text-slate-700 mb-2">
                     Image Style
                   </label>
                   <select
@@ -150,7 +150,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                     name="style"
                     value={formData.style}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="photographic">Photographic</option>
                     <option value="illustration">Illustration</option>
@@ -163,7 +163,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                 </div>
 
                 <div>
-                  <label htmlFor="count" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="count" className="block text-sm font-medium text-slate-700 mb-2">
                     Number of Images
                   </label>
                   <select
@@ -171,7 +171,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                     name="count"
                     value={formData.count}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 bg-white"
                   >
                             <option value="3">3 images</option>
                             <option value="5">5 images</option>
@@ -185,7 +185,7 @@ Please provide detailed image search results with descriptions, sources, and rec
               {/* Size and Context Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="size" className="block text-sm font-medium text-slate-700 mb-2">
                     Image Size Preference
                   </label>
                   <select
@@ -193,7 +193,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                     name="size"
                     value={formData.size}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="1024x1024">Square (1024x1024)</option>
                     <option value="1024x1792">Portrait (1024x1792)</option>
@@ -203,7 +203,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                 </div>
 
                 <div>
-                  <label htmlFor="additionalContext" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="additionalContext" className="block text-sm font-medium text-slate-700 mb-2">
                     Additional Context (Optional)
                   </label>
                   <input
@@ -213,7 +213,7 @@ Please provide detailed image search results with descriptions, sources, and rec
                     value={formData.additionalContext}
                     onChange={handleInputChange}
                     placeholder="e.g., for website header, social media post..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
                   />
                 </div>
               </div>
@@ -245,13 +245,13 @@ Please provide detailed image search results with descriptions, sources, and rec
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Eye className="h-6 w-6 text-green-600" />
-                <h3 className="text-2xl font-bold text-gray-900">Search Results</h3>
+                <h3 className="text-2xl font-bold text-slate-900">Search Results</h3>
               </div>
               
               {/* Images Display */}
               {images.length > 0 && (
                 <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Found Images</h4>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-4">Found Images</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {images.map((url, index) => (
                       <div key={index} className="relative group">
@@ -286,9 +286,9 @@ Please provide detailed image search results with descriptions, sources, and rec
               {/* AI Description */}
               {results && (
                 <div className="prose prose-lg max-w-none">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis</h4>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-4">AI Analysis</h4>
                   <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-900 font-mono leading-relaxed">
+                    <pre className="whitespace-pre-wrap text-sm text-slate-900 font-mono leading-relaxed">
                       {results}
                     </pre>
                   </div>

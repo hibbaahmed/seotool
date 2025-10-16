@@ -116,7 +116,7 @@ Please provide a comprehensive analysis including:
                     required
                     value={formData.topic}
                     onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-900"
                     placeholder="e.g., ai video generator"
                   />
                 </div>
@@ -131,7 +131,7 @@ Please provide a comprehensive analysis including:
                     required
                     value={formData.industry}
                     onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-900"
                     placeholder="e.g., SaaS, E-commerce"
                   />
                 </div>
@@ -147,7 +147,7 @@ Please provide a comprehensive analysis including:
                   required
                   value={formData.targetAudience}
                   onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-900"
                   placeholder="e.g., marketers, developers, small business owners"
                 />
               </div>
@@ -160,7 +160,7 @@ Please provide a comprehensive analysis including:
                   id="analysisType"
                   value={formData.analysisType}
                   onChange={(e) => setFormData(prev => ({ ...prev, analysisType: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-slate-900 bg-white"
                 >
                   <option value="comprehensive">Comprehensive Analysis</option>
                   <option value="content-gaps">Content Gap Analysis</option>
@@ -178,7 +178,7 @@ Please provide a comprehensive analysis including:
                   rows={4}
                   value={formData.additionalContext}
                   onChange={(e) => setFormData(prev => ({ ...prev, additionalContext: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-900"
                   placeholder="Any specific competitors, goals, or context you'd like to include..."
                 />
               </div>
