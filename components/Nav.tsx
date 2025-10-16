@@ -15,7 +15,8 @@ import {
   CogIcon,
   CalendarIcon,
   ChartBarIcon,
-  PhotoIcon
+  PhotoIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline'
 
 interface NavProps {
@@ -32,6 +33,7 @@ const featureDropdown = [
   {
     category: 'Content Creation',
     items: [
+      { name: 'AI Content Writer', href: '/content-writer', icon: PencilIcon },
       { name: 'AI SEO Editor', href: '/dashboard/editor', icon: WrenchScrewdriverIcon },
       { name: 'Image Search', href: '/image-search', icon: PhotoIcon },
     ]
