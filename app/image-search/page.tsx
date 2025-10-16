@@ -22,7 +22,7 @@ export default function ImageSearchPage() {
     setImages([]);
 
     try {
-      const response = await fetch('/api/agents/image-search', {
+      const response = await fetch('/api/ai/image-search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

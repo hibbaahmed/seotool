@@ -20,7 +20,7 @@ export default function CompetitiveAnalysisPage() {
     setResults('');
 
     try {
-      const response = await fetch('/api/competitive-analysis', {
+              const response = await fetch('/api/competitive-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

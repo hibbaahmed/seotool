@@ -1,2 +1,2 @@
-// Re-export the competitive analysis handler
-export { POST } from '../agents/competitive-analysis/route';
+// Re-export the simplified competitive analysis handler
+export { POST } from '../ai/competitive-analysis/route';

@@ -26,7 +26,7 @@ export default function ContentWriterPage() {
     setResults('');
 
     try {
-      const response = await fetch('/api/agents/content-writer', {
+      const response = await fetch('/api/ai/content-writer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

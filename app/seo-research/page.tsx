@@ -21,7 +21,7 @@ export default function SEOResearchPage() {
     setResults('');
 
     try {
-      const response = await fetch('/api/agents/seo-research', {
+      const response = await fetch('/api/ai/seo-research', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
