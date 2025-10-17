@@ -9,7 +9,7 @@ const HomePage = () => {
             <div className="relative z-10 text-slate-900">
                 
                 {/* Hero Section */}
-                <section className="flex items-center justify-center min-h-[80vh] px-4 sm:px-6 lg:px-8 pt-12">
+                <section className="flex items-center justify-center min-h-[80vh] px-4 sm:px-6 lg:px-8 pt-32">
                     <div className="text-center max-w-6xl mx-auto">
                         {/* Badge */}
                         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 rounded-full px-4 py-2 mb-8">
