@@ -1,15 +1,15 @@
 "use client";
 
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { toast } from "sonner";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import { toast } from "react-hot-toast";
 import { Database } from "../../../types/supabase";
 import disposableDomains from "disposable-email-domains";
 import { useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { AiOutlineGoogle } from "react-icons/ai";
 import { WaitingForMagicLink } from "./WaitingForMagicLink";
-import { supabase } from "@/utils/supabaseClient";
+import { supabase } from "../../../utils/supabaseClient";
 import { useSearchParams } from "next/navigation";
 import AuthComponent from "../../auth/components/AuthComponent";
 
