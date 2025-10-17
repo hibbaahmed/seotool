@@ -34,7 +34,11 @@ import {
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
 
-export default function AuthenticatedNavbar({ user }) {
+interface NavbarProps {
+  user: any;
+}
+
+export default function AuthenticatedNavbar({ user }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -183,7 +187,6 @@ export default function AuthenticatedNavbar({ user }) {
             {/* Connect Supabase Button for Mobile */}
             <button
               onClick={() => {
-                setShowSupabaseModal(true);
                 setIsMobileMenuOpen(false);
               }}
               className="w-full mb-4 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors duration-200"
