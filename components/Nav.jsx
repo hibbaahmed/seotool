@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
 
-export default function AuthenticatedNavbar({ user }) {
+export default function Nav({ user }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 

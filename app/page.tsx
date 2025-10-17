@@ -1,12 +1,10 @@
 import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Shield, Code, Globe, Award, Quote, Zap, TrendingUp, Briefcase, Lightbulb } from "lucide-react";
 import Link from "next/link";
-import Nav from "../components/Nav"
-
+import Nav from "../components/Nav";
 const HomePage = () => {
     return (
     <div className="min-h-screen relative overflow-hidden bg-white">
       <Nav/>
-            
             {/* Content */}
             <div className="relative z-10 text-slate-900">
                 
