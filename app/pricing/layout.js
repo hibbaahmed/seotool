@@ -1,6 +1,6 @@
 import '../globals.css';
 import ClientProvider from '../../components/ClientProvider';
-import { Nav } from '../../components/Nav';
+import Nav from "../../components/Nav";
 
 export const metadata = {
   title: 'VidFix',
