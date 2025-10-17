@@ -1,347 +1,474 @@
-import { Nav } from '@/components/Nav'
-import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import Link from 'next/link'
-import { 
-  PencilSquareIcon,
-  WrenchScrewdriverIcon,
-  CogIcon,
-  ChartBarIcon,
-  CheckIcon,
-  StarIcon,
-  ArrowRightIcon,
-  CalendarIcon,
-  ShareIcon
-} from '@heroicons/react/24/outline'
+import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Shield, Code, Globe, Award, Quote, Zap, TrendingUp, Briefcase, Lightbulb } from "lucide-react";
+import Link from "next/link";
+import Nav from "../components/Nav"
 
-const features = [
-  {
-    name: 'AI SEO Editor',
-    description: 'Edit and optimize existing content with intelligent suggestions and improvements.',
-    icon: WrenchScrewdriverIcon,
-    highlights: [
-      'Smart content rewriting',
-      'Keyword optimization',
-      'Internal linking suggestions',
-      'Image regeneration'
-    ]
-  },
-  {
-    name: 'SEO Agent',
-    description: 'Automatically detect and fix SEO issues across your entire website.',
-    icon: CogIcon,
-    highlights: [
-      'Issue detection & fixing',
-      'Schema markup generation',
-      'Meta tag optimization',
-      'Internal linking structure'
-    ]
-  },
-  {
-    name: 'Autoblog System',
-    description: 'Automated content generation from RSS feeds, news, and keyword monitoring.',
-    icon: CalendarIcon,
-    highlights: [
-      'RSS feed integration',
-      'Automated scheduling',
-      'Social media syndication',
-      'Google indexing optimization'
-    ]
-  },
-  {
-    name: 'Analytics Dashboard',
-    description: 'Track performance, rankings, and ROI with comprehensive analytics.',
-    icon: ChartBarIcon,
-    highlights: [
-      'Real-time performance tracking',
-      'Ranking monitoring',
-      'ROI calculations',
-      'Client reporting'
-    ]
-  },
-  {
-    name: 'Multi-Platform Publishing',
-    description: 'Publish to WordPress, custom CMS, and syndicate to social media automatically.',
-    icon: ShareIcon,
-    highlights: [
-      'WordPress integration',
-      'Custom CMS support',
-      'Social media automation',
-      'Cross-platform optimization'
-    ]
-  }
-]
+const HomePage = () => {
+    return (
+    <div className="min-h-screen relative overflow-hidden bg-white">
+      <Nav/>
+            
+            {/* Content */}
+            <div className="relative z-10 text-slate-900">
+                
+                {/* Hero Section */}
+                <section className="flex items-center justify-center min-h-[80vh] px-4 sm:px-6 lg:px-8 pt-12">
+                    <div className="text-center max-w-6xl mx-auto">
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 rounded-full px-4 py-2 mb-8">
+                            <Sparkles className="w-4 h-4 text-blue-600" />
+                            <span className="text-blue-700 text-sm font-medium">AI-Powered SEO Automation</span>
+                        </div>
 
-const pricingPlans = [
-  {
-    name: 'Starter',
-    price: '$29',
-    period: '/month',
-    description: 'Perfect for freelancers and small agencies',
-    features: [
-      '5 projects',
-      '10,000 words/month',
-      'Basic SEO analysis',
-      'Email support',
-      'WordPress integration'
-    ],
-    cta: 'Start Free Trial',
-    popular: false
-  },
-  {
-    name: 'Professional',
-    price: '$99',
-    period: '/month',
-    description: 'Ideal for growing agencies and teams',
-    features: [
-      '25 projects',
-      '50,000 words/month',
-      'Advanced SEO analysis',
-      'Priority support',
-      'All integrations',
-      'Team collaboration',
-      'Custom branding'
-    ],
-    cta: 'Start Free Trial',
-    popular: true
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'For large agencies and enterprises',
-    features: [
-      'Unlimited projects',
-      'Unlimited words',
-      'White-label solution',
-      'Dedicated support',
-      'Custom integrations',
-      'API access',
-      'SLA guarantee'
-    ],
-    cta: 'Contact Sales',
-    popular: false
-  }
-]
-
-const testimonials = [
-  {
-    name: 'Sarah Johnson',
-    role: 'SEO Director',
-    company: 'Digital Growth Agency',
-    content: 'SEOFlow has revolutionized our content workflow. We\'ve seen a 300% increase in content output while maintaining quality.',
-    rating: 5
-  },
-  {
-    name: 'Mike Chen',
-    role: 'Founder',
-    company: 'TechStart Marketing',
-    content: 'The AI SEO Agent alone has saved us 20 hours per week. Our clients are seeing better rankings and more traffic.',
-    rating: 5
-  },
-  {
-    name: 'Emily Rodriguez',
-    role: 'Content Manager',
-    company: 'ScaleUp Solutions',
-    content: 'The multi-language support is incredible. We can now serve international clients without hiring translators.',
-    rating: 5
-  }
-]
-
-export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Nav />
-      
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="mx-auto max-w-4xl px-6 pb-20 pt-32 sm:pb-24 sm:pt-40 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <a href="#" className="inline-flex">
-              <span className="rounded-full bg-blue-600/10 px-3 py-1 text-sm font-semibold leading-6 text-blue-600 ring-1 ring-inset ring-blue-600/10">
-                New: ChatGPT Integration
-              </span>
-            </a>
-            <h1 className="mt-8 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Rank Clients on Google and Get Cited on ChatGPT – In One Place
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 dark:text-gray-300">
-              The ultimate SEO automation system for agencies and marketers. AI-powered content creation, optimization, and syndication that delivers results.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-4">
-              <Link href="/dashboard">
-                <Button size="lg" className="text-lg px-8 py-4">
-                  Get Started
-                  <ArrowRightIcon className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <a href="#demo" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
-                Watch Demo <span aria-hidden="true">→</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-24 sm:py-32" id="features">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">Everything you need</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Complete SEO automation in one platform
-            </p>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              From content creation to ranking optimization, SEOFlow handles every aspect of your SEO workflow.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-              {features.map((feature) => (
-                <div key={feature.name} className="flex flex-col">
-                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
-                    <feature.icon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                    {feature.name}
-                  </dt>
-                  <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
-                    <p className="flex-auto">{feature.description}</p>
-                    <ul className="mt-4 space-y-2">
-                      {feature.highlights.map((highlight) => (
-                        <li key={highlight} className="flex items-center gap-x-2">
-                          <CheckIcon className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">{highlight}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="bg-gray-50 dark:bg-gray-800 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className="text-lg font-semibold leading-8 tracking-tight text-blue-600">Testimonials</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Trusted by 500+ agencies worldwide
-            </p>
-          </div>
-          <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
-            <div className="-mt-8 sm:-mx-4 sm:columns-2 sm:text-[0] lg:columns-3">
-              {testimonials.map((testimonial, testimonialIdx) => (
-                <div key={testimonialIdx} className="pt-8 sm:inline-block sm:w-full sm:px-4">
-                  <figure className="rounded-2xl bg-white p-8 text-sm leading-6 shadow-lg ring-1 ring-gray-900/5 dark:bg-gray-900 dark:ring-gray-700">
-                    <blockquote className="text-gray-900 dark:text-white">
-                      <p>"{testimonial.content}"</p>
-                    </blockquote>
-                    <figcaption className="mt-6 flex items-center gap-x-4">
-                      <div className="flex items-center">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <StarIcon key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                        ))}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</div>
-                        <div className="text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="py-24 sm:py-32" id="pricing">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">Pricing</h2>
-            <p className="mt-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
-              Choose the right plan for your business
-            </p>
-          </div>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-600 dark:text-gray-300">
-            Start with a 14-day free trial. No credit card required. Cancel anytime.
-          </p>
-          <div className="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-x-8 xl:gap-x-12">
-            {pricingPlans.map((plan, planIdx) => (
-              <Card key={plan.name} className={`relative ${plan.popular ? 'ring-2 ring-blue-600' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-sm font-medium text-white">
-                      Most Popular
-                    </span>
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-8 tracking-tight">
+                            Rank Clients on Google<br />
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                and Get Cited on ChatGPT
+                            </span>
+                        </h1>
+                        
+                        <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
+                            The ultimate SEO automation system for agencies. AI-powered content creation, optimization, and syndication that delivers results.
+                        </p>
+                        
+                        {/* CTA Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                            <Link 
+                                href="/dashboard"
+                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                            >
+                                Start Free Trial
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
+                            <button className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-sm hover:shadow-md">
+                                <Briefcase className="w-5 h-5" />
+                                View Demo
+                            </button>
+                        </div>
+                        
+                        {/* Social Proof */}
+                        <div className="flex items-center justify-center gap-8 text-slate-500 text-sm">
+                            <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4" />
+                                <span>500+ agencies</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 text-yellow-500" />
+                                <span>5/5 average rating</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4" />
+                                <span>300% more output</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
                   </div>
-                )}
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">{plan.name}</CardTitle>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
-                      {plan.price}
-                    </span>
-                    <span className="text-lg font-semibold leading-7 text-gray-600 dark:text-gray-300">
-                      {plan.period}
-                    </span>
-                  </div>
-                  <CardDescription className="mt-4">{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul role="list" className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center">
-                        <CheckIcon className="h-5 w-5 flex-shrink-0 text-green-500" aria-hidden="true" />
-                        <span className="ml-3 text-sm text-gray-600 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/dashboard" className="block">
-                    <Button 
-                      className={`mt-8 w-full ${plan.popular ? '' : 'variant-outline'}`}
-                      variant={plan.popular ? 'default' : 'outline'}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+                  
+            {/* Main Content */}
+            <div className="bg-white text-slate-900 relative z-20">
+                
+                {/* Problem Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                                SEO is broken for agencies<br />
+                                <span className="text-red-600">Time-consuming and ineffective</span>
+                            </h2>
+                            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                                Manual content creation, outdated optimization tools, and endless client requests. There has to be a better way.
+                            </p>
+                        </div>
 
-      {/* CTA Section */}
-      <section className="bg-blue-600">
-        <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to transform your SEO workflow?
-            </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-100">
-              Join thousands of agencies already using SEOFlow to rank clients and get cited on ChatGPT.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link href="/dashboard">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
-                  Get Started
-                  <ArrowRightIcon className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <a href="#contact" className="text-sm font-semibold leading-6 text-white">
-                Contact Sales <span aria-hidden="true">→</span>
-              </a>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="text-center p-8 bg-red-50 rounded-2xl border border-red-100">
+                                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <Clock className="w-8 h-8 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-4">Hours Per Article</h3>
+                                <p className="text-slate-600">Manual content creation eats up your team's time every week.</p>
+                            </div>
+                            
+                            <div className="text-center p-8 bg-red-50 rounded-2xl border border-red-100">
+                                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <Zap className="w-8 h-8 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-4">Inconsistent Quality</h3>
+                                <p className="text-slate-600">SEO optimization varies widely. Some content ranks, some doesn't.</p>
+                            </div>
+                            
+                            <div className="text-center p-8 bg-red-50 rounded-2xl border border-red-100">
+                                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <Lightbulb className="w-8 h-8 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-4">No Visibility</h3>
+                                <p className="text-slate-600">Hard to track what's working and measure actual ROI.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Solution Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" id="features">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                                Complete SEO automation<br />
+                                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                    in one platform
+                                </span>
+                            </h2>
+                            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                                AI-powered content creation, optimization, and syndication. From ideation to ranking.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                            <div>
+                                <div className="space-y-8">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900 mb-2">AI Content Generation</h3>
+                                            <p className="text-slate-600">Create optimized, SEO-ready content in minutes, not hours.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <Code className="w-6 h-6 text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900 mb-2">Automatic Optimization</h3>
+                                            <p className="text-slate-600">Schema markup, meta tags, internal linking - all automated.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <Globe className="w-6 h-6 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900 mb-2">Multi-Platform Publishing</h3>
+                                            <p className="text-slate-600">Publish to WordPress, custom CMS, and social media instantly.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200">
+                                <div className="bg-slate-50 rounded-xl p-6 text-green-600 font-mono text-sm space-y-2">
+                                    <div className="text-slate-500">$ seoflow create --topic "best seo practices 2024"</div>
+                                    <div className="text-slate-500">✓ Analyzing search intent...</div>
+                                    <div className="text-slate-500">✓ Generating 2000-word article...</div>
+                                    <div className="text-slate-500">✓ Optimizing keywords...</div>
+                                    <div className="text-slate-500">✓ Creating schema markup...</div>
+                                    <div className="text-green-600">✓ Publishing to WordPress...</div>
+                                    <div className="text-green-600 font-bold">✓ Live at: example.com/seo-guide</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Features Grid */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-12">
+                            <p className="text-slate-600 text-lg font-semibold">Powerful features built for agencies</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[{
+                                title: 'AI SEO Editor',
+                                desc: 'Edit and optimize existing content with intelligent suggestions and improvements.'
+                            },{
+                                title: 'SEO Agent',
+                                desc: 'Automatically detect and fix SEO issues across your entire website.'
+                            },{
+                                title: 'Autoblog System',
+                                desc: 'Automated content generation from RSS feeds, news, and keyword monitoring.'
+                            },{
+                                title: 'Analytics Dashboard',
+                                desc: 'Track performance, rankings, and ROI with comprehensive analytics.'
+                            },{
+                                title: 'White-Label Solution',
+                                desc: 'Rebrand as your own and offer to clients without technical overhead.'
+                            },{
+                                title: 'Team Collaboration',
+                                desc: 'Manage workflows, approvals, and client communication in one place.'
+                            }].map((item, idx) => (
+                                <div key={idx} className="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="mt-1 text-blue-600 flex-shrink-0">
+                                        <CheckCircle className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+                                        <p className="text-slate-600 mt-2">{item.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Testimonials Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" id="testimonials">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                                Trusted by leading agencies<br />
+                                <span className="text-blue-600">delivering real results</span>
+                            </h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {[{
+                                name: 'Sarah Johnson',
+                                role: 'SEO Director',
+                                company: 'Digital Growth Agency',
+                                quote: 'SEOFlow has revolutionized our content workflow. We\'ve seen a 300% increase in content output while maintaining quality.',
+                                initial: 'S'
+                            },{
+                                name: 'Mike Chen',
+                                role: 'Founder',
+                                company: 'TechStart Marketing',
+                                quote: 'The AI SEO Agent alone has saved us 20 hours per week. Our clients are seeing better rankings and more traffic.',
+                                initial: 'M'
+                            },{
+                                name: 'Emily Rodriguez',
+                                role: 'Content Manager',
+                                company: 'ScaleUp Solutions',
+                                quote: 'Finally, a tool that understands SEO from the ground up. Our clients love the results and we love the time savings.',
+                                initial: 'E'
+                            }].map((testimonial, idx) => (
+                                <div key={idx} className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
+                                    <div className="flex items-center mb-4">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                                        ))}
+                                    </div>
+                                    <Quote className="w-8 h-8 text-slate-400 mb-4" />
+                                    <p className="text-slate-600 mb-6 leading-relaxed">
+                                        {testimonial.quote}
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                                            {testimonial.initial}
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-slate-900">{testimonial.name}</div>
+                                            <div className="text-sm text-slate-500">{testimonial.role}, {testimonial.company}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Stats Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                                The results speak for themselves<br />
+                            </h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                            <div className="text-center">
+                                <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">500+</div>
+                                <div className="text-slate-800 mb-3 font-semibold text-lg">Agencies Using</div>
+                                <p className="text-slate-600">Growing every day</p>
+                            </div>
+                            
+                            <div className="text-center">
+                                <div className="text-4xl md:text-5xl font-bold text-indigo-600 mb-2">300%</div>
+                                <div className="text-slate-800 mb-3 font-semibold text-lg">More Content Output</div>
+                                <p className="text-slate-600">On average for clients</p>
+                            </div>
+                            
+                            <div className="text-center">
+                                <div className="text-4xl md:text-5xl font-bold text-green-600 mb-2">50+ hrs</div>
+                                <div className="text-slate-800 mb-3 font-semibold text-lg">Saved Per Month</div>
+                                <p className="text-slate-600">Per agency user</p>
+                            </div>
+                            
+                            <div className="text-center">
+                                <div className="text-4xl md:text-5xl font-bold text-pink-600 mb-2">5/5</div>
+                                <div className="text-slate-800 mb-3 font-semibold text-lg">Star Rating</div>
+                                <p className="text-slate-600">From our community</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Pricing Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" id="pricing">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6">
+                                Simple, transparent pricing
+                            </h2>
+                            <p className="text-xl text-slate-600">Start free. Scale as you grow.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {[{
+                                name: 'Starter',
+                                price: '$29',
+                                popular: false,
+                                features: ['5 projects', '10,000 words/month', 'Basic SEO analysis', 'Email support']
+                            },{
+                                name: 'Professional',
+                                price: '$99',
+                                popular: true,
+                                features: ['25 projects', '50,000 words/month', 'Advanced SEO analysis', 'Priority support', 'Team collaboration']
+                            },{
+                                name: 'Enterprise',
+                                price: 'Custom',
+                                popular: false,
+                                features: ['Unlimited projects', 'Unlimited words', 'White-label solution', 'Dedicated support', 'API access']
+                            }].map((plan, idx) => (
+                                <div key={idx} className={`relative bg-white rounded-2xl border-2 p-8 shadow-lg transition-all ${plan.popular ? 'border-blue-600 ring-2 ring-blue-600' : 'border-slate-200'}`}>
+                                    {plan.popular && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                                            <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-sm font-medium text-white">
+                                                Most Popular
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="mb-8">
+                                        <h3 className="text-2xl font-bold text-slate-900">{plan.name}</h3>
+                                        <div className="mt-4 flex items-baseline">
+                                            <span className="text-5xl font-bold text-slate-900">{plan.price}</span>
+                                            {plan.price !== 'Custom' && <span className="text-slate-600 ml-2">/month</span>}
+                                        </div>
+                                    </div>
+                                    <ul className="space-y-4 mb-8">
+                                        {plan.features.map((feature, i) => (
+                                            <li key={i} className="flex items-center gap-3">
+                                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                <span className="text-slate-600">{feature}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard" className="block">
+                                        <button className={`w-full py-3 rounded-xl font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'}`}>
+                                            Get Started
+                                        </button>
+                                    </Link>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Final CTA Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white text-slate-900">
+                    <div className="max-w-4xl mx-auto text-center">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+                            Ready to transform your<br />
+                            SEO workflow?
+                        </h2>
+                        <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+                            Join 500+ agencies already using SEOFlow to rank clients on Google and get cited on ChatGPT.
+                        </p>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                            <Link 
+                                href="/dashboard"
+                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                            >
+                                Start Free Trial
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
+                            <button className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-sm hover:shadow-md">
+                                <Briefcase className="w-5 h-5" />
+                                Contact Sales
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-8 text-slate-500 text-sm flex-wrap">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span>No credit card required</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span>14-day free trial</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span>Cancel anytime</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Footer */}
+                <footer className="py-16 px-4 sm:px-6 lg:px-8 bg-white text-slate-900 border-t border-slate-200">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                            <div>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                                        <TrendingUp className="w-5 h-5 text-white" />
+                                    </div>
+                                    <span className="font-bold text-xl text-slate-900">SEOFlow</span>
+                                </div>
+                                <p className="text-slate-600 leading-relaxed">
+                                    AI-powered SEO automation for agencies.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-semibold text-slate-900 mb-4">Product</h3>
+                                <div className="space-y-3">
+                                    <a href="#features" className="block text-slate-600 hover:text-slate-900 transition-colors">Features</a>
+                                    <a href="#pricing" className="block text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">API</a>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-semibold text-slate-900 mb-4">Company</h3>
+                                <div className="space-y-3">
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">About</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Blog</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Careers</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Contact</a>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-semibold text-slate-900 mb-4">Support</h3>
+                                <div className="space-y-3">
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Help Center</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Documentation</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Community</a>
+                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Status</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <p className="text-slate-500 text-sm">
+                                © 2024 SEOFlow. All rights reserved.
+                            </p>
+                            <div className="flex items-center gap-6 text-sm text-slate-500">
+                                <a href="#" className="hover:text-slate-700 transition-colors">Privacy</a>
+                                <a href="#" className="hover:text-slate-700 transition-colors">Terms</a>
+                                <a href="#" className="hover:text-slate-700 transition-colors">Cookies</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
             </div>
-          </div>
         </div>
-      </section>
+    )
+};
 
-      <Footer />
-    </div>
-  )
-}
+export default HomePage;
