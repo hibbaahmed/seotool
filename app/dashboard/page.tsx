@@ -5,7 +5,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
       
-      <div className="pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="pt-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
