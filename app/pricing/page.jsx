@@ -1,435 +1,212 @@
-import Nav from '../../components/Nav'
+"use client"
+import React, { useState } from 'react';
+import { Check, RefreshCw, DollarSign, Users, Sparkles } from 'lucide-react';
 import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import ContentGenerator from '@/components/ContentGenerator'
-import Link from 'next/link'
-import { 
-  CheckIcon,
-  StarIcon,
-  ArrowRightIcon,
-  RocketLaunchIcon,
-  PencilSquareIcon,
-  WrenchScrewdriverIcon,
-  CogIcon,
-  CalendarIcon,
-  ChartBarIcon,
-  ShareIcon,
-  UsersIcon,
-  CurrencyDollarIcon,
-  GlobeAltIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline'
 
 const pricingPlans = [
   {
-    name: 'Starter',
-    price: '$29',
-    period: '/month',
-    description: 'Perfect for freelancers and small agencies',
-    popular: false,
+    name: "Starter",
+    monthlyPrice: 29,
+    yearlyPrice: 290,
+    description: "Perfect for freelancers and small agencies starting their SEO journey",
+    gradient: 'from-slate-50 to-white',
+    borderColor: 'border-slate-200',
     features: [
-      '5 projects',
-      '10,000 words/month',
-      'Basic SEO analysis',
-      'Email support',
-      'WordPress integration',
-      '1 user account',
-      'Basic analytics'
+      "5 projects per month",
+      "10,000 AI-generated words",
+      "Basic SEO analysis",
+      "Email support",
+      "WordPress integration",
+      "1 user account",
+      "Basic analytics"
     ],
-    cta: 'Start Free Trial',
-    href: '/dashboard'
+    buttonText: "Start Free Trial",
+    buttonStyle: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white",
+    isPopular: false
   },
   {
-    name: 'Professional',
-    price: '$99',
-    period: '/month',
-    description: 'Ideal for growing agencies and teams',
-    popular: true,
+    name: "Professional",
+    monthlyPrice: 99,
+    yearlyPrice: 990,
+    description: "Ideal for growing agencies and teams scaling their SEO operations",
+    gradient: 'from-blue-50 to-indigo-50',
+    borderColor: 'border-blue-200',
     features: [
-      '25 projects',
-      '50,000 words/month',
-      'Advanced SEO analysis',
-      'Priority support',
-      'All integrations',
-      'Team collaboration (up to 5 users)',
-      'Custom branding',
-      'Advanced analytics',
-      'API access',
-      'White-label reports'
+      "25 projects per month",
+      "50,000 AI-generated words",
+      "Advanced SEO analysis",
+      "Priority support",
+      "All integrations",
+      "Team collaboration (up to 5 users)",
+      "Custom branding",
+      "Advanced analytics",
+      "API access",
+      "White-label reports"
     ],
-    cta: 'Start Free Trial',
-    href: '/dashboard'
+    buttonText: "Start Free Trial",
+    buttonStyle: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white",
+    isPopular: true
   },
   {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'For large agencies and enterprises',
-    popular: false,
+    name: "Enterprise",
+    monthlyPrice: 200,
+    yearlyPrice: 2000,
+    description: "For large agencies and enterprises with advanced SEO needs",
+    gradient: 'from-indigo-50 to-purple-50',
+    borderColor: 'border-indigo-200',
     features: [
-      'Unlimited projects',
-      'Unlimited words',
-      'White-label solution',
-      'Dedicated support',
-      'Custom integrations',
-      'Unlimited users',
-      'SLA guarantee',
-      'Custom training',
-      'On-premise deployment',
-      'Advanced security'
+      "Unlimited projects",
+      "Unlimited AI-generated words",
+      "White-label solution",
+      "Dedicated support",
+      "Custom integrations",
+      "Unlimited users",
+      "SLA guarantee",
+      "Custom training",
+      "On-premise deployment",
+      "Advanced security"
     ],
-    cta: 'Contact Sales',
-    href: '/contact'
+    buttonText: "Contact Sales",
+    buttonStyle: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white",
+    isPopular: false
   }
 ]
 
-const features = [
+const benefits = [
   {
-    category: 'Content Creation',
-    icon: PencilSquareIcon,
-    items: [
-      'AI-powered content generation',
-      'Multi-language support (150+ languages)',
-      'Brand voice customization',
-      'SEO-optimized structure',
-      'Auto-publishing to CMS'
-    ]
+    icon: RefreshCw,
+    text: "14-day free trial, no credit card required"
   },
   {
-    category: 'SEO Optimization',
-    icon: CogIcon,
-    items: [
-      'Automated SEO issue detection',
-      'Schema markup generation',
-      'Meta tag optimization',
-      'Internal linking suggestions',
-      'Keyword research & tracking'
-    ]
+    icon: DollarSign,
+    text: "Transparent pricing, no hidden fees"
   },
   {
-    category: 'Analytics & Reporting',
-    icon: ChartBarIcon,
-    items: [
-      'Real-time performance tracking',
-      'Ranking monitoring',
-      'ROI calculations',
-      'Client reporting dashboards',
-      'Competitor analysis'
-    ]
-  },
-  {
-    category: 'Automation',
-    icon: CalendarIcon,
-    items: [
-      'RSS feed integration',
-      'Automated scheduling',
-      'Social media syndication',
-      'Google indexing optimization',
-      'Workflow automation'
-    ]
-  },
-  {
-    category: 'Integrations',
-    icon: ShareIcon,
-    items: [
-      'WordPress integration',
-      'Custom CMS support',
-      'Social media automation',
-      'API access',
-      'Webhook support'
-    ]
-  },
-  {
-    category: 'Support',
-    icon: UsersIcon,
-    items: [
-      '24/7 email support',
-      'Priority support (Pro+)',
-      'Dedicated account manager (Enterprise)',
-      'Custom training sessions',
-      'Documentation & tutorials'
-    ]
-  }
-]
-
-const testimonials = [
-  {
-    name: 'Sarah Johnson',
-    role: 'SEO Director',
-    company: 'Digital Growth Agency',
-    content: 'SEOFlow has revolutionized our content workflow. We\'ve seen a 300% increase in content output while maintaining quality.',
-    rating: 5,
-    plan: 'Professional'
-  },
-  {
-    name: 'Mike Chen',
-    role: 'Founder',
-    company: 'TechStart Marketing',
-    content: 'The AI SEO Agent alone has saved us 20 hours per week. Our clients are seeing better rankings and more traffic.',
-    rating: 5,
-    plan: 'Professional'
-  },
-  {
-    name: 'Emily Rodriguez',
-    role: 'Content Manager',
-    company: 'ScaleUp Solutions',
-    content: 'The multi-language support is incredible. We can now serve international clients without hiring translators.',
-    rating: 5,
-    plan: 'Enterprise'
-  }
-]
-
-const faqs = [
-  {
-    question: 'Is there a free trial?',
-    answer: 'Yes! All plans come with a 14-day free trial. No credit card required to start.'
-  },
-  {
-    question: 'Can I change plans anytime?',
-    answer: 'Absolutely. You can upgrade or downgrade your plan at any time. Changes take effect immediately.'
-  },
-  {
-    question: 'What happens if I exceed my word limit?',
-    answer: 'We\'ll notify you when you\'re approaching your limit. You can upgrade your plan or purchase additional credits.'
-  },
-  {
-    question: 'Do you offer custom integrations?',
-    answer: 'Yes, custom integrations are available for Professional and Enterprise plans. Contact us to discuss your needs.'
-  },
-  {
-    question: 'Is my data secure?',
-    answer: 'Absolutely. We use enterprise-grade security with SSL encryption, regular backups, and SOC 2 compliance.'
-  },
-  {
-    question: 'Can I cancel anytime?',
-    answer: 'Yes, you can cancel your subscription at any time. No long-term contracts or cancellation fees.'
+    icon: Users,
+    text: "Trusted by 500+ agencies worldwide"
   }
 ]
 
 export default function PricingPage() {
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Nav />
-      
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="mx-auto max-w-4xl px-6 pb-20 pt-32 sm:pb-24 sm:pt-40 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Simple, transparent pricing
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Choose the perfect plan for your SEO automation needs. Start with a 14-day free trial.
-            </p>
-            <div className="mt-8 flex items-center justify-center gap-x-4">
-              <div className="flex items-center gap-x-2">
-                <CheckIcon className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">14-day free trial</span>
-              </div>
-              <div className="flex items-center gap-x-2">
-                <CheckIcon className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">No credit card required</span>
-              </div>
-              <div className="flex items-center gap-x-2">
-                <CheckIcon className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Cancel anytime</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+  const [isYearly, setIsYearly] = useState(true);
 
-      {/* Pricing Plans */}
-      <section className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="isolate mx-auto grid max-w-md grid-cols-1 gap-y-8 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-x-8 xl:gap-x-12">
-            {pricingPlans.map((plan, planIdx) => (
-              <Card key={plan.name} className={`relative ${plan.popular ? 'ring-2 ring-blue-600 shadow-xl' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-sm font-medium text-white">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">{plan.name}</CardTitle>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
-                      {plan.price}
-                    </span>
-                    <span className="text-lg font-semibold leading-7 text-gray-600 dark:text-gray-300">
-                      {plan.period}
-                    </span>
-                  </div>
-                  <CardDescription className="mt-4">{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul role="list" className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center">
-                        <CheckIcon className="h-5 w-5 flex-shrink-0 text-green-500" aria-hidden="true" />
-                        <span className="ml-3 text-sm text-gray-600 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={plan.href} className="block">
-                    <Button 
-                      className="mt-8 w-full"
-                      variant={plan.popular ? 'default' : 'outline'}
-                    >
-                      {plan.cta}
-                      <ArrowRightIcon className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+        {/* Header Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-8">
+            Simple and transparent pricing
+          </h1>
+          
+          {/* Benefits */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-12">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="flex items-center gap-3 text-slate-600">
+                <benefit.icon className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium">{benefit.text}</span>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Features Grid */}
-      <section className="bg-gray-50 dark:bg-gray-800 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">Everything you need</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Complete SEO automation in one platform
-            </p>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              From content creation to ranking optimization, SEOFlow handles every aspect of your SEO workflow.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-              {features.map((feature) => (
-                <div key={feature.category} className="flex flex-col">
-                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
-                    <feature.icon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                    {feature.category}
-                  </dt>
-                  <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
-                    <ul className="space-y-2">
-                      {feature.items.map((item) => (
-                        <li key={item} className="flex items-center gap-x-2">
-                          <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
-                          <span className="text-sm">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className="text-lg font-semibold leading-8 tracking-tight text-blue-600">Testimonials</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Trusted by 500+ agencies worldwide
-            </p>
-          </div>
-          <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
-            <div className="-mt-8 sm:-mx-4 sm:columns-2 sm:text-[0] lg:columns-3">
-              {testimonials.map((testimonial, testimonialIdx) => (
-                <div key={testimonialIdx} className="pt-8 sm:inline-block sm:w-full sm:px-4">
-                  <figure className="rounded-2xl bg-white p-8 text-sm leading-6 shadow-lg ring-1 ring-gray-900/5 dark:bg-gray-900 dark:ring-gray-700">
-                    <blockquote className="text-gray-900 dark:text-white">
-                      <p>"{testimonial.content}"</p>
-                    </blockquote>
-                    <figcaption className="mt-6 flex items-center gap-x-4">
-                      <div className="flex items-center">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <StarIcon key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                        ))}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</div>
-                        <div className="text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
-                        <div className="text-xs text-blue-600">{testimonial.plan} Plan</div>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              ))}
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-16">
+            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
+              Bill Monthly
+            </span>
+            <button
+              onClick={() => setIsYearly(!isYearly)}
+              className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
+                isYearly ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                  isYearly ? 'translate-x-9' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <div className="flex flex-col items-center">
+              <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
+                Bill Yearly
+              </span>
+              {isYearly && (
+                <span className="text-xs font-medium text-blue-600">
+                  (2 Months Free)
+                </span>
+              )}
             </div>
           </div>
         </div>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="bg-gray-50 dark:bg-gray-800 py-24 sm:py-32">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">FAQ</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Frequently asked questions
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl">
-            <dl className="space-y-8">
-              {faqs.map((faq, faqIdx) => (
-                <div key={faqIdx} className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm">
-                  <dt className="text-lg font-semibold leading-7 text-gray-900 dark:text-white">
-                    {faq.question}
-                  </dt>
-                  <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                    {faq.answer}
-                  </dd>
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-3 gap-8">
+          {pricingPlans.map((plan, index) => (
+            <div
+              key={index}
+              className={`relative bg-gradient-to-br ${plan.gradient} border ${plan.borderColor} rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${
+                plan.isPopular ? 'ring-2 ring-blue-300 ring-opacity-50 shadow-blue-100' : ''
+              }`}
+            >
+              {plan.isPopular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+                    Most Popular
+                  </span>
                 </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
+              )}
+              
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold mb-2 text-slate-900">
+                  {plan.name}
+                </h3>
+                <div className="text-4xl font-bold mb-1 text-slate-900">
+                  ${isYearly ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice}
+                  <span className="text-lg font-normal text-slate-600">/month</span>
+                </div>
+                {isYearly && (
+                  <div className="text-sm mb-2 text-slate-600">
+                    ${plan.yearlyPrice}/year billed annually
+                  </div>
+                )}
+                <p className="text-sm text-slate-600">
+                  {plan.description}
+                </p>
+              </div>
 
-      {/* AI Demo Section */}
-      <section className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center mb-16">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">Try it yourself</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Experience AI-powered content generation
-            </p>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Test our AI agents before committing. Generate content, research keywords, or analyze competitors.
-            </p>
-          </div>
-          <ContentGenerator />
-        </div>
-      </section>
+              <div className="space-y-4 mb-8">
+                {plan.features.map((feature, featureIndex) => (
+                  <div key={featureIndex} className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-sm text-slate-600">
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-      {/* CTA Section */}
-      <section className="bg-blue-600">
-        <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to transform your SEO workflow?
-            </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-100">
-              Join thousands of agencies already using SEOFlow to rank clients and get cited on ChatGPT.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link href="/dashboard">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
-                  Start Free Trial
-                  <ArrowRightIcon className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <a href="#contact" className="text-sm font-semibold leading-6 text-white">
-                Contact Sales <span aria-hidden="true">→</span>
-              </a>
+              <button
+                className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 ${plan.buttonStyle}`}
+              >
+                {plan.buttonText}
+              </button>
             </div>
+          ))}
+        </div>
+
+        {/* Additional Info */}
+        <div className="text-center mt-16">
+          <p className="text-slate-600 text-sm mb-4">
+            All plans include 24/7 support and regular updates
+          </p>
+          <div className="flex items-center justify-center gap-4 text-slate-500 text-sm">
+            <span>✓ SSL Security</span>
+            <span>✓ 99.9% Uptime</span>
+            <span>✓ Data Backup</span>
           </div>
         </div>
-      </section>
+      </main>
 
       <Footer />
     </div>
