@@ -120,7 +120,7 @@ Please provide high-quality, engaging content that meets these requirements.`
 
       const { data: savedContent, error } = await supabase
         .from('content_writer_outputs')
-        .insert(contentData)
+        .insert(contentData as any)
         .select()
         .single();
       
@@ -167,7 +167,7 @@ Please provide high-quality, engaging content that meets these requirements.`
 
       const { data: savedContent, error } = await supabase
         .from('content_writer_outputs')
-        .insert(contentData)
+        .insert(contentData as any)
         .select()
         .single();
       

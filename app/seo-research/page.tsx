@@ -126,7 +126,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
 
       const { data: savedResearch, error } = await supabase
         .from('seo_research_outputs')
-        .insert(researchData)
+        .insert(researchData as any)
         .select()
         .single();
       
@@ -173,7 +173,7 @@ Please provide comprehensive SEO research including keyword analysis, competitor
 
       const { data: savedResearch, error } = await supabase
         .from('seo_research_outputs')
-        .insert(researchData)
+        .insert(researchData as any)
         .select()
         .single();
       

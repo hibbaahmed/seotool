@@ -47,7 +47,7 @@ export default function SavedPage() {
       ]);
 
       const allItems: SavedItem[] = [
-        ...(analyses.data || []).map(item => ({
+        ...(analyses.data || []).map((item: any) => ({
           id: item.id,
           type: 'analysis' as const,
           title: `${item.company_name} vs ${item.competitor_name}`,
@@ -55,7 +55,7 @@ export default function SavedPage() {
           created_at: item.created_at,
           data: item
         })),
-        ...(content.data || []).map(item => ({
+        ...(content.data || []).map((item: any) => ({
           id: item.id,
           type: 'content' as const,
           title: item.topic,
@@ -63,7 +63,7 @@ export default function SavedPage() {
           created_at: item.created_at,
           data: item
         })),
-        ...(imageSearches.data || []).map(item => ({
+        ...(imageSearches.data || []).map((item: any) => ({
           id: item.id,
           type: 'image_search' as const,
           title: item.query,
@@ -71,7 +71,7 @@ export default function SavedPage() {
           created_at: item.created_at,
           data: item
         })),
-        ...(seoResearch.data || []).map(item => ({
+        ...(seoResearch.data || []).map((item: any) => ({
           id: item.id,
           type: 'seo_research' as const,
           title: item.query,

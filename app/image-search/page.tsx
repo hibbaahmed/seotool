@@ -215,14 +215,14 @@ Please provide detailed image search results with descriptions, sources, and rec
         }
         
         console.log('📊 Upload summary:', {
-          totalImages: imageUrls.length,
+          totalImages: images.length,
           successfulUploads: storageUrls.length,
           failedUploads: uploadErrors.length,
           storageUrls: storageUrls,
           originalUrls: originalUrls
         });
       } else {
-        console.log('⚠️ No images to upload - imageUrls array is empty');
+        console.log('⚠️ No images to upload - images array is empty');
       }
 
       const searchData = {
@@ -241,7 +241,7 @@ Please provide detailed image search results with descriptions, sources, and rec
           
           const { data: savedSearch, error } = await supabase
             .from('image_search_outputs')
-            .insert(searchData)
+            .insert(searchData as any)
             .select()
             .single();
           
@@ -365,14 +365,14 @@ Please provide detailed image search results with descriptions, sources, and rec
         }
         
         console.log('📊 Upload summary:', {
-          totalImages: imageUrls.length,
+          totalImages: images.length,
           successfulUploads: storageUrls.length,
           failedUploads: uploadErrors.length,
           storageUrls: storageUrls,
           originalUrls: originalUrls
         });
       } else {
-        console.log('⚠️ No images to upload - imageUrls array is empty');
+        console.log('⚠️ No images to upload - images array is empty');
       }
 
       const searchData = {
@@ -391,7 +391,7 @@ Please provide detailed image search results with descriptions, sources, and rec
           
           const { data: savedSearch, error } = await supabase
             .from('image_search_outputs')
-            .insert(searchData)
+            .insert(searchData as any)
             .select()
             .single();
           
