@@ -115,7 +115,7 @@ Please provide a comprehensive analysis including:
 
       const { data: savedAnalysis, error } = await supabase
         .from('competitive_analysis')
-        .insert(analysisData)
+        .insert(analysisData as any)
         .select()
         .single();
       
@@ -159,7 +159,7 @@ Please provide a comprehensive analysis including:
 
       const { data: savedAnalysis, error } = await supabase
         .from('competitive_analysis')
-        .insert(analysisData)
+        .insert(analysisData as any)
         .select()
         .single();
       
