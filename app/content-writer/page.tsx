@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { PenTool, FileText, ArrowRight, Eye, Download } from 'lucide-react';
+import { PenTool, FileText, ArrowRight, Eye, Download, Save } from 'lucide-react';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
 export default function ContentWriterPage() {
   const [isWriting, setIsWriting] = useState(false);
   const [results, setResults] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [formData, setFormData] = useState({
     topic: '',
     contentType: 'blog-post',
@@ -24,6 +27,7 @@ export default function ContentWriterPage() {
     e.preventDefault();
     setIsWriting(true);
     setResults('');
+    setSaveMessage(''); // Clear previous save messages
 
     try {
       const response = await fetch('/api/ai/content-writer', {
@@ -81,11 +85,120 @@ Please provide high-quality, engaging content that meets these requirements.`
           }
         }
       }
+
+      // Automatically save the content when complete
+      if (fullResult.trim()) {
+        await autoSaveContent(fullResult);
+      }
     } catch (error) {
       console.error('Content generation error:', error);
       setResults(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
       setIsWriting(false);
     }
+  };
+
+  const autoSaveContent = async (contentOutput: string) => {
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setSaveMessage('Content completed but not saved (user not authenticated)');
+        return;
+      }
+
+      const contentData = {
+        user_id: user.id,
+        topic: formData.topic,
+        content_type: formData.contentType,
+        target_audience: formData.targetAudience,
+        tone: formData.tone,
+        length: formData.length,
+        additional_context: formData.additionalContext,
+        content_output: contentOutput,
+      };
+
+      const { data: savedContent, error } = await supabase
+        .from('content_writer_outputs')
+        .insert(contentData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error saving content:', error);
+        setSaveMessage('Content completed but failed to save. You can try saving manually.');
+      } else {
+        setSaveMessage('Content completed and saved automatically!');
+      }
+    } catch (error) {
+      console.error('Error auto-saving content:', error);
+      setSaveMessage('Content completed but failed to save. You can try saving manually.');
+    }
+  };
+
+  const handleSaveContent = async () => {
+    if (!results.trim()) {
+      setSaveMessage('No content results to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setSaveMessage('User not authenticated');
+        return;
+      }
+
+      const contentData = {
+        user_id: user.id,
+        topic: formData.topic,
+        content_type: formData.contentType,
+        target_audience: formData.targetAudience,
+        tone: formData.tone,
+        length: formData.length,
+        additional_context: formData.additionalContext,
+        content_output: results,
+      };
+
+      const { data: savedContent, error } = await supabase
+        .from('content_writer_outputs')
+        .insert(contentData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error saving content:', error);
+        setSaveMessage('Failed to save content. Please try again.');
+      } else {
+        setSaveMessage('Content saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving content:', error);
+      setSaveMessage('Error saving content. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadContent = () => {
+    if (!results.trim()) {
+      return;
+    }
+
+    const blob = new Blob([results], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `content-${formData.topic}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -250,16 +363,50 @@ Please provide high-quality, engaging content that meets these requirements.`
                   </>
                 )}
               </button>
+              
+              <p className="text-xs text-slate-500 text-center mt-3">
+                💾 Content will be automatically saved to your account
+              </p>
             </form>
           </div>
 
           {/* Results */}
           {results && (
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <FileText className="h-6 w-6 text-green-600" />
-                <h3 className="text-2xl font-bold text-slate-900">Generated Content</h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-green-600" />
+                  <h3 className="text-2xl font-bold text-slate-900">Generated Content</h3>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveContent}
+                    disabled={isSaving}
+                    className="bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                    title="Re-save content (already saved automatically)"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'Saving...' : 'Re-save'}
+                  </button>
+                  <button
+                    onClick={handleDownloadContent}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
               </div>
+              
+              {saveMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${
+                  saveMessage.includes('automatically') || saveMessage.includes('successfully')
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                }`}>
+                  {saveMessage}
+                </div>
+              )}
               
               <div className="prose prose-lg max-w-none">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">

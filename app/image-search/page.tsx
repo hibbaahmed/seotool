@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Image as ImageIcon, Download, Eye, ArrowRight } from 'lucide-react';
+import { Search, Image as ImageIcon, Download, Eye, ArrowRight, Save } from 'lucide-react';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
 export default function ImageSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [formData, setFormData] = useState({
     query: '',
     style: 'photographic',
@@ -20,6 +23,7 @@ export default function ImageSearchPage() {
     setIsSearching(true);
     setResults('');
     setImages([]);
+    setSaveMessage(''); // Clear previous save messages
 
     try {
       const response = await fetch('/api/ai/image-search', {
@@ -53,6 +57,7 @@ Please provide detailed image search results with descriptions, sources, and rec
 
       const decoder = new TextDecoder();
       let fullResult = '';
+      let receivedImages: string[] = []; // Accumulate images here
 
       while (true) {
         const { done, value } = await reader.read();
@@ -70,7 +75,8 @@ Please provide detailed image search results with descriptions, sources, and rec
                 setResults(fullResult);
               } else if (data.type === 'images') {
                 console.log('🖼️ Received images update:', data.urls?.length || 0, 'images');
-                setImages(data.urls || []);
+                receivedImages = data.urls || []; // Store images in local variable
+                setImages(receivedImages); // Also update state for display
               } else if (data.type === 'done') {
                 setIsSearching(false);
                 break;
@@ -82,6 +88,19 @@ Please provide detailed image search results with descriptions, sources, and rec
             }
           }
         }
+      }
+
+      // Automatically save the search results when complete
+      console.log('🔍 Search completed. Full result length:', fullResult.trim().length);
+      console.log('🖼️ Received images count:', receivedImages.length);
+      console.log('🖼️ Received images:', receivedImages);
+      console.log('🖼️ Images state count:', images.length);
+      
+      if ((fullResult.trim() || receivedImages.length > 0)) {
+        console.log('💾 Starting auto-save process...');
+        await autoSaveImageSearch(fullResult, receivedImages); // Use receivedImages directly
+      } else {
+        console.log('⚠️ No results or images to save');
       }
     } catch (error) {
       console.error('Image search error:', error);
@@ -96,6 +115,339 @@ Please provide detailed image search results with descriptions, sources, and rec
       ...prev,
       [name]: value
     }));
+  };
+
+  const autoSaveImageSearch = async (searchResults: string, imageUrls: string[]) => {
+    try {
+      console.log('🚀 autoSaveImageSearch called with:', {
+        searchResultsLength: searchResults.length,
+        imageUrlsCount: imageUrls.length,
+        imageUrls: imageUrls
+      });
+      
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      console.log('👤 User authentication:', user ? 'authenticated' : 'not authenticated');
+      
+      if (!user) {
+        setSaveMessage('Search completed but not saved (user not authenticated)');
+        return;
+      }
+
+      // Upload images to Supabase Storage if there are any
+      let storageUrls: string[] = [];
+      let originalUrls: string[] = [];
+      let uploadErrors: string[] = [];
+
+      if (imageUrls.length > 0) {
+        console.log('📤 Starting image upload process for', imageUrls.length, 'images');
+        setSaveMessage('Uploading images to storage...');
+        
+        for (let i = 0; i < imageUrls.length; i++) {
+          const imageUrl = imageUrls[i];
+          try {
+            console.log(`🔄 Starting upload for image ${i + 1}:`, imageUrl);
+            
+            // Fetch via proxy to avoid CORS and get accurate content-type
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+            const response = await fetch(proxyUrl, { cache: 'no-store' });
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image via proxy: ${response.status} ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+            const imageBlob = await response.blob();
+            console.log(`📦 Image ${i + 1} blob size:`, imageBlob.size, 'bytes', 'contentType:', contentType);
+            
+            // Generate unique ID and infer extension from content-type
+            const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
+            const typeToExt: Record<string, string> = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+            const fileExtension = typeToExt[contentType.toLowerCase()] || 'jpg';
+            const filePath = `user_uploads/${user.id}/${id}.${fileExtension}`;
+            
+            console.log(`📁 Uploading to path:`, filePath);
+            console.log(`👤 User ID:`, user.id);
+            console.log(`🪣 Bucket: photos`);
+            
+            // Upload to Supabase Storage using EXACT same pattern as your working code
+            const uploadResult = await supabase.storage
+              .from('photos')
+              .upload(filePath, imageBlob, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType,
+              });
+
+            console.log(`📤 Upload result for image ${i + 1}:`, uploadResult);
+
+            if (uploadResult.error) {
+              console.error(`❌ Upload error for image ${i + 1}:`, uploadResult.error);
+              throw uploadResult.error; // Use same error handling as your working code
+            }
+
+            // Get the public URL using EXACT same pattern
+            const urlResult = supabase.storage
+              .from('photos')
+              .getPublicUrl(filePath);
+
+            console.log(`🔗 URL result for image ${i + 1}:`, urlResult);
+
+            const publicContentUrl = urlResult.data.publicUrl;
+            console.log(`✅ Image ${i + 1} uploaded successfully:`, publicContentUrl);
+            
+            storageUrls.push(publicContentUrl);
+            originalUrls.push(imageUrl);
+          } catch (error) {
+            console.error(`❌ Error uploading image ${i + 1}:`, error);
+            console.error(`❌ Error details:`, {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+
+        if (uploadErrors.length > 0) {
+          console.warn('Some images failed to upload:', uploadErrors);
+        }
+        
+        console.log('📊 Upload summary:', {
+          totalImages: imageUrls.length,
+          successfulUploads: storageUrls.length,
+          failedUploads: uploadErrors.length,
+          storageUrls: storageUrls,
+          originalUrls: originalUrls
+        });
+      } else {
+        console.log('⚠️ No images to upload - imageUrls array is empty');
+      }
+
+      const searchData = {
+        user_id: user.id,
+        query: formData.query,
+        style: formData.style,
+        count: parseInt(formData.count),
+        size: formData.size,
+        additional_context: formData.additionalContext,
+        search_results: searchResults,
+        image_urls: storageUrls, // Supabase Storage URLs
+        original_image_urls: originalUrls, // Original external URLs for reference
+      };
+
+          console.log('Attempting to save search data:', searchData);
+          
+          const { data: savedSearch, error } = await supabase
+            .from('image_search_outputs')
+            .insert(searchData)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error('Error saving image search:', error);
+            console.error('Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            setSaveMessage(`Search completed but failed to save: ${error.message}`);
+          } else {
+            console.log('Successfully saved search:', savedSearch);
+            if (uploadErrors.length > 0) {
+              setSaveMessage(`Search saved automatically! (${uploadErrors.length} images failed to upload)`);
+            } else {
+              setSaveMessage('Search completed and saved automatically!');
+            }
+          }
+    } catch (error) {
+      console.error('Error auto-saving image search:', error);
+      setSaveMessage('Search completed but failed to save. You can try saving manually.');
+    }
+  };
+
+  const handleSaveImageSearch = async () => {
+    if (!results.trim() && images.length === 0) {
+      setSaveMessage('No search results to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setSaveMessage('User not authenticated');
+        return;
+      }
+
+      // Upload images to Supabase Storage if there are any
+      let storageUrls: string[] = [];
+      let originalUrls: string[] = [];
+      let uploadErrors: string[] = [];
+
+      if (images.length > 0) {
+        setSaveMessage('Uploading images to storage...');
+        
+        for (let i = 0; i < images.length; i++) {
+          const imageUrl = images[i];
+          try {
+            console.log(`🔄 [MANUAL] Starting upload for image ${i + 1}:`, imageUrl);
+            
+            // Fetch via proxy to avoid CORS and get accurate content-type
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+            const response = await fetch(proxyUrl, { cache: 'no-store' });
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image via proxy: ${response.status} ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+            const imageBlob = await response.blob();
+            console.log(`📦 [MANUAL] Image ${i + 1} blob size:`, imageBlob.size, 'bytes', 'contentType:', contentType);
+            
+            // Generate unique ID and infer extension from content-type
+            const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
+            const typeToExt: Record<string, string> = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+            const fileExtension = typeToExt[contentType.toLowerCase()] || 'jpg';
+            const filePath = `user_uploads/${user.id}/${id}.${fileExtension}`;
+            
+            console.log(`📁 [MANUAL] Uploading to path:`, filePath);
+            console.log(`👤 [MANUAL] User ID:`, user.id);
+            console.log(`🪣 [MANUAL] Bucket: photos`);
+            
+            // Upload to Supabase Storage using EXACT same pattern as your working code
+            const uploadResult = await supabase.storage
+              .from('photos')
+              .upload(filePath, imageBlob, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType,
+              });
+
+            console.log(`📤 [MANUAL] Upload result for image ${i + 1}:`, uploadResult);
+
+            if (uploadResult.error) {
+              console.error(`❌ [MANUAL] Upload error for image ${i + 1}:`, uploadResult.error);
+              throw uploadResult.error; // Use same error handling as your working code
+            }
+
+            // Get the public URL using EXACT same pattern
+            const urlResult = supabase.storage
+              .from('photos')
+              .getPublicUrl(filePath);
+
+            console.log(`🔗 [MANUAL] URL result for image ${i + 1}:`, urlResult);
+
+            const publicContentUrl = urlResult.data.publicUrl;
+            console.log(`✅ [MANUAL] Image ${i + 1} uploaded successfully:`, publicContentUrl);
+            
+            storageUrls.push(publicContentUrl);
+            originalUrls.push(imageUrl);
+          } catch (error) {
+            console.error(`❌ [MANUAL] Error uploading image ${i + 1}:`, error);
+            console.error(`❌ [MANUAL] Error details:`, {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+
+        if (uploadErrors.length > 0) {
+          console.warn('Some images failed to upload:', uploadErrors);
+        }
+        
+        console.log('📊 Upload summary:', {
+          totalImages: imageUrls.length,
+          successfulUploads: storageUrls.length,
+          failedUploads: uploadErrors.length,
+          storageUrls: storageUrls,
+          originalUrls: originalUrls
+        });
+      } else {
+        console.log('⚠️ No images to upload - imageUrls array is empty');
+      }
+
+      const searchData = {
+        user_id: user.id,
+        query: formData.query,
+        style: formData.style,
+        count: parseInt(formData.count),
+        size: formData.size,
+        additional_context: formData.additionalContext,
+        search_results: results,
+        image_urls: storageUrls, // Supabase Storage URLs
+        original_image_urls: originalUrls, // Original external URLs for reference
+      };
+
+          console.log('Attempting to manually save search data:', searchData);
+          
+          const { data: savedSearch, error } = await supabase
+            .from('image_search_outputs')
+            .insert(searchData)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error('Error saving image search:', error);
+            console.error('Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            setSaveMessage(`Failed to save search results: ${error.message}`);
+          } else {
+            console.log('Successfully saved search:', savedSearch);
+            if (uploadErrors.length > 0) {
+              setSaveMessage(`Search saved successfully! (${uploadErrors.length} images failed to upload)`);
+            } else {
+              setSaveMessage('Search results saved successfully!');
+            }
+          }
+    } catch (error) {
+      console.error('Error saving image search:', error);
+      setSaveMessage('Error saving search results. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadResults = () => {
+    if (!results.trim() && images.length === 0) {
+      return;
+    }
+
+    const content = `Image Search Results for: ${formData.query}
+
+Search Parameters:
+- Style: ${formData.style}
+- Count: ${formData.count}
+- Size: ${formData.size}
+- Additional Context: ${formData.additionalContext || 'None'}
+
+${images.length > 0 ? `Found ${images.length} images:
+${images.map((url, index) => `${index + 1}. ${url}`).join('\n')}
+
+` : ''}${results ? `AI Analysis:
+${results}` : ''}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `image-search-${formData.query}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -237,16 +589,50 @@ Please provide detailed image search results with descriptions, sources, and rec
                   </>
                 )}
               </button>
+              
+              <p className="text-xs text-slate-500 text-center mt-3">
+                💾 Search results will be automatically saved to your account
+              </p>
             </form>
           </div>
 
           {/* Results */}
           {(results || images.length > 0) && (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Eye className="h-6 w-6 text-green-600" />
-                <h3 className="text-2xl font-bold text-slate-900">Search Results</h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Eye className="h-6 w-6 text-green-600" />
+                  <h3 className="text-2xl font-bold text-slate-900">Search Results</h3>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveImageSearch}
+                    disabled={isSaving}
+                    className="bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                    title="Re-save search results (already saved automatically)"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'Saving...' : 'Re-save'}
+                  </button>
+                  <button
+                    onClick={handleDownloadResults}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
               </div>
+              
+              {saveMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${
+                  saveMessage.includes('automatically') || saveMessage.includes('successfully')
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                }`}>
+                  {saveMessage}
+                </div>
+              )}
               
               {/* Images Display */}
               {images.length > 0 && (

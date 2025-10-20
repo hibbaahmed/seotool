@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, TrendingUp, Target, BarChart3, ArrowRight, Eye, Download } from 'lucide-react';
+import { Search, TrendingUp, Target, BarChart3, ArrowRight, Eye, Download, Save } from 'lucide-react';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
 export default function SEOResearchPage() {
   const [isResearching, setIsResearching] = useState(false);
   const [results, setResults] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [formData, setFormData] = useState({
     topic: '',
     targetAudience: '',
@@ -19,6 +22,7 @@ export default function SEOResearchPage() {
     e.preventDefault();
     setIsResearching(true);
     setResults('');
+    setSaveMessage(''); // Clear previous save messages
 
     try {
       const response = await fetch('/api/ai/seo-research', {
@@ -80,6 +84,11 @@ Please provide comprehensive SEO research including keyword analysis, competitor
           }
         }
       }
+
+      // Automatically save the research results when complete
+      if (fullResult.trim()) {
+        await autoSaveResearch(fullResult);
+      }
     } catch (error) {
       console.error('SEO research error:', error);
       setResults(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
@@ -93,6 +102,122 @@ Please provide comprehensive SEO research including keyword analysis, competitor
       ...prev,
       [name]: value
     }));
+  };
+
+  const autoSaveResearch = async (researchResults: string) => {
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setSaveMessage('Research completed but not saved (user not authenticated)');
+        return;
+      }
+
+      const researchData = {
+        user_id: user.id,
+        query: formData.topic,
+        research_type: formData.researchType,
+        target_audience: formData.targetAudience,
+        industry: formData.location,
+        additional_context: formData.additionalContext,
+        research_output: researchResults,
+      };
+
+      const { data: savedResearch, error } = await supabase
+        .from('seo_research_outputs')
+        .insert(researchData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error saving SEO research:', error);
+        setSaveMessage('Research completed but failed to save. You can try saving manually.');
+      } else {
+        console.log('Successfully saved SEO research:', savedResearch);
+        setSaveMessage('Research completed and saved automatically!');
+      }
+    } catch (error) {
+      console.error('Error auto-saving SEO research:', error);
+      setSaveMessage('Research completed but failed to save. You can try saving manually.');
+    }
+  };
+
+  const handleSaveResearch = async () => {
+    if (!results.trim()) {
+      setSaveMessage('No research results to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setSaveMessage('User not authenticated');
+        return;
+      }
+
+      const researchData = {
+        user_id: user.id,
+        query: formData.topic,
+        research_type: formData.researchType,
+        target_audience: formData.targetAudience,
+        industry: formData.location,
+        additional_context: formData.additionalContext,
+        research_output: results,
+      };
+
+      const { data: savedResearch, error } = await supabase
+        .from('seo_research_outputs')
+        .insert(researchData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error saving SEO research:', error);
+        setSaveMessage(`Failed to save research results: ${error.message}`);
+      } else {
+        console.log('Successfully saved SEO research:', savedResearch);
+        setSaveMessage('Research results saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving SEO research:', error);
+      setSaveMessage('Error saving research results. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadResults = () => {
+    if (!results.trim()) {
+      return;
+    }
+
+    const content = `SEO Research Results for: ${formData.topic}
+
+Research Parameters:
+- Target Audience: ${formData.targetAudience || 'Not specified'}
+- Location: ${formData.location}
+- Research Type: ${formData.researchType}
+- Keyword Focus: ${formData.keywordFocus}
+- Additional Context: ${formData.additionalContext || 'None'}
+
+Research Output:
+${results}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seo-research-${formData.topic}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -252,16 +377,50 @@ Please provide comprehensive SEO research including keyword analysis, competitor
                   </>
                 )}
               </button>
+              
+              <p className="text-xs text-slate-500 text-center mt-3">
+                💾 Research results will be automatically saved to your account
+              </p>
             </form>
           </div>
 
           {/* Results */}
           {results && (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Eye className="h-6 w-6 text-green-600" />
-                <h3 className="text-2xl font-bold text-slate-900">SEO Research Results</h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Eye className="h-6 w-6 text-green-600" />
+                  <h3 className="text-2xl font-bold text-slate-900">SEO Research Results</h3>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveResearch}
+                    disabled={isSaving}
+                    className="bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                    title="Re-save research results (already saved automatically)"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'Saving...' : 'Re-save'}
+                  </button>
+                  <button
+                    onClick={handleDownloadResults}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
               </div>
+              
+              {saveMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${
+                  saveMessage.includes('automatically') || saveMessage.includes('successfully')
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                }`}>
+                  {saveMessage}
+                </div>
+              )}
               
               <div className="prose prose-lg max-w-none">
                 <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
