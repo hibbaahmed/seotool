@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3 } from 'lucide-react';
+import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -110,6 +110,25 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-center text-slate-600 font-medium group-hover:text-slate-700">
                 <span>View All Saved</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
+              href="/wordpress-sites"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <Globe className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                WordPress Sites
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Connect and manage your WordPress sites for direct publishing
+              </p>
+              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
+                <span>Manage Sites</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
             </Link>

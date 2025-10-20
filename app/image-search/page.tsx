@@ -201,12 +201,12 @@ Please provide detailed image search results with descriptions, sources, and rec
           } catch (error) {
             console.error(`❌ Error uploading image ${i + 1}:`, error);
             console.error(`❌ Error details:`, {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
+              message: error instanceof Error ? error.message : String(error),
+              details: (error as any)?.details,
+              hint: (error as any)?.hint,
+              code: (error as any)?.code
             });
-            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
 
@@ -351,12 +351,12 @@ Please provide detailed image search results with descriptions, sources, and rec
           } catch (error) {
             console.error(`❌ [MANUAL] Error uploading image ${i + 1}:`, error);
             console.error(`❌ [MANUAL] Error details:`, {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
+              message: error instanceof Error ? error.message : String(error),
+              details: (error as any)?.details,
+              hint: (error as any)?.hint,
+              code: (error as any)?.code
             });
-            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            uploadErrors.push(`Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
 

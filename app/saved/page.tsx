@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, Download, Trash2, Calendar, Search, Filter, Grid, List, ArrowLeft, TrendingUp, PenTool, Camera, BarChart3, FileText, Clock } from 'lucide-react';
+import { Eye, Download, Trash2, Calendar, Search, Filter, Grid, List, ArrowLeft, TrendingUp, PenTool, Camera, BarChart3, FileText, Clock, Globe, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Link from 'next/link';
 
@@ -14,6 +14,14 @@ interface SavedItem {
   data: any;
 }
 
+interface WordPressSite {
+  id: string;
+  name: string;
+  url: string;
+  username: string;
+  is_active: boolean;
+}
+
 export default function SavedPage() {
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,10 +30,27 @@ export default function SavedPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<'all' | 'analysis' | 'content' | 'image_search' | 'seo_research'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [wordpressSites, setWordpressSites] = useState<WordPressSite[]>([]);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishMessage, setPublishMessage] = useState('');
 
   useEffect(() => {
     loadAllSavedItems();
+    loadWordPressSites();
   }, []);
+
+  const loadWordPressSites = async () => {
+    try {
+      const response = await fetch('/api/wordpress/sites');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setWordpressSites(data.sites || []);
+      }
+    } catch (error) {
+      console.error('Error loading WordPress sites:', error);
+    }
+  };
 
   const loadAllSavedItems = async () => {
     try {
@@ -234,6 +259,41 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
     setSelectedItem(null);
   };
 
+  const handlePublishToWordPress = async (item: SavedItem, siteId: string) => {
+    setIsPublishing(true);
+    setPublishMessage('');
+
+    try {
+      const response = await fetch('/api/wordpress/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId,
+          contentId: item.id,
+          contentType: item.type,
+          publishOptions: {
+            status: 'draft', // Default to draft for safety
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPublishMessage(`Successfully published to WordPress! Post ID: ${data.post.id}`);
+      } else {
+        setPublishMessage(`Failed to publish: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error publishing to WordPress:', error);
+      setPublishMessage('Failed to publish to WordPress');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'analysis':
@@ -416,6 +476,22 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
             </div>
           </div>
 
+          {/* Publish Message */}
+          {publishMessage && (
+            <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+              publishMessage.includes('Successfully') 
+                ? 'bg-green-100 border border-green-200 text-green-700' 
+                : 'bg-red-100 border border-red-200 text-red-700'
+            }`}>
+              {publishMessage.includes('Successfully') ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              <span>{publishMessage}</span>
+            </div>
+          )}
+
           {/* Results */}
           {filteredItems.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12 text-center">
@@ -489,6 +565,31 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
                         >
                           <Download className="h-4 w-4" />
                         </button>
+                        {wordpressSites.length > 0 && (
+                          <div className="relative group">
+                            <button
+                              disabled={isPublishing}
+                              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
+                            >
+                              <Send className="h-4 w-4" />
+                            </button>
+                            <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
+                              <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-48">
+                                <div className="text-xs font-medium text-gray-700 mb-2">Publish to WordPress:</div>
+                                {wordpressSites.map(site => (
+                                  <button
+                                    key={site.id}
+                                    onClick={() => handlePublishToWordPress(item, site.id)}
+                                    disabled={isPublishing}
+                                    className="block w-full text-left px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded"
+                                  >
+                                    {site.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <button
                           onClick={() => handleDelete(item)}
                           className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"

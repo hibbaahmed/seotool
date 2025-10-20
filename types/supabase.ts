@@ -291,6 +291,98 @@ export interface Database {
           }
         ]
       }
+      wordpress_sites: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          password: string
+          updated_at: string
+          url: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          password: string
+          updated_at?: string
+          url: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          password?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordpress_sites_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      publishing_logs: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string
+          id: string
+          post_id: number
+          published_at: string
+          site_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string
+          id?: string
+          post_id: number
+          published_at?: string
+          site_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          post_id?: number
+          published_at?: string
+          site_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishing_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publishing_logs_site_id_fkey"
+            columns: ["site_id"]
+            referencedRelation: "wordpress_sites"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
