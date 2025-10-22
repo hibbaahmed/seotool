@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS content_writer_outputs (
   length TEXT NOT NULL,
   additional_context TEXT,
   content_output TEXT NOT NULL,
+  image_urls TEXT[] DEFAULT '{}', -- array of image URLs for in-article images
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -9,6 +9,107 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      integrations: {
+        Row: {
+          id: string
+          user_id: string
+          provider: string
+          name: string
+          config: Json
+          access_token: string | null
+          refresh_token: string | null
+          expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          provider: string
+          name: string
+          config?: Json
+          access_token?: string | null
+          refresh_token?: string | null
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          provider?: string
+          name?: string
+          config?: Json
+          access_token?: string | null
+          refresh_token?: string | null
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      publishing_jobs: {
+        Row: {
+          id: string
+          user_id: string
+          integration_id: string
+          payload: Json
+          status: string
+          attempts: number
+          run_at: string
+          last_error: string | null
+          external_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          integration_id: string
+          payload: Json
+          status?: string
+          attempts?: number
+          run_at?: string
+          last_error?: string | null
+          external_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          integration_id?: string
+          payload?: Json
+          status?: string
+          attempts?: number
+          run_at?: string
+          last_error?: string | null
+          external_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishing_jobs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publishing_jobs_integration_id_fkey"
+            columns: ["integration_id"]
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       credits: {
         Row: {
           created_at: string

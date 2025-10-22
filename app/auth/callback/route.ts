@@ -41,8 +41,21 @@ export async function GET(request: Request) {
 				},
 			}
 		);
-		const { error } = await supabase.auth.exchangeCodeForSession(code);
+		const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 		if (!error) {
+			// Check if user has completed onboarding
+			if (data.user) {
+				const { data: onboardingProfile } = await supabase
+					.from('user_onboarding_profiles')
+					.select('onboarding_status')
+					.eq('user_id', data.user.id)
+					.single();
+				
+				// If no onboarding profile exists or it's not completed, redirect to onboarding
+				if (!onboardingProfile || onboardingProfile.onboarding_status !== 'completed') {
+					return NextResponse.redirect(`${origin}/onboarding`);
+				}
+			}
 			return NextResponse.redirect(`${origin}${next}`);
 		}
 	}

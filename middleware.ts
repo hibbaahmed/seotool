@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // Define public routes
-  const publicRoutes = ["/api/inngest"];
+  const publicRoutes = ["/api/inngest", "/onboarding"];
 
   // Skip authentication for public routes
   if (publicRoutes.includes(url.pathname)) {

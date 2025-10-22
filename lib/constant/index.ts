@@ -1,1 +1,1 @@
-export const protectedPaths = ["/dashboard", "/videos", "/captions", "voiceover", "gameplay"];
+export const protectedPaths = ["/dashboard", "/videos", "/captions", "voiceover", "gameplay", "/onboarding"];

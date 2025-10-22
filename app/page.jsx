@@ -1,7 +1,38 @@
+"use client"
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Shield, Code, Globe, Award, Quote, Zap, TrendingUp, Briefcase, Lightbulb } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
+import { supabaseBrowser } from '@/lib/supabase/browser';
 const HomePage = () => {
+    const [isYearly, setIsYearly] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        const checkUserOnboarding = async () => {
+            const supabase = supabaseBrowser();
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+                // Check if user has completed onboarding
+                const { data: onboardingProfile } = await supabase
+                    .from('user_onboarding_profiles')
+                    .select('onboarding_status')
+                    .eq('user_id', user.id)
+                    .single();
+                
+                // If no onboarding profile exists or it's not completed, redirect to onboarding
+                if (!onboardingProfile || onboardingProfile.onboarding_status !== 'completed') {
+                    router.push('/onboarding');
+                } else {
+                    router.push('/dashboard');
+                }
+            }
+        };
+
+        checkUserOnboarding();
+    }, [router]);
     return (
     <div className="min-h-screen relative overflow-hidden bg-white">
       <Nav/>
@@ -313,53 +344,167 @@ const HomePage = () => {
                             <p className="text-xl text-slate-600">Start free. Scale as you grow.</p>
                         </div>
 
+                        {/* Benefits */}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-12">
+                            <div className="flex items-center gap-3 text-slate-600">
+                                <CheckCircle className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-medium">14-day free trial, no credit card required</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-slate-600">
+                                <Shield className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-medium">Transparent pricing, no hidden fees</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-slate-600">
+                                <Users className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-medium">Trusted by 500+ agencies worldwide</span>
+                            </div>
+                        </div>
+
+                        {/* Billing Toggle */}
+                        <div className="flex items-center justify-center gap-4 mb-16">
+                            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
+                                Bill Monthly
+                            </span>
+                            <button
+                                onClick={() => setIsYearly(!isYearly)}
+                                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
+                                    isYearly ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-slate-300'
+                                }`}
+                            >
+                                <span
+                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                                        isYearly ? 'translate-x-9' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                            <div className="flex flex-col items-center">
+                                <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
+                                    Bill Yearly
+                                </span>
+                                {isYearly && (
+                                    <span className="text-xs font-medium text-blue-600">
+                                        (2 Months Free)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[{
                                 name: 'Starter',
-                                price: '$29',
+                                monthlyPrice: 29,
+                                yearlyPrice: 290,
+                                description: 'Perfect for freelancers and small agencies starting their SEO journey',
+                                gradient: 'from-slate-50 to-white',
+                                borderColor: 'border-slate-200',
                                 popular: false,
-                                features: ['5 projects', '10,000 words/month', 'Basic SEO analysis', 'Email support']
+                                features: [
+                                    '5 projects per month',
+                                    '10,000 AI-generated words',
+                                    'Basic SEO analysis',
+                                    'Email support',
+                                    'WordPress integration',
+                                    '1 user account',
+                                    'Basic analytics'
+                                ]
                             },{
                                 name: 'Professional',
-                                price: '$99',
+                                monthlyPrice: 99,
+                                yearlyPrice: 990,
+                                description: 'Ideal for growing agencies and teams scaling their SEO operations',
+                                gradient: 'from-blue-50 to-indigo-50',
+                                borderColor: 'border-blue-200',
                                 popular: true,
-                                features: ['25 projects', '50,000 words/month', 'Advanced SEO analysis', 'Priority support', 'Team collaboration']
+                                features: [
+                                    '25 projects per month',
+                                    '50,000 AI-generated words',
+                                    'Advanced SEO analysis',
+                                    'Priority support',
+                                    'All integrations',
+                                    'Team collaboration (up to 5 users)',
+                                    'Custom branding',
+                                    'Advanced analytics',
+                                    'API access',
+                                    'White-label reports'
+                                ]
                             },{
                                 name: 'Enterprise',
-                                price: 'Custom',
+                                monthlyPrice: 200,
+                                yearlyPrice: 2000,
+                                description: 'For large agencies and enterprises with advanced SEO needs',
+                                gradient: 'from-indigo-50 to-purple-50',
+                                borderColor: 'border-indigo-200',
                                 popular: false,
-                                features: ['Unlimited projects', 'Unlimited words', 'White-label solution', 'Dedicated support', 'API access']
+                                features: [
+                                    'Unlimited projects',
+                                    'Unlimited AI-generated words',
+                                    'White-label solution',
+                                    'Dedicated support',
+                                    'Custom integrations',
+                                    'Unlimited users',
+                                    'SLA guarantee',
+                                    'Custom training',
+                                    'On-premise deployment',
+                                    'Advanced security'
+                                ]
                             }].map((plan, idx) => (
-                                <div key={idx} className={`relative bg-white rounded-2xl border-2 p-8 shadow-lg transition-all ${plan.popular ? 'border-blue-600 ring-2 ring-blue-600' : 'border-slate-200'}`}>
+                                <div key={idx} className={`relative bg-gradient-to-br ${plan.gradient} border ${plan.borderColor} rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${plan.popular ? 'ring-2 ring-blue-300 ring-opacity-50 shadow-blue-100' : ''}`}>
                                     {plan.popular && (
-                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                                            <span className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-sm font-medium text-white">
+                                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-sm font-medium">
                                                 Most Popular
                                             </span>
                                         </div>
                                     )}
-                                    <div className="mb-8">
-                                        <h3 className="text-2xl font-bold text-slate-900">{plan.name}</h3>
-                                        <div className="mt-4 flex items-baseline">
-                                            <span className="text-5xl font-bold text-slate-900">{plan.price}</span>
-                                            {plan.price !== 'Custom' && <span className="text-slate-600 ml-2">/month</span>}
+                                    
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-2xl font-bold mb-2 text-slate-900">
+                                            {plan.name}
+                                        </h3>
+                                        <div className="text-4xl font-bold mb-1 text-slate-900">
+                                            ${isYearly ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice}
+                                            <span className="text-lg font-normal text-slate-600">/month</span>
                                         </div>
+                                        {isYearly && (
+                                            <div className="text-sm mb-2 text-slate-600">
+                                                ${plan.yearlyPrice}/year billed annually
+                                            </div>
+                                        )}
+                                        <p className="text-sm text-slate-600">
+                                            {plan.description}
+                                        </p>
                                     </div>
-                                    <ul className="space-y-4 mb-8">
+
+                                    <div className="space-y-4 mb-8">
                                         {plan.features.map((feature, i) => (
-                                            <li key={i} className="flex items-center gap-3">
-                                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                                <span className="text-slate-600">{feature}</span>
-                                            </li>
+                                            <div key={i} className="flex items-center gap-3">
+                                                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                                <span className="text-sm text-slate-600">
+                                                    {feature}
+                                                </span>
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
+
                                     <Link href="/dashboard" className="block">
-                                        <button className={`w-full py-3 rounded-xl font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'}`}>
-                                            Get Started
+                                        <button className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'}`}>
+                                            {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
                                         </button>
                                     </Link>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="text-center mt-16">
+                            <p className="text-slate-600 text-sm mb-4">
+                                All plans include 24/7 support and regular updates
+                            </p>
+                            <div className="flex items-center justify-center gap-4 text-slate-500 text-sm">
+                                <span>✓ SSL Security</span>
+                                <span>✓ 99.9% Uptime</span>
+                                <span>✓ Data Backup</span>
+                            </div>
                         </div>
                     </div>
                 </section>

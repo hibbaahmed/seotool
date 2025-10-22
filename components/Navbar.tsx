@@ -30,7 +30,8 @@ import {
   BookOpen,
   Github,
   ArrowRight,
-  Database
+  Database,
+  Calendar
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
 
@@ -89,6 +90,9 @@ export default function AuthenticatedNavbar({ user }: NavbarProps) {
           </Link>
           <Link href="/dashboard/autoblog" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
             Autoblog
+          </Link>
+          <Link href="/calendar" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
+            Calendar
           </Link>
           <Link href="/price" className="flex items-center px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
             Pricing
@@ -168,6 +172,9 @@ export default function AuthenticatedNavbar({ user }: NavbarProps) {
             </Link>
             <Link href="/dashboard/autoblog" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Autoblog
+            </Link>
+            <Link href="/calendar" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
+              Calendar
             </Link>
             <Link href="/features" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Features

@@ -551,6 +551,38 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
                         {item.description}
                       </p>
                       
+                      {/* Show image previews for content items */}
+                      {item.type === 'content' && item.data.image_urls && item.data.image_urls.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Camera className="h-4 w-4 text-blue-600" />
+                            <span className="text-xs font-medium text-blue-600">
+                              {item.data.image_urls.length} images
+                            </span>
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto">
+                            {item.data.image_urls.slice(0, 3).map((imageUrl: string, index: number) => (
+                              <img
+                                key={index}
+                                src={imageUrl}
+                                alt={`Preview ${index + 1}`}
+                                className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = 'https://via.placeholder.com/64x64?text=IMG';
+                                }}
+                                loading="lazy"
+                              />
+                            ))}
+                            {item.data.image_urls.length > 3 && (
+                              <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-xs text-gray-500 font-medium">
+                                +{item.data.image_urls.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2">
                         <button
                           onClick={() => openModal(item)}
@@ -750,6 +782,55 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
                       </pre>
                     </div>
                   </div>
+
+                  {/* Display Images if Available */}
+                  {selectedItem.data.image_urls && selectedItem.data.image_urls.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                        <Camera className="h-5 w-5 text-blue-600" />
+                        Generated Images ({selectedItem.data.image_urls.length})
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedItem.data.image_urls.map((imageUrl: string, index: number) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={imageUrl}
+                              alt={`Generated image ${index + 1}`}
+                              className="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+                              }}
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                              <button
+                                onClick={() => window.open(imageUrl, '_blank')}
+                                className="opacity-0 group-hover:opacity-100 bg-white text-slate-900 px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-slate-100"
+                              >
+                                <Eye className="w-4 h-4 inline mr-2" />
+                                View Full Size
+                              </button>
+                            </div>
+                            <div className="mt-2 text-center">
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = imageUrl;
+                                  link.download = `content-image-${index + 1}.jpg`;
+                                  link.click();
+                                }}
+                                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                              >
+                                <Download className="w-4 h-4 inline mr-1" />
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
