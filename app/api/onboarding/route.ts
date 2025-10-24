@@ -23,7 +23,7 @@ interface KeywordData {
   difficulty: number;
   opportunityLevel: 'low' | 'medium' | 'high';
   cpc: number;
-  source: 'competitor' | 'site_analysis' | 'google_trends' | 'serp_analysis';
+  source: 'competitor' | 'site_analysis' | 'google_trends' | 'serp_analysis' | 'dataforseo' | 'dataforseo_discovery';
   competitorDomain?: string;
   serpPosition?: number;
   keywordIntent: 'informational' | 'commercial' | 'navigational' | 'transactional';
