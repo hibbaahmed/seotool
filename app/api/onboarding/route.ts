@@ -675,7 +675,8 @@ async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext):
                 cpc: cpc,
                 opportunityLevel: calculateOpportunityLevel(sv, kd),
                 source: 'dataforseo_discovery',
-                keywordIntent: 'informational' // Default, could be enhanced
+                keywordIntent: 'informational', // Default, could be enhanced
+                relatedKeywords: [] // Empty array for newly discovered keywords
               });
             }
           }
