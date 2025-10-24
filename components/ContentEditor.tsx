@@ -36,39 +36,32 @@ const ContentEditor: React.FC<ContentEditorProps> = ({ content, onClose, onSave 
     setSaveMessage('');
 
     try {
-      const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      const response = await fetch('/api/content-writer/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editedContent.id,
+          topic: editedContent.topic,
+          content_type: editedContent.content_type,
+          target_audience: editedContent.target_audience,
+          tone: editedContent.tone,
+          length: editedContent.length,
+          additional_context: editedContent.additional_context,
+          content_output: editedContent.content_output,
+          image_urls: editedContent.image_urls,
+        }),
+      });
 
-      const updateData = {
-        topic: editedContent.topic,
-        content_type: editedContent.content_type,
-        target_audience: editedContent.target_audience,
-        tone: editedContent.tone,
-        length: editedContent.length,
-        additional_context: editedContent.additional_context,
-        content_output: editedContent.content_output,
-        image_urls: editedContent.image_urls,
-        updated_at: new Date().toISOString()
-      };
+      const data = await response.json();
 
-      const { data, error } = await supabase
-        .from('content_writer_outputs')
-        .update(updateData)
-        .eq('id', editedContent.id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save content');
       }
 
       setSaveMessage('Content saved successfully!');
-      onSave(data);
+      onSave(data.content);
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving content:', error);
