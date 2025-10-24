@@ -14,5 +14,5 @@ export const { GET, POST, PUT } = serve({
     publishBlogPost,
     cancelBlogPost,
   ],
-  streaming: true,
+  streaming: "allow",
 });
