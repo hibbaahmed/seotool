@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, ArrowRight, Search, Filter, BookOpen, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
-import BlogSection from '../components/BlogSection';
+import BlogSection from '@/components/BlogSection';
 
 interface BlogPost {
   id: string;

@@ -4,7 +4,7 @@ import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Sh
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
-import BlogSection from "../components/BlogSection";
+import BlogSection from "@/components/BlogSection";
 import { supabaseBrowser } from '@/lib/supabase/browser';
 const HomePage = () => {
     const [isYearly, setIsYearly] = useState(true);
