@@ -43,18 +43,21 @@ const ContentEditor: React.FC<ContentEditorProps> = ({ content, onClose, onSave 
         throw new Error('User not authenticated');
       }
 
+      const updateData = {
+        topic: editedContent.topic,
+        content_type: editedContent.content_type,
+        target_audience: editedContent.target_audience,
+        tone: editedContent.tone,
+        length: editedContent.length,
+        additional_context: editedContent.additional_context,
+        content_output: editedContent.content_output,
+        image_urls: editedContent.image_urls,
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('content_writer_outputs')
-        .update({
-          topic: editedContent.topic,
-          content_type: editedContent.content_type,
-          target_audience: editedContent.target_audience,
-          tone: editedContent.tone,
-          length: editedContent.length,
-          additional_context: editedContent.additional_context,
-          content_output: editedContent.content_output,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', editedContent.id)
         .eq('user_id', user.id)
         .select()

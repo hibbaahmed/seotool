@@ -6,6 +6,7 @@ import ContentEditor from '@/components/ContentEditor';
 
 interface SavedContent {
   id: string;
+  user_id: string;
   topic: string;
   content_type: string;
   target_audience: string;
@@ -13,6 +14,7 @@ interface SavedContent {
   length: string;
   additional_context: string;
   content_output: string;
+  image_urls: string[];
   created_at: string;
   updated_at: string;
 }
