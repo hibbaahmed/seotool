@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseBrowser } from '@/lib/supabase/browser';
+import { createClient } from '@/utils/supabase/server';
 import { WordPressAdapter } from '@/lib/integrations/wordpress';
 import { WebhookAdapter } from '@/lib/integrations/webhook';
 
@@ -20,8 +20,8 @@ function getAdapter(provider: string, config: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = supabaseBrowser();
   try {
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -80,6 +80,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: (error as any)?.message || 'Dispatch failed' }, { status: 500 });
   }
 }
-
-
-
