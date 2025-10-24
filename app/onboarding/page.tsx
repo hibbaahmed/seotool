@@ -59,6 +59,7 @@ export default function OnboardingPage() {
     highOpportunityKeywords: number;
     mediumOpportunityKeywords: number;
     lowOpportunityKeywords: number;
+    metricsSource?: 'dataforseo' | 'ai';
   }>(null);
 
   const steps: OnboardingStep[] = [
@@ -206,6 +207,7 @@ export default function OnboardingPage() {
           highOpportunityKeywords: Number(result.analysisResults.highOpportunityKeywords || 0),
           mediumOpportunityKeywords: Number(result.analysisResults.mediumOpportunityKeywords || 0),
           lowOpportunityKeywords: Number(result.analysisResults.lowOpportunityKeywords || 0),
+          metricsSource: result.analysisResults.metricsSource === 'dataforseo' ? 'dataforseo' : 'ai',
         });
       } else {
         setSummary(null);
@@ -261,8 +263,8 @@ export default function OnboardingPage() {
                 value={formData.websiteUrl}
                 onChange={handleInputChange}
                 placeholder="https://yourwebsite.com"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.websiteUrl ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-6 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all duration-200 text-lg bg-slate-50 focus:bg-white ${
+                  errors.websiteUrl ? 'border-red-400 bg-red-50' : 'hover:border-slate-300'
                 }`}
               />
               {errors.websiteUrl && (
@@ -270,17 +272,34 @@ export default function OnboardingPage() {
               )}
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-8">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
                 <div>
-                  <h4 className="text-sm font-medium text-blue-900">What we'll analyze:</h4>
-                  <ul className="mt-2 text-sm text-blue-800 space-y-1">
-                    <li>• Your current keyword rankings</li>
-                    <li>• Technical SEO issues</li>
-                    <li>• Content gaps and opportunities</li>
-                    <li>• Competitor analysis</li>
-                    <li>• Google trends and SERP data</li>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-4">What we'll analyze:</h4>
+                  <ul className="text-slate-600 space-y-3">
+                    <li className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      Your current keyword rankings
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      Technical SEO issues
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      Content gaps and opportunities
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      Competitor analysis
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      Google trends and SERP data
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -513,51 +532,56 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
+    <div className="min-h-screen bg-white">
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 mb-4">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-900 rounded-3xl mb-8 shadow-lg">
+              <Search className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-6xl font-bold text-slate-900 mb-6 tracking-tight">
               Welcome to Your SEO Journey
             </h1>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Let's discover your keyword opportunities by analyzing your competitors, 
-              your site, Google trends, and search results.
+            <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-light">
+              Discover keyword opportunities through comprehensive analysis of your competitors, 
+              site performance, Google trends, and search results.
             </p>
           </div>
 
           {/* Progress Steps */}
-          <div className="mb-8">
+          <div className="mb-16">
             <div className="flex items-center justify-between">
               {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                    step.completed 
-                      ? 'bg-green-600 border-green-600 text-white' 
-                      : step.inProgress 
-                        ? 'bg-blue-600 border-blue-600 text-white' 
-                        : 'bg-white border-gray-300 text-gray-400'
-                  }`}>
-                    {step.completed ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : step.inProgress ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <span className="text-sm font-medium">{index + 1}</span>
-                    )}
-                  </div>
-                  <div className="ml-3 hidden sm:block">
-                    <p className={`text-sm font-medium ${
-                      step.completed || step.inProgress ? 'text-slate-900' : 'text-gray-500'
+                <div key={step.id} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center w-full">
+                    <div className={`flex items-center justify-center w-14 h-14 rounded-full border-2 transition-all duration-300 ${
+                      step.completed 
+                        ? 'bg-slate-900 border-slate-900 text-white' 
+                        : step.inProgress 
+                          ? 'bg-slate-900 border-slate-900 text-white' 
+                          : 'bg-white border-slate-200 text-slate-400'
                     }`}>
-                      {step.title}
-                    </p>
-                    <p className="text-xs text-gray-500">{step.description}</p>
+                      {step.completed ? (
+                        <CheckCircle className="h-7 w-7" />
+                      ) : step.inProgress ? (
+                        <Loader2 className="h-7 w-7 animate-spin" />
+                      ) : (
+                        <span className="text-lg font-semibold">{index + 1}</span>
+                      )}
+                    </div>
+                    <div className="mt-4 w-full text-center">
+                      <p className={`text-sm font-semibold ${
+                        step.completed || step.inProgress ? 'text-slate-900' : 'text-slate-400'
+                      }`}>
+                        {step.title}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-2 mx-auto max-w-28 leading-relaxed">{step.description}</p>
+                    </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${
-                      step.completed ? 'bg-green-600' : 'bg-gray-300'
+                    <div className={`flex-1 h-px mx-6 transition-all duration-300 ${
+                      step.completed ? 'bg-slate-900' : 'bg-slate-200'
                     }`} />
                   )}
                 </div>
@@ -566,59 +590,69 @@ export default function OnboardingPage() {
           </div>
 
           {/* Main Content */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <div className="bg-white border border-slate-200 rounded-2xl p-12 shadow-sm">
             {errors.general && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800">{errors.general}</p>
+              <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <p className="text-red-800 font-medium">{errors.general}</p>
+                </div>
               </div>
             )}
+
+            <div className="mb-10">
+              <h2 className="text-3xl font-bold text-slate-900 mb-3">
+                {steps[currentStep].title}
+              </h2>
+              <p className="text-lg text-slate-500 font-light">{steps[currentStep].description}</p>
+            </div>
 
             {renderStepContent()}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8">
+            <div className="flex justify-between mt-16">
               <button
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-8 py-4 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
               >
                 Previous
               </button>
 
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 {currentStep === 2 ? (
                   <button
                     onClick={handleStartAnalysis}
                     disabled={isAnalyzing}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
                   >
                     {isAnalyzing ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className="h-6 w-6 animate-spin" />
                         Analyzing...
                       </>
                     ) : (
                       <>
                         Start Analysis
-                        <ArrowRight className="h-5 w-5" />
+                        <ArrowRight className="h-6 w-6" />
                       </>
                     )}
                   </button>
                 ) : currentStep === 4 ? (
                   <button
                     onClick={handleViewResults}
-                    className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
                   >
                     View Keyword List
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-6 w-6" />
                   </button>
                 ) : currentStep < 2 ? (
                   <button
                     onClick={handleNext}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
                   >
                     Next
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-6 w-6" />
                   </button>
                 ) : null}
               </div>

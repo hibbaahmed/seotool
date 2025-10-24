@@ -63,8 +63,51 @@ export default function KeywordsDashboard() {
   useEffect(() => {
     if (onboardingId) {
       loadKeywords(onboardingId);
+    } else {
+      loadAllOnboardingKeywords();
     }
   }, [onboardingId]);
+
+  const loadAllOnboardingKeywords = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch('/api/keywords/onboarding');
+      if (!response.ok) {
+        throw new Error('Failed to load keywords');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Flatten all keywords from all onboarding profiles
+        const allKeywords = Object.values(result.data).flatMap((profile: any) => 
+          profile.keywords.map((kw: any) => ({
+            id: kw.id,
+            keyword: kw.keyword,
+            searchVolume: kw.search_volume || 0,
+            difficulty: kw.difficulty_score || 0,
+            opportunityLevel: kw.opportunity_level || 'low',
+            cpc: kw.cpc || 0,
+            source: kw.source || 'unknown',
+            keywordIntent: kw.keyword_intent || 'informational',
+            relatedKeywords: kw.related_keywords || [],
+            starred: false,
+            queued: false,
+            generated: false,
+            onboardingProfile: profile.profile
+          }))
+        );
+        
+        setKeywords(allKeywords);
+        calculateStats(allKeywords);
+      }
+    } catch (error) {
+      console.error('Error loading all onboarding keywords:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadKeywords = async (profileId: string) => {
     try {
@@ -180,6 +223,8 @@ export default function KeywordsDashboard() {
       case 'site_analysis': return <Globe className="h-4 w-4" />;
       case 'google_trends': return <TrendingUp className="h-4 w-4" />;
       case 'serp_analysis': return <Search className="h-4 w-4" />;
+      case 'dataforseo': return <BarChart3 className="h-4 w-4" />;
+      case 'dataforseo_discovery': return <BarChart3 className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
     }
   };
@@ -201,11 +246,14 @@ export default function KeywordsDashboard() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Keywords</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              {onboardingId ? 'Onboarding Keywords' : 'All Onboarding Keywords'}
+            </h1>
             <p className="text-slate-600">
-              This is your entire keyword list, created through in-depth research of your competitors, 
-              industry trends, and business niche. Each keyword has been carefully selected based on 
-              relevance to your business, search demand, and ranking potential.
+              {onboardingId 
+                ? 'Keywords discovered during your onboarding analysis with real metrics from DataForSEO.'
+                : 'All keywords discovered across your onboarding analyses. Each keyword includes real search volume, CPC, and competition data from DataForSEO.'
+              }
             </p>
           </div>
 
@@ -393,7 +441,9 @@ export default function KeywordsDashboard() {
                         <div className="flex items-center gap-2">
                           {getSourceIcon(keyword.source)}
                           <span className="text-sm text-slate-600 capitalize">
-                            {keyword.source.replace('_', ' ')}
+                            {keyword.source === 'dataforseo' ? 'DataForSEO' : 
+                             keyword.source === 'dataforseo_discovery' ? 'DataForSEO Discovery' :
+                             keyword.source.replace('_', ' ')}
                           </span>
                         </div>
                       </td>

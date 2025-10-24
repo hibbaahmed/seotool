@@ -170,6 +170,14 @@ export async function POST(request: NextRequest) {
     // Start comprehensive analysis with the seed context
     const analysisResults = await performComprehensiveAnalysis(seedContext);
 
+    // Optional strict mode: require DataForSEO metrics to proceed
+    if (process.env.REQUIRE_DATAFORSEO === 'true' && analysisResults.metricsSource !== 'dataforseo') {
+      return NextResponse.json({
+        error: 'DataForSEO metrics required',
+        metricsSource: analysisResults.metricsSource,
+      }, { status: 503 });
+    }
+
     // Save analysis results to database
     await saveAnalysisResults(userId, onboardingProfile.id, analysisResults);
 
@@ -198,7 +206,8 @@ export async function POST(request: NextRequest) {
         lowOpportunityKeywords: analysisResults.allKeywords.filter(k => k.opportunityLevel === 'low').length,
         competitorsAnalyzed: analysisResults.competitors.length,
         siteIssuesFound: analysisResults.siteAnalysis.technicalIssues.length,
-        contentGapsIdentified: analysisResults.siteAnalysis.contentGaps.length
+        contentGapsIdentified: analysisResults.siteAnalysis.contentGaps.length,
+        metricsSource: analysisResults.metricsSource
       }
     });
 
@@ -233,7 +242,7 @@ async function performComprehensiveAnalysis(seed: SeedContext) {
   ]);
 
   // Enrich with real metrics from DataForSEO
-  const enriched = await enrichWithDataForSeo(allKeywordsRaw, seed);
+  const { keywords: enriched, used: dataForSeoUsed } = await enrichWithDataForSeo(allKeywordsRaw, seed);
 
   // Filter to keep only highly relevant keywords for the seed topics
   const filtered = filterRelevantKeywords(enriched, seed);
@@ -251,7 +260,8 @@ async function performComprehensiveAnalysis(seed: SeedContext) {
     competitors: competitorAnalysis.competitors,
     siteAnalysis: siteAnalysis,
     googleTrends: googleTrendsAnalysis,
-    serpAnalysis: serpAnalysis
+    serpAnalysis: serpAnalysis,
+    metricsSource: dataForSeoUsed ? 'dataforseo' : 'ai'
   };
 }
 
@@ -584,67 +594,125 @@ function parseJsonFromAi(text: string): any {
 }
 
 // Use DataForSEO Labs endpoints to enrich metrics
-async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext): Promise<KeywordData[]> {
-  if (!keywords.length) return keywords;
+async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext): Promise<{ keywords: KeywordData[]; used: boolean }> {
+  if (!keywords.length) return { keywords, used: false };
   const unique = Array.from(new Set(keywords.map(k => k.keyword))).slice(0, 100);
 
   try {
-    // Strategy: call related_keywords/live and keyword_suggestions/live in batches
-    const seeds = unique.slice(0, 10); // limit seeds per call window
-    const commonTask = {
+    const seeds = unique.slice(0, 10);
+    
+    // Step 1: Get metrics for existing keywords
+    const searchVolumePayload = [{
       location_code: 2840,
-      language_code: 'en',
-      limit: 100
-    } as const;
+      keywords: seeds,
+      search_partners: true
+    }];
 
-    const relatedPayload = { data: seeds.map((kw) => ({ ...commonTask, keyword: kw })) };
-    const suggestionsPayload = { data: seeds.map((kw) => ({ ...commonTask, keyword: kw })) };
+    console.log('[DFS] Calling search_volume live for', seeds.length, 'seeds');
+    
+    const searchVolumeResponse = await dataForSeoPost(
+      '/keywords_data/google_ads/search_volume/live', 
+      searchVolumePayload
+    );
 
-    const [relatedResp, suggestionsResp] = await Promise.all([
-      dataForSeoPost('/dataforseo_labs/google/related_keywords/live', relatedPayload),
-      dataForSeoPost('/dataforseo_labs/google/keyword_suggestions/live', suggestionsPayload)
-    ]);
+    // Step 2: Discover new related keywords
+    const keywordsForKeywordsPayload = [{
+      location_code: 2840,
+      keywords: seeds.slice(0, 5), // Use top 5 seeds for discovery
+      search_partners: true
+    }];
+
+    console.log('[DFS] Calling keywords_for_keywords live for', seeds.slice(0, 5).length, 'seeds');
+    
+    const keywordsForKeywordsResponse = await dataForSeoPost(
+      '/keywords_data/google_ads/keywords_for_keywords/live', 
+      keywordsForKeywordsPayload
+    );
 
     const metricMap = new Map<string, { sv: number; kd: number; cpc: number }>();
 
-    const harvest = (resp: any) => {
-      if (!Array.isArray(resp?.tasks)) return;
-      for (const t of resp.tasks) {
-        const results = Array.isArray(t?.result) ? t.result : [];
-        for (const r of results) {
-          const items = Array.isArray(r?.items) ? r.items : [];
-          for (const it of items) {
-            const key = String(it.keyword || it?.keyword_info?.keyword || '').toLowerCase();
-            const info = it.keyword_info || {};
-            const sv = Number(info.search_volume || it.search_volume || 0);
-            const cpcRaw = Number(info.cpc || it.cpc || 0);
-            const cpc = cpcRaw > 10 ? cpcRaw / 100 : cpcRaw; // normalize if in cents
-            // Difficulty approximation: competition_index (0..1) or competition (0..1) → 0..100
-            const comp = Number(info.competition_index ?? info.competition ?? 0);
-            const kd = Math.max(0, Math.min(100, Math.round(comp * 100)));
-            if (key) metricMap.set(key, { sv, kd, cpc });
+    // Parse search volume results
+    if (Array.isArray(searchVolumeResponse?.tasks)) {
+      for (const task of searchVolumeResponse.tasks) {
+        if (task.status_code === 20000 && Array.isArray(task.result)) {
+          for (const result of task.result) {
+            const kw = result.keyword?.toLowerCase();
+            if (!kw) continue;
+            
+            const sv = Number(result.search_volume || 0);
+            const cpc = Number(result.cpc || 0);
+            const competitionIndex = Number(result.competition_index || 0);
+            const kd = competitionIndex;
+            
+            metricMap.set(kw, { sv, kd, cpc });
           }
         }
       }
-    };
+    }
 
-    harvest(relatedResp);
-    harvest(suggestionsResp);
+    // Parse keywords_for_keywords results and add new keywords
+    const newKeywords: KeywordData[] = [];
+    if (Array.isArray(keywordsForKeywordsResponse?.tasks)) {
+      for (const task of keywordsForKeywordsResponse.tasks) {
+        if (task.status_code === 20000 && Array.isArray(task.result)) {
+          for (const result of task.result) {
+            const kw = result.keyword?.toLowerCase();
+            if (!kw) continue;
+            
+            const sv = Number(result.search_volume || 0);
+            const cpc = Number(result.cpc || 0);
+            const competitionIndex = Number(result.competition_index || 0);
+            const kd = competitionIndex;
+            
+            metricMap.set(kw, { sv, kd, cpc });
+            
+            // Add as new keyword if not already in our list
+            if (!unique.includes(kw)) {
+              newKeywords.push({
+                keyword: kw,
+                searchVolume: sv,
+                difficulty: kd,
+                cpc: cpc,
+                opportunityLevel: calculateOpportunityLevel(sv, kd),
+                source: 'dataforseo_discovery',
+                keywordIntent: 'informational' // Default, could be enhanced
+              });
+            }
+          }
+        }
+      }
+    }
 
-    return keywords.map(k => {
+    // Enrich existing keywords
+    const enrichedKeywords = keywords.map(k => {
       const m = metricMap.get(k.keyword.toLowerCase());
       if (!m) return k;
       return {
         ...k,
         searchVolume: m.sv || k.searchVolume,
-        difficulty: isFinite(m.kd) && m.kd > 0 && m.kd <= 100 ? m.kd : k.difficulty,
+        difficulty: isFinite(m.kd) && m.kd >= 0 && m.kd <= 100 ? m.kd : k.difficulty,
         cpc: isFinite(m.cpc) ? m.cpc : k.cpc,
+        source: 'dataforseo', // Mark as DataForSEO enriched
       };
     });
+    
+    // Combine existing enriched keywords with newly discovered ones
+    const allKeywords = [...enrichedKeywords, ...newKeywords];
+    
+    const used = metricMap.size > 0;
+    console.log('[DFS] Enrichment', used ? 'applied' : 'no metrics found', 'metrics:', metricMap.size, 'new keywords:', newKeywords.length);
+    return { keywords: allKeywords, used };
   } catch (e) {
     console.error('DataForSEO enrichment error:', e);
-    return keywords; // fall back to existing
+    return { keywords, used: false };
   }
+}
+
+// Helper function to calculate opportunity level
+function calculateOpportunityLevel(searchVolume: number, difficulty: number): 'low' | 'medium' | 'high' {
+  if (searchVolume >= 1000 && difficulty <= 50) return 'high';
+  if (searchVolume >= 100 && difficulty <= 70) return 'medium';
+  return 'low';
 }
 
 async function saveAnalysisResults(userId: string, onboardingProfileId: string, results: any) {

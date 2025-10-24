@@ -5,9 +5,10 @@ import { inngest } from '@/lib/inngest';
 // GET /api/calendar/posts/[id] - Get a specific scheduled post
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -18,7 +19,7 @@ export async function GET(
     const { data: post, error } = await supabase
       .from('scheduled_posts')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -41,9 +42,10 @@ export async function GET(
 // PUT /api/calendar/posts/[id] - Update a specific scheduled post
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -92,7 +94,7 @@ export async function PUT(
     const { data: post, error } = await supabase
       .from('scheduled_posts')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .select()
       .single();
@@ -116,9 +118,10 @@ export async function PUT(
 // DELETE /api/calendar/posts/[id] - Delete a specific scheduled post
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -130,7 +133,7 @@ export async function DELETE(
     const { data: post, error: fetchError } = await supabase
       .from('scheduled_posts')
       .select('status')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -145,11 +148,11 @@ export async function DELETE(
         await inngest.send({
           name: 'blog/post.cancel',
           data: {
-            postId: params.id,
+            postId: id,
             userId: user.id,
           },
         });
-        console.log('✅ Inngest cancellation event sent for post:', params.id);
+        console.log('✅ Inngest cancellation event sent for post:', id);
       } catch (inngestError) {
         console.error('❌ Error sending Inngest cancellation event:', inngestError);
         // Continue with deletion even if Inngest fails
@@ -160,7 +163,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('scheduled_posts')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {
