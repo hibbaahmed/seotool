@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, TrendingUp, Target, BarChart3, ArrowRight, Eye, Download, Save } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 
 export default function SEOResearchPage() {
   const [isResearching, setIsResearching] = useState(false);
@@ -409,6 +410,21 @@ ${results}`;
                     <Download className="w-4 h-4" />
                     Download
                   </button>
+                  
+                  {/* WordPress Publish Button */}
+                  <QuickWordPressPublishButton
+                    contentId={`seo-research-${Date.now()}`} // Generate unique ID
+                    contentType="seo_research"
+                    contentTitle={`SEO Research: ${formData.topic}`}
+                    contentBody={results}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                    onSuccess={(result) => {
+                      setSaveMessage('SEO research published to WordPress successfully!');
+                    }}
+                    onError={(error) => {
+                      setSaveMessage(`Failed to publish: ${error}`);
+                    }}
+                  />
                 </div>
               </div>
               

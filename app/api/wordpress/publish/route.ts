@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseBrowser } from '@/lib/supabase/browser';
+import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = supabaseBrowser();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = supabaseBrowser();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {

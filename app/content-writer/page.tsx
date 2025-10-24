@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { PenTool, FileText, ArrowRight, Eye, Download, Save, Calendar, Clock } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 
 export default function ContentWriterPage() {
   const [isWriting, setIsWriting] = useState(false);
@@ -573,6 +574,21 @@ Please provide high-quality, engaging content that meets these requirements.`
                     <Download className="w-4 h-4" />
                     Download
                   </button>
+                  
+                  {/* WordPress Publish Button */}
+                  <QuickWordPressPublishButton
+                    contentId={`content-${Date.now()}`} // Generate unique ID
+                    contentType="content"
+                    contentTitle={formData.topic}
+                    contentBody={results}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                    onSuccess={(result) => {
+                      setSaveMessage('Content published to WordPress successfully!');
+                    }}
+                    onError={(error) => {
+                      setSaveMessage(`Failed to publish: ${error}`);
+                    }}
+                  />
                 </div>
               </div>
               

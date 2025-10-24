@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Download, Trash2, Eye } from 'lucide-react';
+import { Search, Calendar, Download, Trash2, Eye, Edit, Upload } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import ContentEditor from '@/components/ContentEditor';
+import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 
 interface ContentWriterRecord {
   id: string;
@@ -23,6 +25,7 @@ export default function SavedContentPage() {
   const [content, setContent] = useState<ContentWriterRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContent, setSelectedContent] = useState<ContentWriterRecord | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -102,6 +105,12 @@ export default function SavedContentPage() {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleContentUpdate = (updatedContent: ContentWriterRecord) => {
+    setContent(prev => prev.map(item => 
+      item.id === updatedContent.id ? updatedContent : item
+    ));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center">
@@ -170,17 +179,30 @@ export default function SavedContentPage() {
                      contentItem.content_type}
                     • {contentItem.tone} tone • {contentItem.length}
                   </p>
-                  <div className="flex justify-end gap-3 mt-4">
+                  <div className="flex justify-end gap-2 mt-4">
                     <button
-                      onClick={() => setSelectedContent(contentItem)}
+                      onClick={() => {
+                        setSelectedContent(contentItem);
+                        setIsEditing(false);
+                      }}
                       className="text-green-600 hover:text-green-700 p-2 rounded-full hover:bg-green-50 transition-colors"
                       title="View Content"
                     >
                       <Eye className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDownload(contentItem)}
+                      onClick={() => {
+                        setSelectedContent(contentItem);
+                        setIsEditing(true);
+                      }}
                       className="text-blue-600 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                      title="Edit Content"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDownload(contentItem)}
+                      className="text-purple-600 hover:text-purple-700 p-2 rounded-full hover:bg-purple-50 transition-colors"
                       title="Download"
                     >
                       <Download className="w-5 h-5" />
@@ -290,17 +312,60 @@ export default function SavedContentPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end p-6 border-t border-slate-200">
-              <button
-                onClick={() => handleDownload(selectedContent)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Download
-              </button>
+            <div className="flex justify-between p-6 border-t border-slate-200">
+              <div className="flex items-center gap-3">
+                <QuickWordPressPublishButton
+                  contentId={selectedContent.id}
+                  contentType="content"
+                  contentTitle={selectedContent.topic}
+                  contentBody={selectedContent.content_output}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                  onSuccess={(result) => {
+                    // You could add a success message here
+                  }}
+                  onError={(error) => {
+                    // You could add an error message here
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setSelectedContent(null);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Edit className="w-5 h-5" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDownload(selectedContent)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Content Editor Modal */}
+      {isEditing && selectedContent && (
+        <ContentEditor
+          content={selectedContent}
+          onClose={() => {
+            setSelectedContent(null);
+            setIsEditing(false);
+          }}
+          onSave={(updatedContent) => {
+            handleContentUpdate(updatedContent);
+            setSelectedContent(null);
+            setIsEditing(false);
+          }}
+        />
       )}
     </div>
   );

@@ -250,6 +250,9 @@ export default function Nav({ user }) {
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Link href="/blog" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
+            Blog
+          </Link>
           <Link href="/pricing" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
             Pricing
           </Link>
@@ -327,6 +330,9 @@ export default function Nav({ user }) {
             </Link>
             <Link href="/templates" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
               Templates
+            </Link>
+            <Link href="/blog" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
+              Blog
             </Link>
             <Link href="/projects" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
               Projects

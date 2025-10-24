@@ -4,6 +4,7 @@ import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Sh
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
+import BlogSection from "../components/BlogSection";
 import { supabaseBrowser } from '@/lib/supabase/browser';
 const HomePage = () => {
     const [isYearly, setIsYearly] = useState(true);
@@ -334,6 +335,9 @@ const HomePage = () => {
                     </div>
                 </section>
 
+                {/* Blog Section */}
+                <BlogSection maxPosts={3} />
+
                 {/* Pricing Section */}
                 <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" id="pricing">
                     <div className="max-w-6xl mx-auto">
@@ -580,7 +584,7 @@ const HomePage = () => {
                                 <h3 className="font-semibold text-slate-900 mb-4">Company</h3>
                                 <div className="space-y-3">
                                     <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">About</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Blog</a>
+                                    <Link href="/blog" className="block text-slate-600 hover:text-slate-900 transition-colors">Blog</Link>
                                     <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Careers</a>
                                     <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Contact</a>
                                 </div>

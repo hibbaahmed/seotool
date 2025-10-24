@@ -187,4 +187,99 @@ export class WordPressAPI {
       )
       .map(result => result.value);
   }
+
+  // Delete a post
+  async deletePost(id: number): Promise<{ deleted: boolean; previous: WordPressPost }> {
+    return this.makeRequest(`/posts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Get a single post
+  async getPost(id: number): Promise<WordPressPost> {
+    return this.makeRequest(`/posts/${id}`);
+  }
+
+  // Get posts by category
+  async getPostsByCategory(categoryId: number, params: {
+    per_page?: number;
+    page?: number;
+    status?: string;
+  } = {}): Promise<WordPressPost[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('categories', categoryId.toString());
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    return this.makeRequest(`/posts?${queryParams.toString()}`);
+  }
+
+  // Get posts by tag
+  async getPostsByTag(tagId: number, params: {
+    per_page?: number;
+    page?: number;
+    status?: string;
+  } = {}): Promise<WordPressPost[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('tags', tagId.toString());
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    return this.makeRequest(`/posts?${queryParams.toString()}`);
+  }
+
+  // Search posts
+  async searchPosts(query: string, params: {
+    per_page?: number;
+    page?: number;
+    status?: string;
+  } = {}): Promise<WordPressPost[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('search', query);
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    return this.makeRequest(`/posts?${queryParams.toString()}`);
+  }
+
+  // Get media by post ID
+  async getPostMedia(postId: number): Promise<any[]> {
+    return this.makeRequest(`/media?parent=${postId}`);
+  }
+
+  // Update post status
+  async updatePostStatus(id: number, status: 'draft' | 'publish' | 'private' | 'pending'): Promise<WordPressPost> {
+    return this.makeRequest(`/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Duplicate a post
+  async duplicatePost(id: number, newTitle?: string): Promise<WordPressPost> {
+    const originalPost = await this.getPost(id);
+    
+    const duplicatedPost = {
+      ...originalPost,
+      title: newTitle || `${originalPost.title} (Copy)`,
+      status: 'draft' as const,
+    };
+
+    // Remove the ID so WordPress creates a new post
+    delete duplicatedPost.id;
+
+    return this.createPost(duplicatedPost);
+  }
 }
