@@ -6,6 +6,7 @@ import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButto
 
 interface SavedContent {
   id: string;
+  user_id: string;
   topic: string;
   content_type: string;
   target_audience: string;
@@ -13,6 +14,7 @@ interface SavedContent {
   length: string;
   additional_context: string;
   content_output: string;
+  image_urls: string[];
   created_at: string;
   updated_at: string;
 }
@@ -206,6 +208,19 @@ const ContentEditor: React.FC<ContentEditorProps> = ({ content, onClose, onSave 
                   <option value="friendly">Friendly</option>
                   <option value="authoritative">Authoritative</option>
                   <option value="conversational">Conversational</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Length</label>
+                <select
+                  value={editedContent.length}
+                  onChange={(e) => setEditedContent(prev => ({ ...prev, length: e.target.value }))}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-50 disabled:text-slate-500"
+                >
+                  <option value="short">Short</option>
+                  <option value="medium">Medium</option>
+                  <option value="long">Long</option>
                 </select>
               </div>
             </div>
