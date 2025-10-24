@@ -674,7 +674,7 @@ async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext):
                 difficulty: kd,
                 cpc: cpc,
                 opportunityLevel: calculateOpportunityLevel(sv, kd),
-                source: 'dataforseo_discovery',
+                source: 'dataforseo_discovery' as const,
                 keywordIntent: 'informational', // Default, could be enhanced
                 relatedKeywords: [] // Empty array for newly discovered keywords
               });
@@ -685,7 +685,7 @@ async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext):
     }
 
     // Enrich existing keywords
-    const enrichedKeywords = keywords.map(k => {
+    const enrichedKeywords: KeywordData[] = keywords.map(k => {
       const m = metricMap.get(k.keyword.toLowerCase());
       if (!m) return k;
       return {
@@ -693,7 +693,7 @@ async function enrichWithDataForSeo(keywords: KeywordData[], seed: SeedContext):
         searchVolume: m.sv || k.searchVolume,
         difficulty: isFinite(m.kd) && m.kd >= 0 && m.kd <= 100 ? m.kd : k.difficulty,
         cpc: isFinite(m.cpc) ? m.cpc : k.cpc,
-        source: 'dataforseo', // Mark as DataForSEO enriched
+        source: 'dataforseo' as const, // Mark as DataForSEO enriched
       };
     });
     
