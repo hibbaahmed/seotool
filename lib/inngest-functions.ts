@@ -30,18 +30,18 @@ export const scheduleBlogPost = inngest.createFunction(
     }
 
     // Schedule the post for future publishing
-    return await step.sleepUntil('schedule-publish', publishDateTime, async () => {
-      await inngest.send({
-        name: 'blog/post.publish',
-        data: {
-          postId,
-          platform,
-          title,
-          content,
-          userId,
-          imageUrls,
-        },
-      });
+    await step.sleepUntil('schedule-publish', publishDateTime);
+    
+    await inngest.send({
+      name: 'blog/post.publish',
+      data: {
+        postId,
+        platform,
+        title,
+        content,
+        userId,
+        imageUrls,
+      },
     });
   }
 );
