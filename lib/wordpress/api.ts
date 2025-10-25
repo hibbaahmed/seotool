@@ -1,4 +1,5 @@
 // WordPress REST API Integration Service
+
 export interface WordPressSite {
   id: string;
   name: string;
@@ -17,7 +18,7 @@ export interface WordPressPost {
   excerpt?: string;
   status: 'draft' | 'publish' | 'private' | 'pending';
   categories?: number[];
-  tags?: string[];
+  tags?: number[];
   featured_media?: number;
   meta?: Record<string, any>;
 }
@@ -131,7 +132,7 @@ export class WordPressAPI {
 
   // Get tags
   async getTags(): Promise<WordPressTag[]> {
-    return this.makeRequest('/tags');
+    return this.makeRequest('/tags?per_page=100');
   }
 
   // Create tag
@@ -140,6 +141,38 @@ export class WordPressAPI {
       method: 'POST',
       body: JSON.stringify({ name, slug }),
     });
+  }
+
+  /**
+   * Get or create tag IDs from tag names
+   * If a tag doesn't exist, it will be created
+   */
+  async getOrCreateTagIds(tagNames: string[]): Promise<number[]> {
+    const tagIds: number[] = [];
+
+    for (const tagName of tagNames) {
+      try {
+        // First, try to find existing tag
+        const existingTags = await this.getTags();
+        const existingTag = existingTags.find(
+          tag => tag.name.toLowerCase() === tagName.toLowerCase()
+        );
+
+        if (existingTag) {
+          tagIds.push(existingTag.id);
+        } else {
+          // Tag doesn't exist, create it
+          const slug = tagName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const newTag = await this.createTag(tagName, slug);
+          tagIds.push(newTag.id);
+        }
+      } catch (error) {
+        console.error(`Error processing tag "${tagName}":`, error);
+        // Continue with other tags even if one fails
+      }
+    }
+
+    return tagIds;
   }
 
   // Upload media
@@ -180,7 +213,7 @@ export class WordPressAPI {
     const results = await Promise.allSettled(
       posts.map(post => this.createPost(post))
     );
-
+    
     return results
       .filter((result): result is PromiseFulfilledResult<WordPressPost> => 
         result.status === 'fulfilled'

@@ -78,9 +78,21 @@ export async function POST(request: NextRequest) {
       updatedAt: (site as any).updated_at,
     });
 
+    // Convert tag names to tag IDs if tags are provided as strings
+    let tagIds: number[] = [];
+    if (publishOptions.tags && publishOptions.tags.length > 0) {
+      // Check if tags are strings (names) or numbers (IDs)
+      if (typeof publishOptions.tags[0] === 'string') {
+        // Tags are names, need to convert to IDs
+        tagIds = await wpAPI.getOrCreateTagIds(publishOptions.tags);
+      } else {
+        // Tags are already IDs
+        tagIds = publishOptions.tags;
+      }
+    }
+
     // Prepare WordPress post data
     let postData;
-
     switch (contentType) {
       case 'content':
         postData = {
@@ -89,7 +101,7 @@ export async function POST(request: NextRequest) {
           excerpt: (content as any).content_output.substring(0, 160) + '...',
           status: publishOptions.status || 'draft',
           categories: publishOptions.categories || [],
-          tags: publishOptions.tags || [],
+          tags: tagIds,
           meta: {
             content_type: (content as any).content_type,
             target_audience: (content as any).target_audience,
@@ -98,15 +110,21 @@ export async function POST(request: NextRequest) {
           },
         };
         break;
-
       case 'analysis':
+        // Get or create tag IDs for default tags
+        const analysisTagIds = await wpAPI.getOrCreateTagIds([
+          'competitive-analysis', 
+          'business-analysis',
+          ...publishOptions.tags || []
+        ]);
+        
         postData = {
           title: `Competitive Analysis: ${(content as any).company_name} vs ${(content as any).competitor_name}`,
           content: (content as any).analysis_output,
           excerpt: (content as any).analysis_output.substring(0, 160) + '...',
           status: publishOptions.status || 'draft',
           categories: publishOptions.categories || [],
-          tags: publishOptions.tags || ['competitive-analysis', 'business-analysis'],
+          tags: analysisTagIds,
           meta: {
             analysis_type: (content as any).analysis_type,
             company_name: (content as any).company_name,
@@ -114,15 +132,22 @@ export async function POST(request: NextRequest) {
           },
         };
         break;
-
       case 'seo_research':
+        // Get or create tag IDs for default tags
+        const seoTagIds = await wpAPI.getOrCreateTagIds([
+          'seo', 
+          'research', 
+          'keywords',
+          ...publishOptions.tags || []
+        ]);
+        
         postData = {
           title: `SEO Research: ${(content as any).query}`,
           content: (content as any).research_output,
           excerpt: (content as any).research_output.substring(0, 160) + '...',
           status: publishOptions.status || 'draft',
           categories: publishOptions.categories || [],
-          tags: publishOptions.tags || ['seo', 'research', 'keywords'],
+          tags: seoTagIds,
           meta: {
             research_type: (content as any).research_type,
             target_audience: (content as any).target_audience,
@@ -158,11 +183,11 @@ export async function POST(request: NextRequest) {
       post: publishedPost,
       message: `Content successfully published to ${(site as any).name}` 
     });
-
   } catch (error) {
     console.error('WordPress publishing error:', error);
     return NextResponse.json({ 
-      error: 'Failed to publish content to WordPress' 
+      error: 'Failed to publish content to WordPress',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
