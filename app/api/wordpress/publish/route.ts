@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
           title: (content as any).topic,
           content: (content as any).content_output,
           excerpt: (content as any).content_output.substring(0, 160) + '...',
-          status: publishOptions.status || 'draft',
+          status: publishOptions.status || 'publish',
           categories: publishOptions.categories || [],
           tags: tagIds,
           meta: {
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           title: `Competitive Analysis: ${(content as any).company_name} vs ${(content as any).competitor_name}`,
           content: (content as any).analysis_output,
           excerpt: (content as any).analysis_output.substring(0, 160) + '...',
-          status: publishOptions.status || 'draft',
+          status: publishOptions.status || 'publish',
           categories: publishOptions.categories || [],
           tags: analysisTagIds,
           meta: {
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           title: `SEO Research: ${(content as any).query}`,
           content: (content as any).research_output,
           excerpt: (content as any).research_output.substring(0, 160) + '...',
-          status: publishOptions.status || 'draft',
+          status: publishOptions.status || 'publish',
           categories: publishOptions.categories || [],
           tags: seoTagIds,
           meta: {

@@ -52,7 +52,7 @@ const QuickWordPressPublishButton: React.FC<QuickPublishButtonProps> = ({
           contentId: contentId,
           contentType: contentType,
           publishOptions: {
-            status: 'draft',
+            status: 'publish',
             excerpt: contentBody.substring(0, 160) + '...',
             tags: ['ai-generated', 'seo-tool']
           }
@@ -62,7 +62,7 @@ const QuickWordPressPublishButton: React.FC<QuickPublishButtonProps> = ({
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('Content published to WordPress as draft!');
+        setMessage('Content published to WordPress!');
         setMessageType('success');
         onSuccess?.(data);
       } else {

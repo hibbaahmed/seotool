@@ -274,7 +274,7 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
           contentId: item.id,
           contentType: item.type,
           publishOptions: {
-            status: 'draft', // Default to draft for safety
+            status: 'publish', // Publish immediately
           },
         }),
       });

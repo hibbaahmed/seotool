@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       title, 
       content, 
       excerpt, 
-      status = 'draft',
+      status = 'publish',
       categories = [],
       tags = [],
       featuredImage,
