@@ -153,9 +153,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Categories */}
                 {post.categories.nodes.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {post.categories.nodes.map((category) => (
+                    {post.categories.nodes.map((category, index) => (
                       <span
-                        key={category.slug}
+                        key={`${category.slug}-${index}`}
                         className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
                       >
                         {category.name}
@@ -206,9 +206,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="mt-12 pt-8 border-t border-slate-200">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Tags</h3>
                     <div className="flex flex-wrap gap-2">
-                      {post.tags.nodes.map((tag) => (
+                      {post.tags.nodes.map((tag, index) => (
                         <Link
-                          key={tag.slug}
+                          key={`${tag.slug}-${index}`}
                           href={`/blog/tag/${tag.slug}`}
                           className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm hover:bg-slate-200 transition-colors"
                         >
