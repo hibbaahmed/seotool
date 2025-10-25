@@ -22,9 +22,51 @@ const BlogPage = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState('All');
+
+  // Fetch WordPress posts
+  const fetchWordPressPosts = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/wordpress/posts?limit=50');
+      const data = await response.json();
+      
+      if (response.ok && data.posts) {
+        // Transform WordPress posts to our BlogPost format
+        const transformedPosts: BlogPost[] = data.posts.map((post: any) => ({
+          id: post.id.toString(),
+          title: post.title || 'Untitled',
+          excerpt: post.excerpt || post.content?.substring(0, 150) + '...' || '',
+          content: post.content || '',
+          publishedAt: post.date || new Date().toISOString(),
+          readTime: Math.ceil((post.content?.length || 0) / 500), // Rough estimate
+          author: post.author_name || 'Bridgely Team',
+          category: post.category_name || 'General',
+          tags: post.tags || [],
+          featuredImage: post.featured_media_url,
+          slug: post.slug || post.id.toString()
+        }));
+        
+        setPosts(transformedPosts);
+        setFilteredPosts(transformedPosts);
+      } else {
+        throw new Error(data.error || 'Failed to fetch posts');
+      }
+    } catch (err) {
+      console.error('Error fetching WordPress posts:', err);
+      setError('Failed to load blog posts');
+      // Fall back to sample posts if WordPress fetch fails
+      setPosts(samplePosts);
+      setFilteredPosts(samplePosts);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sample data - in production, this would come from WordPress API
   const samplePosts: BlogPost[] = [
@@ -127,12 +169,7 @@ const BlogPage = () => {
   ];
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setPosts(samplePosts);
-      setFilteredPosts(samplePosts);
-      setLoading(false);
-    }, 1000);
+    fetchWordPressPosts();
   }, []);
 
   useEffect(() => {

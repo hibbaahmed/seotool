@@ -30,7 +30,53 @@ const BlogSection: React.FC<BlogSectionProps> = ({
 }) => {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(posts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const initialized = useRef(false);
+
+  // Fetch WordPress posts
+  const fetchWordPressPosts = async () => {
+    if (loading || initialized.current) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/wordpress/posts?limit=${maxPosts}`);
+      const data = await response.json();
+      
+      if (response.ok && data.posts) {
+        // Transform WordPress posts to our BlogPost format
+        const transformedPosts: BlogPost[] = data.posts.map((post: any) => ({
+          id: post.id.toString(),
+          title: post.title || 'Untitled',
+          excerpt: post.excerpt || post.content?.substring(0, 150) + '...' || '',
+          content: post.content || '',
+          publishedAt: post.date || new Date().toISOString(),
+          readTime: Math.ceil((post.content?.length || 0) / 500), // Rough estimate
+          author: post.author_name || 'Bridgely Team',
+          category: post.category_name || 'General',
+          tags: post.tags || [],
+          featuredImage: post.featured_media_url,
+          slug: post.slug || post.id.toString()
+        }));
+        
+        setBlogPosts(transformedPosts);
+        initialized.current = true;
+      } else {
+        throw new Error(data.error || 'Failed to fetch posts');
+      }
+    } catch (err) {
+      console.error('Error fetching WordPress posts:', err);
+      setError('Failed to load blog posts');
+      // Fall back to sample posts if WordPress fetch fails
+      if (!initialized.current) {
+        setBlogPosts(samplePosts.slice(0, maxPosts));
+        initialized.current = true;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sample blog posts data - in a real app, this would come from your WordPress API
   const samplePosts: BlogPost[] = [
@@ -111,11 +157,11 @@ const BlogSection: React.FC<BlogSectionProps> = ({
   useEffect(() => {
     if (posts.length > 0) {
       setBlogPosts(posts);
-    } else if (!initialized.current) {
-      setBlogPosts(samplePosts);
       initialized.current = true;
+    } else {
+      fetchWordPressPosts();
     }
-  }, [posts]);
+  }, [posts, maxPosts]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -161,7 +207,31 @@ const BlogSection: React.FC<BlogSectionProps> = ({
           </p>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading blog posts...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+              <p className="text-red-700 mb-2">{error}</p>
+              <button 
+                onClick={fetchWordPressPosts}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Blog Posts Grid */}
+        {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {displayedPosts.map((post) => (
             <article 
@@ -236,34 +306,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
             </article>
           ))}
         </div>
-
-        {/* CTA Section */}
-        <div className="text-center">
-          {!showAllPosts && (
-            <Link 
-              href="/blog"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              View All Blog Posts
-              <ExternalLink className="w-5 h-5" />
-            </Link>
-          )}
-          
-          <div className="mt-8 flex items-center justify-center gap-8 text-slate-500 text-sm">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              <span>Weekly insights</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              <span>Expert strategies</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span>Industry leaders</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
