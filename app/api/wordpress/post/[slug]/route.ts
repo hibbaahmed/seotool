@@ -63,23 +63,11 @@ export async function GET(
     if (!responseSelf.ok) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
-    const posts = await responseSelf.json();
-    if (!posts || posts.length === 0) {
+    const postsArr = await responseSelf.json();
+    if (!Array.isArray(postsArr) || postsArr.length === 0) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
-    const post = posts[0];
-
-    if (!response.ok) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
-    }
-
-    const posts = await response.json();
-    
-    if (!posts || posts.length === 0) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
-    }
-
-    const post = posts[0];
+    const post = postsArr[0];
 
     // Transform REST API response to match GraphQL format
     const transformedPost = {
