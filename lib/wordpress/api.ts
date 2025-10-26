@@ -1,5 +1,7 @@
 // WordPress REST API Integration Service
 
+import { marked } from 'marked';
+
 export interface WordPressSite {
   id: string;
   name: string;
@@ -67,6 +69,12 @@ export class WordPressAPI {
     return response.json();
   }
 
+  private convertMarkdownToHtml(markdown: string): string {
+    // Convert markdown to HTML and return as string
+    const html = marked.parse(markdown, { async: false });
+    return typeof html === 'string' ? html : String(html);
+  }
+
   // Test connection
   async testConnection(): Promise<boolean> {
     try {
@@ -85,9 +93,14 @@ export class WordPressAPI {
 
   // Create a new post
   async createPost(post: WordPressPost): Promise<WordPressPost> {
+    const postWithHtmlContent = {
+      ...post,
+      content: this.convertMarkdownToHtml(post.content),
+    };
+
     return this.makeRequest('/posts', {
       method: 'POST',
-      body: JSON.stringify(post),
+      body: JSON.stringify(postWithHtmlContent),
     });
   }
 

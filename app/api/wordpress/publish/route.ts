@@ -2,6 +2,55 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
 
+// Helper function to extract clean content from AI output
+function extractContentFromAIOutput(fullOutput: string): string {
+  // Split by sections
+  const sections = fullOutput.split(/^(##? |\d+\. \*\*)/m);
+  
+  // Find the "Content" section
+  let contentStartIndex = -1;
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    // Check if this section is the Content section
+    if (section.includes('**Content**') || section.includes('# Content') || section.match(/^3\.?\s*\*\*Content/)) {
+      contentStartIndex = i + 1;
+      break;
+    }
+  }
+  
+  // If we found the Content section, extract everything after it
+  if (contentStartIndex !== -1 && contentStartIndex < sections.length) {
+    const contentParts = sections.slice(contentStartIndex);
+    let extractedContent = contentParts.join('');
+    
+    // Remove any trailing sections like "Image Suggestions", "SEO Suggestions", "Call-to-Action"
+    const stopKeywords = [
+      '\n## Image Suggestions',
+      '\n## SEO Suggestions',
+      '\n## Call-to-Action',
+      '\n**Image Suggestions**',
+      '\n**SEO Suggestions**',
+      '\n**Call-to-Action**',
+      '\n4. **Image',
+      '\n5. **SEO',
+      '\n6. **Call'
+    ];
+    
+    for (const keyword of stopKeywords) {
+      const index = extractedContent.indexOf(keyword);
+      if (index !== -1) {
+        extractedContent = extractedContent.substring(0, index);
+        break;
+      }
+    }
+    
+    return extractedContent.trim();
+  }
+  
+  // If no Content section found, return the full output
+  return fullOutput;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -95,10 +144,12 @@ export async function POST(request: NextRequest) {
     let postData;
     switch (contentType) {
       case 'content':
+        // Extract clean content from AI output (removes title, meta description, etc.)
+        const extractedContent = extractContentFromAIOutput((content as any).content_output);
         postData = {
           title: (content as any).topic,
-          content: (content as any).content_output,
-          excerpt: (content as any).content_output.substring(0, 160) + '...',
+          content: extractedContent,
+          excerpt: extractedContent.substring(0, 160).replace(/[#*]/g, '') + '...',
           status: publishOptions.status || 'publish',
           categories: publishOptions.categories || [],
           tags: tagIds,

@@ -7,11 +7,13 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const page = parseInt(searchParams.get('page') || '1');
 
-    const wordpressUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-    
-    if (!wordpressUrl) {
+    // Resolve WordPress base URL from env and derive hostname
+    const wordpressBase = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+    if (!wordpressBase) {
       return NextResponse.json({ error: 'WordPress URL not configured' }, { status: 500 });
     }
+
+    const wordpressHostname = new URL(wordpressBase).hostname;
 
     // Try GraphQL first, fallback to REST API
     try {
@@ -58,32 +60,44 @@ export async function GET(request: NextRequest) {
       console.log('GraphQL not available, falling back to REST API');
     }
 
-    // Fallback to WordPress REST API
-    const response = await fetch(`${wordpressUrl}/wp-json/wp/v2/posts?per_page=${limit}&page=${page}&status=publish&_embed`, {
-      next: { tags: ['wordpress'] }
-    });
+    // Fallback to REST API
+    // If this is a WordPress.com hosted site, use the WordPress.com REST API
+    let response: Response;
+    if (wordpressHostname.endsWith('wordpress.com')) {
+      const wpcomEndpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${wordpressHostname}/posts/?number=${limit}&page=${page}&status=publish`;
+      response = await fetch(wpcomEndpoint, { next: { tags: ['wordpress'] } });
+    } else {
+      // Self-hosted WordPress
+      const wpjsonEndpoint = `${wordpressBase.replace(/\/$/, '')}/wp-json/wp/v2/posts?per_page=${limit}&page=${page}&status=publish&_embed`;
+      response = await fetch(wpjsonEndpoint, { next: { tags: ['wordpress'] } });
+    }
 
     if (!response.ok) {
       throw new Error(`WordPress API error: ${response.status}`);
     }
 
-    const posts = await response.json();
+    const raw = await response.json();
+    const posts = Array.isArray(raw) ? raw : (raw.posts || []);
 
     // Transform REST API response to match our existing format
-    const transformedPosts = posts.map((post: any) => ({
-      id: post.id,
-      title: post.title.rendered,
-      excerpt: post.excerpt.rendered?.replace(/<[^>]*>/g, '') || '',
-      content: post.content.rendered,
-      slug: post.slug,
-      date: post.date,
-      modified: post.modified,
-      author_name: post._embedded?.author?.[0]?.name || 'Bridgely Team',
-      category_name: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
-      tags: post._embedded?.['wp:term']?.[1]?.map((tag: any) => tag.name) || [],
-      featured_media_url: post._embedded?.['wp:featuredmedia']?.[0]?.source_url,
-      seo: null // REST API doesn't include SEO data by default
-    }));
+    const transformedPosts = posts.map((post: any) => {
+      // Normalize both WP.com and self-hosted responses
+      const isWPCom = !!post.ID; // WP.com uses ID (caps)
+      return {
+        id: isWPCom ? post.ID : post.id,
+        title: isWPCom ? post.title : post.title?.rendered,
+        excerpt: (isWPCom ? post.excerpt : post.excerpt?.rendered)?.replace(/<[^>]*>/g, '') || '',
+        content: isWPCom ? post.content : post.content?.rendered,
+        slug: post.slug,
+        date: post.date,
+        modified: post.modified,
+        author_name: isWPCom ? post.author?.name : post._embedded?.author?.[0]?.name || 'Bridgely Team',
+        category_name: isWPCom ? Object.keys(post.categories || {})[0] || 'General' : post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
+        tags: isWPCom ? Object.keys(post.tags || {}) : (post._embedded?.['wp:term']?.[1]?.map((t: any) => t.name) || []),
+        featured_media_url: isWPCom ? post.featured_image : post._embedded?.['wp:featuredmedia']?.[0]?.source_url,
+        seo: null
+      };
+    });
 
     return NextResponse.json({ 
       posts: transformedPosts,

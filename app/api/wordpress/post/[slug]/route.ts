@@ -6,9 +6,9 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-    const wordpressUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+    const wordpressBase = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
     
-    if (!wordpressUrl) {
+    if (!wordpressBase) {
       return NextResponse.json({ error: 'WordPress URL not configured' }, { status: 500 });
     }
 
@@ -30,10 +30,44 @@ export async function GET(
       console.log('GraphQL not available, falling back to REST API');
     }
 
-    // Fallback to WordPress REST API
-    const response = await fetch(`${wordpressUrl}/wp-json/wp/v2/posts?slug=${slug}&status=publish&_embed`, {
-      next: { tags: ['wordpress'] }
-    });
+    // Fallback to REST API
+    const hostname = new URL(wordpressBase).hostname;
+    let response: Response;
+    if (hostname.endsWith('wordpress.com')) {
+      const endpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${hostname}/posts/slug:${slug}`;
+      response = await fetch(endpoint, { next: { tags: ['wordpress'] } });
+      if (!response.ok) {
+        return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      }
+      const post = await response.json();
+      if (!post || !post.ID) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      const transformedPost = {
+        id: post.ID,
+        title: post.title,
+        content: post.content,
+        excerpt: (post.excerpt || '').replace(/<[^>]*>/g, ''),
+        slug: post.slug,
+        date: post.date,
+        modified: post.modified,
+        author: { node: { name: post.author?.name || 'Bridgely Team' } },
+        categories: { nodes: Object.keys(post.categories || {}).map((name) => ({ name })) },
+        tags: { nodes: Object.keys(post.tags || {}).map((name) => ({ name })) },
+        featuredImage: post.featured_image ? { node: { sourceUrl: post.featured_image } } : null,
+        seo: null
+      };
+      return NextResponse.json({ post: transformedPost });
+    }
+
+    // Self-hosted WordPress
+    const responseSelf = await fetch(`${wordpressBase.replace(/\/$/, '')}/wp-json/wp/v2/posts?slug=${slug}&status=publish&_embed`, { next: { tags: ['wordpress'] } });
+    if (!responseSelf.ok) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+    const posts = await responseSelf.json();
+    if (!posts || posts.length === 0) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+    const post = posts[0];
 
     if (!response.ok) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
