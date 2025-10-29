@@ -169,3 +169,6 @@ Your blog scheduling system is now fully automated. Users can:
 5. Cancel posts if needed
 
 Posts will be published automatically at the scheduled time!
+
+
+

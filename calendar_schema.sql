@@ -54,3 +54,6 @@ EXECUTE FUNCTION update_scheduled_posts_updated_at();
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_date ON scheduled_posts(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_user_date ON scheduled_posts(user_id, scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status);
+
+
+

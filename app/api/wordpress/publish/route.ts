@@ -86,6 +86,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'WordPress site not found' }, { status: 404 });
     }
 
+    // Check if this is a WordPress.com site (OAuth)
+    const isWPCom = (site as any).provider === 'wpcom';
+    let publishedPost;
+
     // Get the content based on type
     let contentData;
     let tableName;
@@ -115,28 +119,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Content not found' }, { status: 404 });
     }
 
-    // Initialize WordPress API
-    const wpAPI = new WordPressAPI({
-      id: (site as any).id,
-      name: (site as any).name,
-      url: (site as any).url,
-      username: (site as any).username,
-      password: (site as any).password,
-      isActive: (site as any).is_active,
-      createdAt: (site as any).created_at,
-      updatedAt: (site as any).updated_at,
-    });
-
-    // Convert tag names to tag IDs if tags are provided as strings
+    // Initialize WordPress API (only for self-hosted)
+    let wpAPI;
     let tagIds: number[] = [];
-    if (publishOptions.tags && publishOptions.tags.length > 0) {
-      // Check if tags are strings (names) or numbers (IDs)
-      if (typeof publishOptions.tags[0] === 'string') {
-        // Tags are names, need to convert to IDs
-        tagIds = await wpAPI.getOrCreateTagIds(publishOptions.tags);
-      } else {
-        // Tags are already IDs
-        tagIds = publishOptions.tags;
+    
+    if (!isWPCom) {
+      wpAPI = new WordPressAPI({
+        id: (site as any).id,
+        name: (site as any).name,
+        url: (site as any).url,
+        username: (site as any).username,
+        password: (site as any).password,
+        isActive: (site as any).is_active,
+        createdAt: (site as any).created_at,
+        updatedAt: (site as any).updated_at,
+      });
+
+      // Convert tag names to tag IDs if tags are provided as strings
+      if (publishOptions.tags && publishOptions.tags.length > 0) {
+        // Check if tags are strings (names) or numbers (IDs)
+        if (typeof publishOptions.tags[0] === 'string') {
+          // Tags are names, need to convert to IDs
+          tagIds = await wpAPI.getOrCreateTagIds(publishOptions.tags);
+        } else {
+          // Tags are already IDs
+          tagIds = publishOptions.tags;
+        }
       }
     }
 
@@ -162,12 +170,15 @@ export async function POST(request: NextRequest) {
         };
         break;
       case 'analysis':
-        // Get or create tag IDs for default tags
-        const analysisTagIds = await wpAPI.getOrCreateTagIds([
-          'competitive-analysis', 
-          'business-analysis',
-          ...publishOptions.tags || []
-        ]);
+        // Get or create tag IDs for default tags (only for self-hosted)
+        let analysisTagIds = tagIds;
+        if (!isWPCom && wpAPI) {
+          analysisTagIds = await wpAPI.getOrCreateTagIds([
+            'competitive-analysis', 
+            'business-analysis',
+            ...publishOptions.tags || []
+          ]);
+        }
         
         postData = {
           title: `Competitive Analysis: ${(content as any).company_name} vs ${(content as any).competitor_name}`,
@@ -184,13 +195,16 @@ export async function POST(request: NextRequest) {
         };
         break;
       case 'seo_research':
-        // Get or create tag IDs for default tags
-        const seoTagIds = await wpAPI.getOrCreateTagIds([
-          'seo', 
-          'research', 
-          'keywords',
-          ...publishOptions.tags || []
-        ]);
+        // Get or create tag IDs for default tags (only for self-hosted)
+        let seoTagIds = tagIds;
+        if (!isWPCom && wpAPI) {
+          seoTagIds = await wpAPI.getOrCreateTagIds([
+            'seo', 
+            'research', 
+            'keywords',
+            ...publishOptions.tags || []
+          ]);
+        }
         
         postData = {
           title: `SEO Research: ${(content as any).query}`,
@@ -208,12 +222,55 @@ export async function POST(request: NextRequest) {
         break;
     }
 
-    // Schedule post if publish date is provided
-    let publishedPost;
-    if (publishOptions.publishDate) {
-      publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);
+    // Publish to WordPress
+    if (isWPCom) {
+      // Use WordPress.com REST API
+      const accessToken = (site as any).access_token;
+      const siteIdNum = (site as any).site_id;
+
+      if (!accessToken || !siteIdNum) {
+        return NextResponse.json({ 
+          error: 'WordPress.com site missing credentials' 
+        }, { status: 400 });
+      }
+
+      // WordPress.com API endpoint
+      const endpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${siteIdNum}/posts/new`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: postData.title,
+          content: postData.content,
+          excerpt: publishOptions.excerpt || postData.excerpt,
+          status: publishOptions.status || 'publish',
+          tags: publishOptions.tags || [],
+          categories: publishOptions.categories || [],
+          date: publishOptions.publishDate || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('WordPress.com publishing error:', error);
+        return NextResponse.json({ 
+          error: 'Failed to publish to WordPress.com',
+          details: error
+        }, { status: response.status });
+      }
+
+      publishedPost = await response.json();
     } else {
-      publishedPost = await wpAPI.createPost(postData as any);
+      // Use self-hosted WordPress REST API
+      if (publishOptions.publishDate) {
+        publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);
+      } else {
+        publishedPost = await wpAPI.createPost(postData as any);
+      }
     }
 
     // Log the publishing activity
