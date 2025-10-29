@@ -205,6 +205,7 @@ export default function KeywordsDashboard() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>('');
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   // Sleek segmented time picker: hour / minute / period
   const [timeHour, setTimeHour] = useState<string>('06');
   const [timeMinute, setTimeMinute] = useState<string>('00');
@@ -216,10 +217,63 @@ export default function KeywordsDashboard() {
     return String(h).padStart(2, '0');
   };
 
+  const from24HourTo12Hour = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    let h = parseInt(hours, 10);
+    const period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return { hour: String(h).padStart(2, '0'), minute: minutes, period };
+  };
+
   const addToQueue = async (keywordId: string) => {
-    // Show date picker modal
+    const keyword = keywords.find(k => k.id === keywordId);
+    
     setSelectedKeywordId(keywordId);
-    setShowDatePicker(true);
+    
+    if (keyword?.queued) {
+      // Editing existing schedule - fetch current schedule data BEFORE opening modal
+      setIsEditingSchedule(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data, error } = await supabase
+          .from('discovered_keywords')
+          .select('scheduled_date, scheduled_time')
+          .eq('id', keywordId)
+          .single();
+        
+        if (data && !error) {
+          setSelectedScheduleDate((data as any).scheduled_date || '');
+          if ((data as any).scheduled_time) {
+            const { hour, minute, period } = from24HourTo12Hour((data as any).scheduled_time);
+            setTimeHour(hour);
+            setTimeMinute(minute);
+            setTimePeriod(period as 'AM' | 'PM');
+          } else {
+            // Fallback if no time stored
+            setTimeHour('06');
+            setTimeMinute('00');
+            setTimePeriod('AM');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+        // Set defaults on error
+        setTimeHour('06');
+        setTimeMinute('00');
+        setTimePeriod('AM');
+      }
+      // Open modal AFTER data is loaded
+      setShowDatePicker(true);
+    } else {
+      // New schedule - reset to defaults
+      setIsEditingSchedule(false);
+      setSelectedScheduleDate('');
+      setTimeHour('06');
+      setTimeMinute('00');
+      setTimePeriod('AM');
+      // Open modal immediately for new schedules
+      setShowDatePicker(true);
+    }
   };
 
   const scheduleKeyword = async () => {
@@ -250,11 +304,12 @@ export default function KeywordsDashboard() {
         setShowDatePicker(false);
         setSelectedKeywordId(null);
         setSelectedScheduleDate('');
+        setIsEditingSchedule(false);
         setTimeHour('06');
         setTimeMinute('00');
         setTimePeriod('AM');
         
-        alert(`Keyword scheduled successfully! It will be generated on ${scheduledAt.toLocaleString()}.`);
+        alert(`Keyword ${isEditingSchedule ? 'rescheduled' : 'scheduled'} successfully! It will be generated on ${scheduledAt.toLocaleString()}.`);
       } else {
         const error = await response.json();
         alert(error.message || 'Failed to schedule keyword');
@@ -507,13 +562,23 @@ export default function KeywordsDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => addToQueue(keyword.id)}
-                          className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                          className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
                             keyword.queued
                               ? 'bg-green-100 text-green-700 hover:bg-green-200'
                               : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                           }`}
                         >
-                          {keyword.queued ? 'In Queue' : 'Add to Calendar'}
+                          {keyword.queued ? (
+                            <>
+                              <Clock className="h-3 w-3" />
+                              Edit Schedule
+                            </>
+                          ) : (
+                            <>
+                              <Calendar className="h-3 w-3" />
+                              Add to Calendar
+                            </>
+                          )}
                         </button>
                       </td>
                     </tr>
@@ -542,12 +607,15 @@ export default function KeywordsDashboard() {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-slate-900">Schedule for Calendar</h3>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {isEditingSchedule ? 'Edit Schedule' : 'Schedule for Calendar'}
+                  </h3>
                   <button
                     onClick={() => {
                       setShowDatePicker(false);
                       setSelectedKeywordId(null);
                       setSelectedScheduleDate('');
+                      setIsEditingSchedule(false);
                       setTimeHour('06');
                       setTimeMinute('00');
                       setTimePeriod('AM');
@@ -615,6 +683,7 @@ export default function KeywordsDashboard() {
                       setShowDatePicker(false);
                       setSelectedKeywordId(null);
                       setSelectedScheduleDate('');
+                      setIsEditingSchedule(false);
                       setTimeHour('06');
                       setTimeMinute('00');
                       setTimePeriod('AM');
@@ -628,7 +697,7 @@ export default function KeywordsDashboard() {
                     disabled={!selectedScheduleDate}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Schedule
+                    {isEditingSchedule ? 'Update Schedule' : 'Schedule'}
                   </button>
                 </div>
               </div>

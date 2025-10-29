@@ -1,5 +1,6 @@
 import { inngest, type Events } from '@/lib/inngest';
 import { createClient } from '@/utils/supabase/server';
+import { getAdapter } from '@/lib/integrations/getAdapter';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 // Function to schedule a blog post for publishing
@@ -465,30 +466,59 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
         }
 
         // Generate content with Claude
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': process.env.ANTHROPIC_API_KEY!,
-            'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 4000,
-            messages: [{ role: 'user', content: contentPrompt }]
-          })
-        });
+        const modelsToTry: string[] = [
+          process.env.ANTHROPIC_MODEL as string,
+          'claude-3-5-sonnet-20240620',
+          'claude-3-sonnet-20240229',
+          'claude-3-haiku-20240307'
+        ].filter(Boolean);
 
-        if (!response.ok) {
-          throw new Error(`Claude API error: ${response.status}`);
+        let content = '';
+        let uploadedImageUrlsLocal = uploadedImageUrls;
+        let lastErrorText = '';
+        let lastStatus = 0;
+
+        for (const model of modelsToTry) {
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': process.env.ANTHROPIC_API_KEY!,
+              'Content-Type': 'application/json',
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: 4000,
+              messages: [{ role: 'user', content: contentPrompt }]
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            content = data.content?.[0]?.text || '';
+            break;
+          }
+
+          // Capture error and decide whether to try next model
+          lastStatus = response.status;
+          lastErrorText = await response.text();
+          console.error(`Claude API error for model ${model}:`, lastErrorText);
+
+          // If the error is model-not-found, try the next model; otherwise, abort early
+          if (!(response.status === 404 && /model/i.test(lastErrorText))) {
+            throw new Error(`Claude API error: ${response.status} - ${lastErrorText}`);
+          }
         }
 
-        const data = await response.json();
-        const content = data.content[0]?.text || '';
+        if (!content) {
+          throw new Error(
+            `No compatible Claude model available. Last error (${lastStatus}): ${lastErrorText}`
+          );
+        }
 
         return {
           content,
-          imageUrls: uploadedImageUrls,
+          imageUrls: uploadedImageUrlsLocal,
         };
       } catch (error) {
         console.error('Error generating content:', error);
@@ -531,6 +561,47 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
           generated_at: new Date().toISOString(),
         })
         .eq('id', keywordId);
+    });
+
+    // Auto-publish to user's connected WordPress site if available
+    await step.run('auto-publish-to-wordpress', async () => {
+      try {
+        const { data: site } = await supabase
+          .from('wordpress_sites')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!site) {
+          console.log('No active WordPress site connected; skipping auto-publish');
+          return;
+        }
+
+        const provider = site.provider || (site.access_token ? 'wpcom' : 'wordpress');
+        const adapter = getAdapter(provider, {
+          accessToken: site.access_token,
+          siteId: site.site_id,
+          url: site.url,
+          username: site.username,
+          password: site.password,
+          postType: site.post_type,
+        });
+
+        const excerpt = (generatedContent.content || '').slice(0, 160) + '...';
+        const result = await adapter.publish({
+          title: keyword,
+          html: generatedContent.content,
+          excerpt,
+          tags: ['ai-generated', 'seotool'],
+        });
+
+        console.log('Auto-published to WordPress:', result);
+      } catch (err) {
+        console.error('Auto-publish failed:', err);
+      }
     });
 
     console.log(`✅ Content generated successfully for: ${keyword}`);
