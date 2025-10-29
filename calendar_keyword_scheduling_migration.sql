@@ -4,6 +4,7 @@
 -- Add new columns to discovered_keywords table
 ALTER TABLE discovered_keywords
 ADD COLUMN IF NOT EXISTS scheduled_date DATE,
+ADD COLUMN IF NOT EXISTS scheduled_time TIME DEFAULT '06:00:00',
 ADD COLUMN IF NOT EXISTS scheduled_for_generation BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS generation_status TEXT DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS generated_content_id UUID REFERENCES content_writer_outputs(id) ON DELETE SET NULL,

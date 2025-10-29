@@ -93,8 +93,8 @@ export default function KeywordsDashboard() {
             keywordIntent: kw.keyword_intent || 'informational',
             relatedKeywords: kw.related_keywords || [],
             starred: false,
-            queued: false,
-            generated: false,
+            queued: !!kw.scheduled_for_generation,
+            generated: kw.generation_status === 'generated',
             onboardingProfile: profile.profile
           }))
         );
@@ -151,9 +151,9 @@ export default function KeywordsDashboard() {
         source: item.source,
         keywordIntent: item.keyword_intent,
         relatedKeywords: item.related_keywords || [],
-        starred: false, // You can add this field to the database
-        queued: false, // You can add this field to the database
-        generated: false // You can add this field to the database
+        starred: false,
+        queued: !!item.scheduled_for_generation,
+        generated: item.generation_status === 'generated'
       }));
 
       setKeywords(transformedKeywords);
@@ -205,6 +205,16 @@ export default function KeywordsDashboard() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>('');
+  // Sleek segmented time picker: hour / minute / period
+  const [timeHour, setTimeHour] = useState<string>('06');
+  const [timeMinute, setTimeMinute] = useState<string>('00');
+  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
+
+  const to24Hour = (hour12: string, period: 'AM' | 'PM') => {
+    let h = parseInt(hour12, 10) % 12;
+    if (period === 'PM') h += 12;
+    return String(h).padStart(2, '0');
+  };
 
   const addToQueue = async (keywordId: string) => {
     // Show date picker modal
@@ -216,12 +226,15 @@ export default function KeywordsDashboard() {
     if (!selectedKeywordId || !selectedScheduleDate) return;
 
     try {
+      const scheduledTime24 = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
+
       const response = await fetch('/api/calendar/keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           keyword_id: selectedKeywordId,
           scheduled_date: selectedScheduleDate,
+          scheduled_time: scheduledTime24,
         }),
       });
 
@@ -231,12 +244,17 @@ export default function KeywordsDashboard() {
           k.id === selectedKeywordId ? { ...k, queued: true } : k
         ));
         
-        // Close modal
+        const scheduledAt = new Date(`${selectedScheduleDate}T${scheduledTime24}`);
+        
+        // Close modal and reset
         setShowDatePicker(false);
         setSelectedKeywordId(null);
         setSelectedScheduleDate('');
+        setTimeHour('06');
+        setTimeMinute('00');
+        setTimePeriod('AM');
         
-        alert('Keyword scheduled successfully! It will be generated on the selected date at 6 AM.');
+        alert(`Keyword scheduled successfully! It will be generated on ${scheduledAt.toLocaleString()}.`);
       } else {
         const error = await response.json();
         alert(error.message || 'Failed to schedule keyword');
@@ -530,6 +548,9 @@ export default function KeywordsDashboard() {
                       setShowDatePicker(false);
                       setSelectedKeywordId(null);
                       setSelectedScheduleDate('');
+                      setTimeHour('06');
+                      setTimeMinute('00');
+                      setTimePeriod('AM');
                     }}
                     className="text-slate-400 hover:text-slate-600"
                   >
@@ -541,7 +562,7 @@ export default function KeywordsDashboard() {
                 
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Select Generation Date
+                    Select Generation Date & Time
                   </label>
                   <input
                     type="date"
@@ -550,9 +571,42 @@ export default function KeywordsDashboard() {
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                   />
-                  <p className="text-sm text-slate-600 mt-2">
-                    Content will be automatically generated at 6:00 AM on this date
-                  </p>
+                  <div className="mt-3">
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 grid grid-cols-3 gap-2">
+                        <select
+                          aria-label="Hour"
+                          value={timeHour}
+                          onChange={(e) => setTimeHour(e.target.value)}
+                          className="px-3 py-3 text-base bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(h => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="Minute"
+                          value={timeMinute}
+                          onChange={(e) => setTimeMinute(e.target.value)}
+                          className="px-3 py-3 text-base bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="AM/PM"
+                          value={timePeriod}
+                          onChange={(e) => setTimePeriod(e.target.value as 'AM' | 'PM')}
+                          className="px-3 py-3 text-base bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">Times are scheduled in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}).</p>
+                  </div>
                 </div>
 
                 <div className="flex gap-3">
@@ -561,6 +615,9 @@ export default function KeywordsDashboard() {
                       setShowDatePicker(false);
                       setSelectedKeywordId(null);
                       setSelectedScheduleDate('');
+                      setTimeHour('06');
+                      setTimeMinute('00');
+                      setTimePeriod('AM');
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                   >

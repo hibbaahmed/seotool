@@ -5,7 +5,8 @@ import {
   publishBlogPost, 
   cancelBlogPost,
   dailyContentGeneration,
-  generateKeywordContent
+  generateKeywordContent,
+  scheduleKeywordGeneration
 } from '@/lib/inngest-functions';
 
 // Create the Inngest serve handler
@@ -17,6 +18,7 @@ export const { GET, POST, PUT } = serve({
     cancelBlogPost,
     dailyContentGeneration,
     generateKeywordContent,
+    scheduleKeywordGeneration,
   ],
   streaming: "allow",
 });

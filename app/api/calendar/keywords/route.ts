@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { inngest } from '@/lib/inngest';
 
 // GET /api/calendar/keywords - Fetch keywords scheduled for specific dates
 export async function GET(request: NextRequest) {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { keyword_id, scheduled_date } = body;
+    const { keyword_id, scheduled_date, scheduled_time = '06:00:00' } = body;
 
     if (!keyword_id || !scheduled_date) {
       return NextResponse.json(
@@ -74,8 +75,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate date is not in the past
-    const scheduledDate = new Date(scheduled_date);
+    // Validate date/time is not in the past
+    const scheduledDate = new Date(`${scheduled_date}T${scheduled_time}`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
       .from('discovered_keywords')
       .update({
         scheduled_date,
+        scheduled_time,
         scheduled_for_generation: true,
         generation_status: 'pending',
         updated_at: new Date().toISOString()
@@ -103,6 +105,22 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error scheduling keyword:', error);
       return NextResponse.json({ error: 'Failed to schedule keyword' }, { status: 500 });
+    }
+
+    // Also send an Inngest schedule event for precise timing
+    try {
+      await inngest.send({
+        name: 'calendar/keyword.schedule',
+        data: {
+          keywordId: keyword.id,
+          userId: user.id,
+          keyword: keyword.keyword,
+          runAtISO: new Date(`${scheduled_date}T${scheduled_time}`).toISOString(),
+          relatedKeywords: keyword.related_keywords || [],
+        }
+      });
+    } catch (e) {
+      console.error('Failed to send schedule event to Inngest:', e);
     }
 
     return NextResponse.json(keyword, { status: 200 });

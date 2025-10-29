@@ -43,6 +43,15 @@ export type Events = {
       date: string;
     };
   };
+  'calendar/keyword.schedule': {
+    data: {
+      keywordId: string;
+      userId: string;
+      keyword: string;
+      runAtISO: string; // exact datetime when to generate
+      relatedKeywords?: string[];
+    };
+  };
   'calendar/keyword.generate': {
     data: {
       keywordId: string;

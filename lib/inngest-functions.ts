@@ -320,6 +320,29 @@ export const dailyContentGeneration = inngest.createFunction(
   }
 );
 
+// Event-based scheduling: schedule a single keyword at an exact time
+export const scheduleKeywordGeneration = inngest.createFunction(
+  {
+    id: 'schedule-keyword-generation',
+    name: 'Schedule Keyword Generation at Specific Time'
+  },
+  { event: 'calendar/keyword.schedule' },
+  async ({ event, step }) => {
+    const { keywordId, keyword, userId, runAtISO, relatedKeywords } = event.data;
+
+    // Sleep until the specified datetime
+    await step.sleepUntil('wait-until-scheduled-time', new Date(runAtISO));
+
+    // Then trigger the actual generation
+    await inngest.send({
+      name: 'calendar/keyword.generate',
+      data: { keywordId, keyword, userId, relatedKeywords }
+    });
+
+    return { scheduledFor: runAtISO, keywordId };
+  }
+);
+
 // Function to generate content for a single keyword
 export const generateKeywordContent = inngest.createFunction(
   { 

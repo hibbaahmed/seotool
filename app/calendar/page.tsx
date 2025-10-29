@@ -21,6 +21,7 @@ interface ScheduledKeyword {
   id: string;
   keyword: string;
   scheduled_date: string;
+  scheduled_time?: string;
   generation_status: 'pending' | 'generating' | 'generated' | 'failed';
   search_volume: number;
   difficulty_score: number;
@@ -218,7 +219,9 @@ export default function CalendarPage() {
                         <span>{formatDate(selectedKeyword.scheduled_date)}</span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">
-                        Will auto-generate at 6:00 AM
+                        {selectedKeyword.scheduled_time
+                          ? `Will auto-generate at ${new Date(`2000-01-01T${selectedKeyword.scheduled_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                          : 'Will auto-generate at 6:00 AM'}
                       </p>
                     </div>
 
