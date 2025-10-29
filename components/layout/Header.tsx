@@ -17,8 +17,6 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'AI Writer', href: '/dashboard/writer' },
   { name: 'SEO Editor', href: '/dashboard/editor' },
-  { name: 'SEO Agent', href: '/dashboard/agent' },
-  { name: 'Autoblog', href: '/dashboard/autoblog' },
   { name: 'Analytics', href: '/dashboard/analytics' },
 ]
 

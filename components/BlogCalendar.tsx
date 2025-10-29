@@ -16,16 +16,35 @@ interface ScheduledPost {
   image_urls?: string[];
 }
 
+interface ScheduledKeyword {
+  id: string;
+  keyword: string;
+  scheduled_date: string;
+  generation_status: 'pending' | 'generating' | 'generated' | 'failed';
+  search_volume: number;
+  difficulty_score: number;
+  opportunity_level: 'low' | 'medium' | 'high';
+  generated_content_id?: string;
+  content_writer_outputs?: {
+    id: string;
+    topic: string;
+    content_output: string;
+  };
+}
+
 interface CalendarProps {
   onPostClick?: (post: ScheduledPost) => void;
   onAddPost?: (date: string) => void;
+  onKeywordClick?: (keyword: ScheduledKeyword) => void;
+  onGenerateKeyword?: (keyword: ScheduledKeyword) => void;
   className?: string;
 }
 
-export default function BlogCalendar({ onPostClick, onAddPost, className = '' }: CalendarProps) {
+export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, className = '' }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [scheduledKeywords, setScheduledKeywords] = useState<ScheduledKeyword[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Get current month and year
@@ -51,7 +70,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
     calendarDays.push(new Date(currentYear, currentMonth, day));
   }
 
-  // Fetch scheduled posts
+  // Fetch scheduled posts and keywords
   const fetchScheduledPosts = async () => {
     try {
       const response = await fetch('/api/calendar/posts');
@@ -61,19 +80,42 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
       }
     } catch (error) {
       console.error('Error fetching scheduled posts:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchScheduledKeywords = async () => {
+    try {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const response = await fetch(`/api/calendar/keywords?month=${year}-${month}`);
+      if (response.ok) {
+        const keywords = await response.json();
+        setScheduledKeywords(keywords);
+      }
+    } catch (error) {
+      console.error('Error fetching scheduled keywords:', error);
     }
   };
 
   useEffect(() => {
-    fetchScheduledPosts();
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchScheduledPosts(), fetchScheduledKeywords()]);
+      setLoading(false);
+    };
+    fetchData();
   }, [currentDate]);
 
   // Get posts for a specific date
   const getPostsForDate = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
     return scheduledPosts.filter(post => post.scheduled_date === dateString);
+  };
+
+  // Get keywords for a specific date
+  const getKeywordsForDate = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    return scheduledKeywords.filter(keyword => keyword.scheduled_date === dateString);
   };
 
   // Navigate months
@@ -114,6 +156,12 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
     return postDate.getMonth() === currentMonth && postDate.getFullYear() === currentYear;
   }).length;
 
+  // Get total keywords for current month
+  const totalKeywordsThisMonth = scheduledKeywords.filter(keyword => {
+    const keywordDate = new Date(keyword.scheduled_date);
+    return keywordDate.getMonth() === currentMonth && keywordDate.getFullYear() === currentYear;
+  }).length;
+
   return (
     <div className={`bg-white rounded-2xl shadow-xl border border-slate-200 p-6 ${className}`}>
       {/* Header */}
@@ -122,11 +170,19 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
           <h2 className="text-2xl font-bold text-slate-900">Calendar</h2>
           <p className="text-slate-600">Plan and schedule your articles</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-slate-500" />
-          <span className="text-sm text-slate-500">
-            {totalPostsThisMonth} articles this month
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-slate-500" />
+            <span className="text-sm text-slate-500">
+              {totalPostsThisMonth} posts
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-purple-500" />
+            <span className="text-sm text-purple-500">
+              {totalKeywordsThisMonth} keywords
+            </span>
+          </div>
         </div>
       </div>
 
@@ -173,15 +229,17 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
           }
 
           const postsForDate = getPostsForDate(date);
+          const keywordsForDate = getKeywordsForDate(date);
           const isCurrentDay = isToday(date);
           const isPast = isPastDate(date);
+          const totalItems = postsForDate.length + keywordsForDate.length;
 
           return (
             <div
               key={index}
-              className={`h-24 border border-slate-200 p-2 relative ${
+              className={`h-32 border border-slate-200 p-2 relative ${
                 isCurrentDay ? 'bg-blue-50 border-blue-300' : ''
-              } ${isPast ? 'bg-slate-50' : 'hover:bg-slate-50'} transition-colors`}
+              } ${isPast ? 'bg-slate-50' : 'hover:bg-slate-50'} transition-colors overflow-hidden`}
             >
               {/* Date number */}
               <div className={`text-sm font-medium mb-1 ${
@@ -190,9 +248,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
                 {date.getDate()}
               </div>
 
-              {/* Posts for this date */}
-              <div className="space-y-1">
-                {postsForDate.slice(0, 2).map((post) => (
+              {/* Items for this date */}
+              <div className="space-y-1 overflow-y-auto max-h-20">
+                {/* Posts */}
+                {postsForDate.slice(0, 1).map((post) => (
                   <div
                     key={post.id}
                     className={`text-xs p-1 rounded cursor-pointer transition-colors ${
@@ -206,14 +265,64 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
                     title={post.title}
                   >
                     <div className="truncate font-medium">{post.title}</div>
-                    <div className="text-xs opacity-75">
-                      {post.status.toUpperCase()}
-                    </div>
                   </div>
                 ))}
-                {postsForDate.length > 2 && (
+                
+                {/* Keywords */}
+                {keywordsForDate.slice(0, totalItems > 2 ? 1 : 2).map((keyword) => (
+                  <div
+                    key={keyword.id}
+                    className={`text-xs p-1 rounded transition-colors relative group ${
+                      keyword.generation_status === 'generated' 
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : keyword.generation_status === 'generating'
+                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                        : keyword.generation_status === 'failed'
+                        ? 'bg-red-100 text-red-800 border border-red-200'
+                        : 'bg-purple-100 text-purple-800 border border-purple-200'
+                    }`}
+                    title={keyword.keyword}
+                  >
+                    <div 
+                      className="truncate font-medium cursor-pointer pr-6"
+                      onClick={() => onKeywordClick?.(keyword)}
+                    >
+                      🔑 {keyword.keyword}
+                    </div>
+                    {/* Generate button for pending keywords */}
+                    {keyword.generation_status === 'pending' && onGenerateKeyword && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onGenerateKeyword(keyword);
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all opacity-0 group-hover:opacity-100"
+                        title="Generate Now"
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* View content button for generated keywords */}
+                    {keyword.generation_status === 'generated' && keyword.generated_content_id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/dashboard/saved-content?id=${keyword.generated_content_id}`;
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-all opacity-0 group-hover:opacity-100"
+                        title="View Content"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                
+                {totalItems > 2 && (
                   <div className="text-xs text-slate-500 text-center">
-                    +{postsForDate.length - 2} more
+                    +{totalItems - 2} more
                   </div>
                 )}
               </div>
@@ -234,18 +343,22 @@ export default function BlogCalendar({ onPostClick, onAddPost, className = '' }:
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-4 text-xs flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
-          <span className="text-slate-600">Scheduled</span>
+          <span className="text-slate-600">Scheduled Post</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
+          <span className="text-slate-600">Pending Keyword</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded"></div>
+          <span className="text-slate-600">Generating</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-          <span className="text-slate-600">Published</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
-          <span className="text-slate-600">Cancelled</span>
+          <span className="text-slate-600">Generated/Published</span>
         </div>
       </div>
 

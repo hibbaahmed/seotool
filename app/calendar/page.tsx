@@ -17,19 +17,78 @@ interface ScheduledPost {
   image_urls?: string[];
 }
 
+interface ScheduledKeyword {
+  id: string;
+  keyword: string;
+  scheduled_date: string;
+  generation_status: 'pending' | 'generating' | 'generated' | 'failed';
+  search_volume: number;
+  difficulty_score: number;
+  opportunity_level: 'low' | 'medium' | 'high';
+  generated_content_id?: string;
+  content_writer_outputs?: {
+    id: string;
+    topic: string;
+    content_output: string;
+  };
+}
+
 export default function CalendarPage() {
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<ScheduledKeyword | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handlePostClick = (post: ScheduledPost) => {
     setSelectedPost(post);
+    setSelectedKeyword(null);
+  };
+
+  const handleKeywordClick = (keyword: ScheduledKeyword) => {
+    setSelectedKeyword(keyword);
+    setSelectedPost(null);
   };
 
   const handleAddPost = (date: string) => {
     setSelectedDate(date);
     setShowAddModal(true);
+  };
+
+  const handleGenerateNow = async (keyword?: ScheduledKeyword) => {
+    const keywordToGenerate = keyword || selectedKeyword;
+    if (!keywordToGenerate) return;
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/calendar/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword_id: keywordToGenerate.id,
+          keyword: keywordToGenerate.keyword,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert('Content generated successfully! Redirecting to view your content...');
+        // Redirect to the generated content
+        if (result.content_id) {
+          window.location.href = `/dashboard/saved-content?id=${result.content_id}`;
+        } else {
+          window.location.reload();
+        }
+      } else {
+        alert('Failed to generate content');
+      }
+    } catch (error) {
+      console.error('Error generating content:', error);
+      alert('Failed to generate content');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleEditPost = () => {
@@ -91,7 +150,7 @@ export default function CalendarPage() {
               Content Calendar
             </h1>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Plan, schedule, and manage your blog posts with our intuitive calendar interface.
+              Plan, schedule, and manage your blog posts. Hover over keywords to generate content instantly!
             </p>
           </div>
 
@@ -101,12 +160,143 @@ export default function CalendarPage() {
               <BlogCalendar 
                 onPostClick={handlePostClick}
                 onAddPost={handleAddPost}
+                onKeywordClick={handleKeywordClick}
+                onGenerateKeyword={handleGenerateNow}
               />
             </div>
 
-            {/* Post Details Sidebar */}
+            {/* Post/Keyword Details Sidebar */}
             <div className="lg:col-span-1">
-              {selectedPost ? (
+              {selectedKeyword ? (
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sticky top-24">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-slate-900">Keyword Details</h3>
+                    <button
+                      onClick={() => setSelectedKeyword(null)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Keyword */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Keyword
+                      </label>
+                      <p className="text-lg font-bold text-slate-900">{selectedKeyword.keyword}</p>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Status
+                      </label>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedKeyword.generation_status === 'generated' 
+                          ? 'bg-green-100 text-green-800'
+                          : selectedKeyword.generation_status === 'generating'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : selectedKeyword.generation_status === 'failed'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {selectedKeyword.generation_status.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Scheduled Date */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Scheduled For
+                      </label>
+                      <div className="flex items-center gap-2 text-slate-900">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(selectedKeyword.scheduled_date)}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">
+                        Will auto-generate at 6:00 AM
+                      </p>
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="text-xs text-slate-600">Search Volume</div>
+                        <div className="text-lg font-bold text-slate-900">{selectedKeyword.search_volume.toLocaleString()}</div>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="text-xs text-slate-600">Difficulty</div>
+                        <div className="text-lg font-bold text-slate-900">{selectedKeyword.difficulty_score}</div>
+                      </div>
+                    </div>
+
+                    {/* Opportunity Level */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Opportunity
+                      </label>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedKeyword.opportunity_level === 'high'
+                          ? 'bg-green-100 text-green-800'
+                          : selectedKeyword.opportunity_level === 'medium'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedKeyword.opportunity_level.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Generated Content Link */}
+                    {selectedKeyword.generation_status === 'generated' && selectedKeyword.generated_content_id && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Generated Content
+                        </label>
+                        <a
+                          href={`/dashboard/saved-content?id=${selectedKeyword.generated_content_id}`}
+                          className="text-blue-600 hover:text-blue-700 text-sm underline flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Generated Article
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="pt-4 border-t border-slate-200 space-y-2">
+                      {selectedKeyword.generation_status === 'pending' && (
+                        <button
+                          onClick={handleGenerateNow}
+                          disabled={isGenerating}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4" />
+                              Generate Now
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedKeyword(null)}
+                        className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        Close Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : selectedPost ? (
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sticky top-24">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-slate-900">Post Details</h3>

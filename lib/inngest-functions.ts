@@ -1,5 +1,6 @@
 import { inngest, type Events } from '@/lib/inngest';
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 // Function to schedule a blog post for publishing
 export const scheduleBlogPost = inngest.createFunction(
@@ -244,3 +245,277 @@ async function publishToBlog(title: string, content: string, imageUrls?: string[
   // This could save to your own database, generate static files, etc.
   return { url: `https://your-blog.com/posts/${Date.now()}` };
 }
+
+// Daily cron job to check and generate content for scheduled keywords at 6 AM
+export const dailyContentGeneration = inngest.createFunction(
+  { 
+    id: 'daily-content-generation',
+    name: 'Daily Content Generation at 6 AM'
+  },
+  { cron: '0 6 * * *' }, // Run every day at 6 AM
+  async ({ event, step }) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    console.log(`🕐 Daily content generation check for ${today}`);
+
+    // Get all keywords scheduled for today
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const keywords = await step.run('fetch-scheduled-keywords', async () => {
+      const { data, error } = await supabase
+        .from('discovered_keywords')
+        .select('*')
+        .eq('scheduled_date', today)
+        .eq('scheduled_for_generation', true)
+        .eq('generation_status', 'pending');
+
+      if (error) {
+        console.error('Error fetching scheduled keywords:', error);
+        return [];
+      }
+
+      console.log(`📋 Found ${data?.length || 0} keywords to generate for ${today}`);
+      return data || [];
+    });
+
+    // Generate content for each keyword
+    for (const keyword of keywords) {
+      await step.run(`generate-content-${keyword.id}`, async () => {
+        try {
+          console.log(`🚀 Generating content for keyword: ${keyword.keyword}`);
+          
+          // Send event to generate content for this keyword
+          await inngest.send({
+            name: 'calendar/keyword.generate',
+            data: {
+              keywordId: keyword.id,
+              keyword: keyword.keyword,
+              userId: keyword.user_id,
+              relatedKeywords: keyword.related_keywords,
+            },
+          });
+          
+          return { success: true, keyword: keyword.keyword };
+        } catch (error) {
+          console.error(`Error generating content for keyword ${keyword.id}:`, error);
+          
+          // Update keyword status to failed
+          await supabase
+            .from('discovered_keywords')
+            .update({ generation_status: 'failed' })
+            .eq('id', keyword.id);
+          
+          return { success: false, keyword: keyword.keyword, error };
+        }
+      });
+    }
+
+    return {
+      date: today,
+      keywordsProcessed: keywords.length,
+    };
+  }
+);
+
+// Function to generate content for a single keyword
+export const generateKeywordContent = inngest.createFunction(
+  { 
+    id: 'generate-keyword-content',
+    name: 'Generate Content for Keyword'
+  },
+  { event: 'calendar/keyword.generate' },
+  async ({ event, step }) => {
+    const { keywordId, keyword, userId, relatedKeywords } = event.data;
+
+    console.log(`📝 Starting content generation for: ${keyword}`);
+
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Update status to generating
+    await step.run('update-status-generating', async () => {
+      await supabase
+        .from('discovered_keywords')
+        .update({ generation_status: 'generating' })
+        .eq('id', keywordId);
+    });
+
+    // Generate content using Claude
+    const generatedContent = await step.run('generate-content', async () => {
+      try {
+        const contentPrompt = `Topic: "${keyword}"
+Content Type: blog post
+Target Audience: General audience
+Tone: professional
+Length: Long-form (1500-2500 words)
+
+Please create comprehensive, SEO-optimized content for this topic. Include:
+- An engaging title and meta description
+- Well-structured sections with H2 and H3 headings
+- Actionable insights and valuable information
+- Natural keyword integration
+- Internal linking opportunities
+- A strong call-to-action
+
+${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally incorporate: ${relatedKeywords.join(', ')}` : ''}`;
+
+        // Search for images using Tavily
+        let imageUrls: string[] = [];
+        
+        if (process.env.TAVILY_API_KEY) {
+          try {
+            const tavilyResponse = await fetch('https://api.tavily.com/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                api_key: process.env.TAVILY_API_KEY,
+                query: keyword,
+                search_depth: 'basic',
+                include_images: true,
+                max_results: 5
+              })
+            });
+
+            if (tavilyResponse.ok) {
+              const tavilyData = await tavilyResponse.json();
+              if (tavilyData.images && tavilyData.images.length > 0) {
+                imageUrls = tavilyData.images.filter(Boolean);
+              }
+            }
+          } catch (error) {
+            console.error('Image search error:', error);
+          }
+        }
+
+        // Use demo images if no images found
+        if (imageUrls.length === 0) {
+          imageUrls = [
+            'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800',
+            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+            'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800'
+          ];
+        }
+
+        // Upload images to Supabase Storage
+        const uploadedImageUrls: string[] = [];
+        for (let i = 0; i < imageUrls.length; i++) {
+          try {
+            const response = await fetch(imageUrls[i], {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+              },
+            });
+
+            if (response.ok) {
+              const imageBlob = await response.blob();
+              const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+              const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
+              const ext = contentType.includes('png') ? 'png' : 'jpg';
+              const filePath = `user_uploads/${userId}/${id}.${ext}`;
+
+              const uploadResult = await supabase.storage
+                .from('photos')
+                .upload(filePath, imageBlob, {
+                  cacheControl: '3600',
+                  upsert: true,
+                  contentType,
+                });
+
+              if (!uploadResult.error) {
+                const { data: publicUrlData } = supabase.storage
+                  .from('photos')
+                  .getPublicUrl(filePath);
+                
+                if (publicUrlData?.publicUrl) {
+                  uploadedImageUrls.push(publicUrlData.publicUrl);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Error uploading image ${i}:`, error);
+          }
+        }
+
+        // Generate content with Claude
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY!,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4000,
+            messages: [{ role: 'user', content: contentPrompt }]
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Claude API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.content[0]?.text || '';
+
+        return {
+          content,
+          imageUrls: uploadedImageUrls,
+        };
+      } catch (error) {
+        console.error('Error generating content:', error);
+        throw error;
+      }
+    });
+
+    // Save generated content to database
+    const savedContent = await step.run('save-content', async () => {
+      const { data, error } = await supabase
+        .from('content_writer_outputs')
+        .insert({
+          user_id: userId,
+          topic: keyword,
+          content_type: 'blog post',
+          target_audience: 'General audience',
+          tone: 'professional',
+          length: 'long',
+          content_output: generatedContent.content,
+          image_urls: generatedContent.imageUrls,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving content:', error);
+        throw error;
+      }
+
+      return data;
+    });
+
+    // Update keyword with generated content reference
+    await step.run('update-keyword-status', async () => {
+      await supabase
+        .from('discovered_keywords')
+        .update({
+          generation_status: 'generated',
+          generated_content_id: savedContent.id,
+          generated_at: new Date().toISOString(),
+        })
+        .eq('id', keywordId);
+    });
+
+    console.log(`✅ Content generated successfully for: ${keyword}`);
+
+    return {
+      success: true,
+      keywordId,
+      contentId: savedContent.id,
+    };
+  }
+);

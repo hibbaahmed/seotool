@@ -202,10 +202,49 @@ export default function KeywordsDashboard() {
     ));
   };
 
-  const addToQueue = (keywordId: string) => {
-    setKeywords(prev => prev.map(k => 
-      k.id === keywordId ? { ...k, queued: !k.queued } : k
-    ));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>('');
+
+  const addToQueue = async (keywordId: string) => {
+    // Show date picker modal
+    setSelectedKeywordId(keywordId);
+    setShowDatePicker(true);
+  };
+
+  const scheduleKeyword = async () => {
+    if (!selectedKeywordId || !selectedScheduleDate) return;
+
+    try {
+      const response = await fetch('/api/calendar/keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword_id: selectedKeywordId,
+          scheduled_date: selectedScheduleDate,
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setKeywords(prev => prev.map(k => 
+          k.id === selectedKeywordId ? { ...k, queued: true } : k
+        ));
+        
+        // Close modal
+        setShowDatePicker(false);
+        setSelectedKeywordId(null);
+        setSelectedScheduleDate('');
+        
+        alert('Keyword scheduled successfully! It will be generated on the selected date at 6 AM.');
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to schedule keyword');
+      }
+    } catch (error) {
+      console.error('Error scheduling keyword:', error);
+      alert('Failed to schedule keyword');
+    }
   };
 
   const getOpportunityColor = (level: string) => {
@@ -242,12 +281,12 @@ export default function KeywordsDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      <div className="pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="pt-28 md:pt-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              {onboardingId ? 'Onboarding Keywords' : 'All Onboarding Keywords'}
+              {onboardingId ? 'Keywords' : 'All Keywords'}
             </h1>
             <p className="text-slate-600">
               {onboardingId 
@@ -477,6 +516,65 @@ export default function KeywordsDashboard() {
               <p className="text-slate-600">
                 {searchTerm ? 'Try adjusting your search terms' : 'Complete the onboarding process to discover keywords'}
               </p>
+            </div>
+          )}
+
+          {/* Date Picker Modal */}
+          {showDatePicker && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-slate-900">Schedule for Calendar</h3>
+                  <button
+                    onClick={() => {
+                      setShowDatePicker(false);
+                      setSelectedKeywordId(null);
+                      setSelectedScheduleDate('');
+                    }}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Select Generation Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedScheduleDate}
+                    onChange={(e) => setSelectedScheduleDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  />
+                  <p className="text-sm text-slate-600 mt-2">
+                    Content will be automatically generated at 6:00 AM on this date
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDatePicker(false);
+                      setSelectedKeywordId(null);
+                      setSelectedScheduleDate('');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={scheduleKeyword}
+                    disabled={!selectedScheduleDate}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Schedule
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -31,6 +31,12 @@ CREATE TABLE IF NOT EXISTS discovered_keywords (
   serp_position INTEGER, -- If found in SERP analysis
   keyword_intent TEXT, -- 'informational', 'commercial', 'navigational', 'transactional'
   related_keywords TEXT[], -- Array of related keywords
+  -- Calendar scheduling fields
+  scheduled_date DATE, -- Date when content should be generated
+  scheduled_for_generation BOOLEAN DEFAULT FALSE, -- Whether this keyword is queued for generation
+  generation_status TEXT DEFAULT 'pending' CHECK (generation_status IN ('pending', 'generating', 'generated', 'failed')),
+  generated_content_id UUID REFERENCES content_writer_outputs(id) ON DELETE SET NULL, -- Link to generated content
+  generated_at TIMESTAMP WITH TIME ZONE, -- When content was actually generated
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -6,7 +6,6 @@ const navigation = {
   product: [
     { name: 'AI SEO Writer', href: '/features/writer' },
     { name: 'SEO Editor', href: '/features/editor' },
-    { name: 'SEO Agent', href: '/features/agent' },
     { name: 'Autoblog', href: '/features/autoblog' },
     { name: 'Analytics', href: '/features/analytics' },
   ],

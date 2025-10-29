@@ -38,6 +38,19 @@ export type Events = {
       userId: string;
     };
   };
+  'calendar/daily.check': {
+    data: {
+      date: string;
+    };
+  };
+  'calendar/keyword.generate': {
+    data: {
+      keywordId: string;
+      keyword: string;
+      userId: string;
+      relatedKeywords?: string[];
+    };
+  };
 };
 
 

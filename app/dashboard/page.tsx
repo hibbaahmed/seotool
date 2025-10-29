@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe, Link as LinkIcon } from 'lucide-react';
+import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe, Link as LinkIcon, Calendar, Code } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -34,6 +34,25 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-center text-purple-600 font-medium group-hover:text-purple-700">
                 <span>Get Started</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
+              href="/saved-content"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-sky-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Saved Articles
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Browse and manage your AI-generated articles
+              </p>
+              <div className="flex items-center text-indigo-600 font-medium group-hover:text-indigo-700">
+                <span>View Saved Content</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
             </Link>
@@ -96,6 +115,25 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
+              href="/dashboard/editor"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <Code className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                SEO Editor
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Edit and optimize your content for search engines with AI assistance
+              </p>
+              <div className="flex items-center text-cyan-600 font-medium group-hover:text-cyan-700">
+                <span>Open Editor</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
               href="/saved"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -134,6 +172,44 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
+              href="/dashboard/keywords"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Keywords
+              </h3>
+              <p className="text-slate-600 mb-4">
+                View and manage keywords discovered during your onboarding analysis
+              </p>
+              <div className="flex items-center text-emerald-600 font-medium group-hover:text-emerald-700">
+                <span>View Keywords</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
+              href="/calendar"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-violet-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Calendar
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Plan, schedule, and manage your content calendar with keyword generation
+              </p>
+              <div className="flex items-center text-violet-600 font-medium group-hover:text-violet-700">
+                <span>View Calendar</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
               href="/integrations"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -152,24 +228,6 @@ export default function DashboardPage() {
               </div>
             </Link>
 
-            <Link 
-              href="/dashboard/keywords"
-              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Onboarding Keywords
-              </h3>
-              <p className="text-slate-600 mb-4">
-                View and manage keywords discovered during your onboarding analysis
-              </p>
-              <div className="flex items-center text-emerald-600 font-medium group-hover:text-emerald-700">
-                <span>View Keywords</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-              </div>
-            </Link>
           </div>
 
           {/* Recent Activity */}
