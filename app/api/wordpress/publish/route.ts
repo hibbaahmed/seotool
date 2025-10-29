@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize WordPress API (only for self-hosted)
-    let wpAPI;
+    let wpAPI: WordPressAPI | null = null;
     let tagIds: number[] = [];
     
     if (!isWPCom) {
@@ -149,7 +149,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare WordPress post data
-    let postData;
+    let postData: {
+      title: string;
+      content: string;
+      excerpt: string;
+      status: string;
+      categories: any[];
+      tags: any[];
+      meta: any;
+    } | null = null;
+    
     switch (contentType) {
       case 'content':
         // Extract clean content from AI output (removes title, meta description, etc.)
@@ -220,6 +229,13 @@ export async function POST(request: NextRequest) {
           },
         };
         break;
+      default:
+        return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+    }
+
+    // Ensure postData is defined
+    if (!postData) {
+      return NextResponse.json({ error: 'Failed to prepare post data' }, { status: 500 });
     }
 
     // Publish to WordPress
@@ -266,6 +282,10 @@ export async function POST(request: NextRequest) {
       publishedPost = await response.json();
     } else {
       // Use self-hosted WordPress REST API
+      if (!wpAPI) {
+        return NextResponse.json({ error: 'WordPress API not initialized' }, { status: 500 });
+      }
+      
       if (publishOptions.publishDate) {
         publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);
       } else {
