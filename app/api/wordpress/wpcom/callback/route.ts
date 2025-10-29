@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       console.error('WordPress.com OAuth error:', error);
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('OAuth authorization failed')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('OAuth authorization failed')}`,
           request.url
         )
       );
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     if (!code || !state) {
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('Invalid OAuth callback')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('Invalid OAuth callback')}`,
           request.url
         )
       );
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     if (!cookieState || cookieState !== state) {
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('Invalid state parameter')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('Invalid state parameter')}`,
           request.url
         )
       );
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       console.error('Missing WordPress.com OAuth credentials');
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('OAuth not configured')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('OAuth not configured')}`,
           request.url
         )
       );
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       console.error('Token exchange failed:', errorText);
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('Failed to get access token')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('Failed to get access token')}`,
           request.url
         )
       );
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       console.error('Failed to fetch sites:', errorText);
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('Failed to fetch your sites')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('Failed to fetch your sites')}`,
           request.url
         )
       );
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     if (!sitesData.sites || sitesData.sites.length === 0) {
       return NextResponse.redirect(
         new URL(
-          `/wordpress-sites?error=${encodeURIComponent('No WordPress.com sites found')}`,
+          `/dashboard/wordpress-sites?error=${encodeURIComponent('No WordPress.com sites found')}`,
           request.url
         )
       );
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
     // Clear the state cookie
     const response = NextResponse.redirect(
       new URL(
-        `/wordpress-sites?success=${encodeURIComponent(`Connected ${sitesData.sites.length} WordPress.com site(s) successfully!`)}`,
+        `/dashboard/wordpress-sites?success=${encodeURIComponent(`Connected ${sitesData.sites.length} WordPress.com site(s) successfully!`)}`,
         request.url
       )
     );
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
     console.error('WordPress.com OAuth callback error:', error);
     return NextResponse.redirect(
       new URL(
-        `/wordpress-sites?error=${encodeURIComponent('OAuth callback failed')}`,
+        `/dashboard/wordpress-sites?error=${encodeURIComponent('OAuth callback failed')}`,
         request.url
       )
     );

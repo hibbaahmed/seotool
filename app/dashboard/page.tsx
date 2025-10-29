@@ -115,7 +115,7 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
-              href="/wordpress-sites"
+              href="/dashboard/wordpress-sites"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
