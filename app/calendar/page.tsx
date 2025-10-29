@@ -270,7 +270,7 @@ export default function CalendarPage() {
                     <div className="pt-4 border-t border-slate-200 space-y-2">
                       {selectedKeyword.generation_status === 'pending' && (
                         <button
-                          onClick={handleGenerateNow}
+                          onClick={() => handleGenerateNow()}
                           disabled={isGenerating}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
