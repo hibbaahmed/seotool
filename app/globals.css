@@ -25,3 +25,34 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global overrides to prevent mid-word wrapping in generated content */
+.content-writer-prose,
+.content-writer-prose p,
+.content-writer-prose h1,
+.content-writer-prose h2,
+.content-writer-prose h3,
+.content-writer-prose h4,
+.content-writer-prose h5,
+.content-writer-prose h6,
+.content-writer-prose li,
+.content-writer-prose blockquote {
+  word-break: normal !important;
+  overflow-wrap: normal !important; /* prevent break-word */
+  hyphens: manual !important;
+  line-break: auto !important;
+}
+
+/* Balance headings to reduce awkward wraps */
+.content-writer-prose h1,
+.content-writer-prose h2,
+.content-writer-prose h3 {
+  text-wrap: balance;
+}
+
+/* Override Tailwind Typography (.prose) defaults that can force word breaks */
+.prose :where(p, h1, h2, h3, h4, h5, h6) {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: manual !important;
+}

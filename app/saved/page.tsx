@@ -37,18 +37,114 @@ export default function SavedPage() {
 
   const processContent = (text: string, urls: string[] = []): string => {
     if (!text) return '';
-    let idx = 0;
+    
+    // Replace image placeholders first
+    let urlIndex = 0;
     let replaced = text.replace(/\[IMAGE_PLACEMENT:\s*"([^"]+)"\]/g, (_m, alt: string) => {
-      const url = urls[idx++] || urls[urls.length - 1] || '';
+      const url = urls[urlIndex++] || urls[urls.length - 1] || '';
       if (!url) return '';
       return `\n\n![${alt}](${url})\n\n`;
     });
+
+    // ZERO PASS: Fix headings specifically - most critical fix
     replaced = replaced
+      .replace(/(#{1,6}\s+[^\n]*[a-zA-Z0-9])\n([a-z]{1,5})(?=\s|$|\n)/g, '$1$2')
+      .replace(/(#{1,6}\s+[^\n]*?[a-zA-Z])\n([a-z]{1,5})\n/g, '$1$2\n');
+
+    // FIRST PASS: Fix broken words everywhere else
+    replaced = replaced
+      .replace(/([a-zA-Z])\n([a-z]{1,5})(\s|$|\n|\.|,|;)/g, '$1$2$3')
+      .replace(/([a-zA-Z])\n([a-z]{1,5})$/gm, '$1$2')
+      .replace(/([a-zA-Z])\n([a-z]{1,5})(\s|$)/g, '$1$2$3');
+
+    // SECOND PASS: Merge all mid-sentence newlines
+    const lines = replaced.split('\n');
+    const result: string[] = [];
+    let i = 0;
+    let inCodeBlock = false;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        result.push(line);
+        i++;
+        continue;
+      }
+      if (inCodeBlock) {
+        result.push(line);
+        i++;
+        continue;
+      }
+
+      if (!trimmed) {
+        result.push('');
+        i++;
+        continue;
+      }
+
+      if (trimmed.startsWith('#') || 
+          trimmed.startsWith('![') || 
+          trimmed.startsWith('>') ||
+          trimmed.startsWith('|') ||
+          trimmed.startsWith('- ') ||
+          trimmed.startsWith('* ') ||
+          /^\d+\.\s/.test(trimmed)) {
+        
+        // CRITICAL: For headings, always check if next line is continuation letters
+        if (trimmed.startsWith('#') && i + 1 < lines.length) {
+          const nextLine = lines[i + 1];
+          const nextTrimmed = nextLine.trim();
+          // If next line is just 1-5 lowercase letters (continuation), merge immediately
+          if (/^[a-z]{1,5}$/.test(nextTrimmed) || /^[a-z]{1,5}(\s|$|\.|,|;|\n)/.test(nextTrimmed)) {
+            const mergedHeading = trimmed.replace(/\s+$/, '') + nextTrimmed.replace(/^([a-z]+).*/, '$1');
+            result.push(mergedHeading);
+            i += 2;
+            continue;
+          }
+        }
+        
+        result.push(line);
+        i++;
+        continue;
+      }
+
+      let merged = line.trimEnd();
+      i++;
+
+      while (i < lines.length) {
+        const nextLine = lines[i];
+        const nextTrimmed = nextLine.trim();
+
+        if (!nextTrimmed) break;
+
+        if (nextTrimmed.startsWith('#') ||
+            nextTrimmed.startsWith('![') ||
+            nextTrimmed.startsWith('>') ||
+            nextTrimmed.startsWith('|') ||
+            nextTrimmed.startsWith('- ') ||
+            nextTrimmed.startsWith('* ') ||
+            /^\d+\.\s/.test(nextTrimmed)) {
+          break;
+        }
+
+        merged = merged.replace(/\s+$/, '') + ' ' + nextTrimmed;
+        i++;
+      }
+
+      result.push(merged);
+    }
+
+    // THIRD PASS: Ensure proper spacing
+    let normalized = result.join('\n')
       .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2')
-      .replace(/^(#{2,3}[^\n]*)(?!\n\n)/gm, '$1\n')
+      .replace(/^(#{2,3}[^\n]+)(?!\n\n)/gm, '$1\n\n')
       .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
       .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
-    return replaced;
+    
+    return normalized;
   };
 
   useEffect(() => {
@@ -373,6 +469,27 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
+      <style jsx global>{`
+        .content-writer-prose,
+        .content-writer-prose p,
+        .content-writer-prose h1,
+        .content-writer-prose h2,
+        .content-writer-prose h3,
+        .content-writer-prose h4,
+        .content-writer-prose h5,
+        .content-writer-prose h6,
+        .content-writer-prose li,
+        .content-writer-prose blockquote {
+          word-break: normal !important;
+          overflow-wrap: normal !important;
+          hyphens: manual !important;
+          line-break: auto !important;
+        }
+        .content-writer-prose h1,
+        .content-writer-prose h2,
+        .content-writer-prose h3 { text-wrap: balance; }
+        .prose :where(p, h1, h2, h3, h4, h5, h6){ word-break: normal; overflow-wrap: normal; }
+      `}</style>
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -795,7 +912,7 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
                     <h3 className="font-semibold text-slate-900 mb-4">Generated Content:</h3>
                     <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                       <div
-                        className="prose max-w-none"
+                        className="prose max-w-none content-writer-prose"
                         dangerouslySetInnerHTML={{ __html: selectedItem.data?.content_output ? (marked.parse(processContent(selectedItem.data.content_output, selectedItem.data.image_urls || [])) as string) : '' }}
                       />
                     </div>

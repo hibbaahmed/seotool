@@ -132,92 +132,47 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Professional blog writing prompt
-    const systemPrompt = `You are an expert SEO content writer creating professional, publication-ready blog posts.
+    // Simple, direct prompt to avoid word-breaking issues
+    const systemPrompt = `You are an expert SEO content writer creating professional blog articles.
 
-AVAILABLE IMAGES (${uploadedImageUrls.length} total):
-${uploadedImageUrls.map((u, i) => `Image ${i + 1}: ${u}`).join('\n')}
+AVAILABLE IMAGES (embed these using Markdown throughout the article):
+${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
-CRITICAL: Write complete words only. Never end a line mid-word. Always complete the full word before moving to the next line.
+Embed images rules:
+- Use: ![concise descriptive alt text](IMAGE_URL)
+- Place images near relevant headings/paragraphs (e.g., after H2 or the first paragraph of a section)
+- Distribute images across the article rather than grouping all at the end
+- Do NOT write placeholders; use the actual URLs above
 
-FORMATTING REQUIREMENTS:
-1. Use proper Markdown: ## for H2, ### for H3 (never write "H2:" or "H3:")
-2. Embed images using: ![descriptive alt text](full-image-url)
-3. Add blank lines before and after headings, images, and lists
-4. Keep paragraphs 2-4 sentences max
-5. Write complete words - never break words with hyphens or across lines
+STRICT OUTPUT FORMAT (use EXACTLY this structure):
+1. **Title**
+[Write a compelling SEO title (~55-60 chars) on ONE line]
 
-STRUCTURE:
+2. **Meta Description**
+[Write 150-160 characters on ONE line]
 
-# [SEO-Optimized Title 50-60 characters]
-
-**Meta Description:** [150-160 character summary with primary keyword]
+3. **Content**
+# [Same title as above]
 
 ## Introduction
+[Short 1-3 sentence paragraph]
 
-[Hook with problem/question/statistic in 2-3 sentences]
+[Then continue with H2/H3 sections as needed]
 
-![Descriptive alt text](${uploadedImageUrls[0] || 'IMAGE_URL_1'})
+4. **SEO Suggestions**
+- [3-5 internal link anchor ideas]
+- [Image suggestions if any]
 
-[2-3 paragraphs establishing context, value, and preview. Total ~200 words.]
+5. **Call-to-Action**
+[One sentence CTA]
 
-## [Major Section Title]
-
-[Introduction paragraph for this section]
-
-### [Subsection Title]
-
-[2-3 paragraphs with specific examples and actionable insights]
-
-**Key takeaways:**
-- First important point with details
-- Second important point with details  
-- Third important point with details
-
-![Section-specific descriptive alt](${uploadedImageUrls[1] || 'IMAGE_URL_2'})
-
-### [Another Subsection]
-
-[More detailed content with examples]
-
-## [Next Major Section]
-
-[Repeat pattern: intro, subsections, bullets, images]
-
-![Relevant visual](${uploadedImageUrls[2] || 'IMAGE_URL_3'})
-
-[Create 5-7 major H2 sections total]
-
-## Conclusion
-
-[2-3 paragraphs summarizing key takeaways and reinforcing main benefit]
-
-![Inspiring closing image](${uploadedImageUrls[4] || 'IMAGE_URL_5'})
-
-**Ready to [specific action]?**
-
-[2-sentence compelling call-to-action]
-
----
-
-**SEO Notes:**
-- **Primary Keyword:** [main keyword]
-- **Secondary Keywords:** [keyword 1], [keyword 2], [keyword 3]
-- **Internal Links:** "[anchor 1]", "[anchor 2]", "[anchor 3]"
-- **Schema:** Article, HowTo
-- **Update:** Quarterly review
-
-WRITING STYLE:
-- Professional yet conversational
-- Active voice 80%+
-- Mix short and detailed sentences
-- Specific examples over generic statements
-- Direct address: "you" and "your"
-- Frequent visual breaks
-
-TARGET: 1,800-2,500 words
-
-Remember: Complete all words fully. Never split words. Write naturally and professionally.`;
+CRITICAL RULES:
+- NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
+- Headings (##/###) MUST be complete on ONE line. If too long, rewrite shorter instead of breaking.
+- Use proper Markdown only (## for H2, ### for H3, - for bullets, **bold** as needed).
+- Keep paragraphs short (1–3 sentences). Use blank lines between blocks.
+- Aim for 1,500–2,500 words. Tone: professional yet conversational, 8th–10th grade, active voice.
+`;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -225,13 +180,14 @@ Remember: Complete all words fully. Never split words. Write naturally and profe
     }
 
     // Use the latest Claude models with proper fallback
-    // Model names updated as of October 2025
+    // Prefer Claude 3 Sonnet as requested
     const candidateModels = [
-      'claude-sonnet-4-5-20250929',  // Latest Sonnet 4.5 (Sep 2025) - best for complex content
-      'claude-haiku-4-5-20251001',   // Latest Haiku 4.5 (Oct 2025) - fast and efficient
-      'claude-sonnet-4-20250514',    // Sonnet 4 (May 2025) - fallback
-      'claude-3-5-sonnet-20241022',  // Claude 3.5 Sonnet - wider availability
-      'claude-3-5-haiku-20241022'    // Claude 3.5 Haiku - final fallback
+      'claude-3-sonnet-20240229',   // Claude 3 Sonnet (preferred)
+      'claude-3-haiku-20240307',    // Claude 3 Haiku (fallback)
+      'claude-3-5-sonnet-20241022', // Claude 3.5 Sonnet
+      'claude-3-5-haiku-20241022',  // Claude 3.5 Haiku
+      'claude-sonnet-4-20250514',   // Sonnet 4 (further fallback)
+      'claude-sonnet-4-5-20250929'  // Sonnet 4.5 (latest)
     ];
 
     let response: Response | null = null;
@@ -293,67 +249,72 @@ Remember: Complete all words fully. Never split words. Write naturally and profe
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
-          // Send model info
-          if (usedModel) {
-            const modelData = `data: ${JSON.stringify({ type: 'model', name: usedModel })}\n\n`;
-            controller.enqueue(encoder.encode(modelData));
-          }
+          const sanitize = (text: string): string => {
+            if (!text) return text;
+            return text
+              .replace(/([A-Za-z])\n([a-z])/g, '$1$2')
+              .replace(/(#{1,6}[^\n]*[A-Za-z])\n([a-z]{1,5})/g, '$1$2');
+          };
 
-          // Send images first if we found any
+          const emit = (payload: string) => {
+            if (!payload) return;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: payload })}\n\n`));
+          };
+
+          // Send images event first so the client can display them immediately
           if (uploadedImageUrls.length > 0) {
-            const imagesData = `data: ${JSON.stringify({ type: 'images', urls: uploadedImageUrls })}\n\n`;
-            controller.enqueue(encoder.encode(imagesData));
-            console.log('📤 Sent uploaded images to content writer:', uploadedImageUrls.length, 'images');
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'images', urls: uploadedImageUrls })}\n\n`));
           }
 
           const reader = response.body?.getReader();
           if (!reader) throw new Error('No response body');
 
-          // Buffer to accumulate incomplete chunks and prevent word breaks
-          let buffer = '';
+          let carry = '';
+          const safeBoundary = /[\s\n\t\r.,;:!?)]$/; // characters that safely end a token chunk
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-              // Send any remaining buffered content
-              if (buffer) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: buffer })}\n\n`));
-              }
-              break;
-            }
+            if (done) break;
 
-            const chunk = new TextDecoder().decode(value, { stream: true });
-            buffer += chunk;
-            
-            // Process complete lines only to prevent breaking mid-JSON
-            const lines = buffer.split('\n');
-            // Keep the last incomplete line in buffer
-            buffer = lines.pop() || '';
+            const chunk = new TextDecoder().decode(value);
+            const lines = chunk.split('\n');
 
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim();
-                if (!data || data === '[DONE]') continue;
+              if (!line.startsWith('data: ')) continue;
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
 
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-                    const text = parsed.delta.text;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: text })}\n\n`));
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                  // Append to carry and sanitize
+                  carry += parsed.delta.text;
+                  carry = sanitize(carry);
+
+                  // Find the last safe boundary to emit up to
+                  let cut = carry.length - 1;
+                  while (cut >= 0 && !safeBoundary.test(carry[cut])) cut--;
+
+                  // Only emit if we found a boundary and it’s not trivial
+                  if (cut >= 0) {
+                    const toEmit = carry.slice(0, cut + 1);
+                    emit(toEmit);
+                    carry = carry.slice(cut + 1);
                   }
-                } catch (e) {
-                  // Ignore parsing errors for incomplete JSON
-                  // This is normal during streaming
                 }
+              } catch (e) {
+                // Ignore parsing errors (incomplete JSON)
               }
             }
           }
+
+          // Flush any remaining buffered content
+          if (carry) emit(carry);
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Unknown error';
-          console.error('❌ Content writer streaming error:', message);
           const errorData = `data: ${JSON.stringify({ type: 'error', message })}\n\n`;
           controller.enqueue(encoder.encode(errorData));
           controller.close();

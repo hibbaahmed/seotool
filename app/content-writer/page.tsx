@@ -1,15 +1,255 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { marked } from 'marked';
 import { PenTool, FileText, ArrowRight, Eye, Download, Save, Calendar, Clock } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 
-export default function ContentWriterPage() {
-  const [isWriting, setIsWriting] = useState(false);
-  const [results, setResults] = useState('');
+interface StreamMessage {
+  type: 'model' | 'images' | 'token' | 'done' | 'error';
+  name?: string;
+  urls?: string[];
+  value?: string;
+  message?: string;
+}
+
+// Custom hook for content generation with proper streaming
+export function useContentWriter() {
+  const [content, setContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const sanitizeLiveContent = (text: string): string => {
+    if (!text) return text;
+    return text
+      // Merge mid-word newlines inside the growing buffer
+      .replace(/([A-Za-z])\n([a-z])/g, '$1$2')
+      // Merge heading continuation letters
+      .replace(/(#{1,6}[^\n]*[A-Za-z])\n([a-z]{1,5})/g, '$1$2');
+  };
+
+  const generateContent = useCallback(async (userInput: string, userId?: string) => {
+    setIsStreaming(true);
+    setError(null);
+    setContent('');
+    setImages([]);
+
+    try {
+      const response = await fetch('/api/ai/content-writer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: userInput }],
+          userId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines only
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data: StreamMessage = JSON.parse(line.slice(6));
+
+              switch (data.type) {
+                case 'model':
+                  console.log('Using model:', data.name);
+                  break;
+                
+                case 'images':
+                  if (data.urls) {
+                    setImages(data.urls);
+                    console.log('Received images:', data.urls.length);
+                  }
+                  break;
+                
+                case 'token':
+                  if (data.value) {
+                    // Accumulate content properly - no word breaks
+                    accumulatedContent += data.value;
+                    setContent(sanitizeLiveContent(accumulatedContent));
+                  }
+                  break;
+                
+                case 'done':
+                  console.log('Content generation complete');
+                  setIsStreaming(false);
+                  break;
+                
+                case 'error':
+                  throw new Error(data.message || 'Unknown error');
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse line:', line, parseError);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate content';
+      setError(errorMessage);
+      console.error('Content generation error:', err);
+    } finally {
+      setIsStreaming(false);
+    }
+  }, []);
+
+  return {
+    content,
+    images,
+    isStreaming,
+    error,
+    generateContent
+  };
+}
+
+export function ContentWriterExample() {
+  const { content, images, isStreaming, error, generateContent } = useContentWriter();
+  const [input, setInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    await generateContent(input);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <form onSubmit={handleSubmit} className="mb-8">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter your blog topic or content brief..."
+          className="w-full h-32 p-4 border rounded-lg"
+          disabled={isStreaming}
+        />
+        <button
+          type="submit"
+          disabled={isStreaming}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-400"
+        >
+          {isStreaming ? 'Generating...' : 'Generate Blog Post'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
+
+      {images.length > 0 && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="font-semibold">Images ready: {images.length}</p>
+        </div>
+      )}
+
+      {content && (
+        <div className="prose prose-lg max-w-none">
+          {/* Render markdown here using react-markdown or similar */}
+          <pre className="whitespace-pre-wrap font-sans">{content}</pre>
+        </div>
+      )}
+
+      {isStreaming && (
+        <div className="mt-4 flex items-center text-gray-500">
+          <div className="animate-pulse mr-2">●</div>
+          Writing your professional blog post...
+        </div>
+      )}
+    </div>
+  );
+}
+
+export async function streamContentWriter(
+  userInput: string,
+  onToken: (text: string) => void,
+  onImages?: (urls: string[]) => void,
+  onComplete?: () => void,
+  onError?: (error: string) => void
+) {
+  try {
+    const response = await fetch('/api/ai/content-writer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: userInput }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulatedText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data: StreamMessage = JSON.parse(line.slice(6));
+
+            if (data.type === 'images' && data.urls && onImages) {
+              onImages(data.urls);
+            } else if (data.type === 'token' && data.value) {
+              accumulatedText += data.value;
+              onToken(accumulatedText);
+            } else if (data.type === 'done' && onComplete) {
+              onComplete();
+            } else if (data.type === 'error' && onError) {
+              onError(data.message || 'Unknown error');
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if (onError) {
+      onError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+}
+
+export default function ContentWriterPage() {
+  const { content, images, isStreaming, error, generateContent } = useContentWriter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -29,26 +269,129 @@ export default function ContentWriterPage() {
     additionalContext: ''
   });
 
-  // Replace IMAGE_PLACEMENT placeholders with Markdown images and normalize spacing
+  // Replace IMAGE_PLACEMENT placeholders and remove ALL mid-sentence newlines
   const processContent = (text: string, urls: string[] = []): string => {
     if (!text) return '';
 
+    // Replace image placeholders first
     let urlIndex = 0;
-    const replaced = text.replace(/\[IMAGE_PLACEMENT:\s*"([^"]+)"\]/g, (_m, alt: string) => {
+    let replaced = text.replace(/\[IMAGE_PLACEMENT:\s*"([^"]+)"\]/g, (_m, alt: string) => {
       const url = urls[urlIndex++] || urls[urls.length - 1] || '';
       if (!url) return '';
       return `\n\n![${alt}](${url})\n\n`;
     });
 
-    // Ensure blank line before and after headings and images
-    let normalized = replaced
-      // blank line before headings
-      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2')
-      // blank line after heading line if missing
-      .replace(/^(#{2,3}[^\n]*)(?!\n\n)/gm, '$1\n')
-      // ensure blank lines around images
-      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
-      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
+    // ZERO PASS: Fix headings specifically - most critical fix
+    // Pattern: Heading ending with letter, then newline, then just letters (1-5 chars)
+    replaced = replaced
+      // Fix headings with broken words: "## Generatio\nn" -> "## Generation"
+      .replace(/(#{1,6}\s+[^\n]*[a-zA-Z0-9])\n([a-z]{1,5})(?=\s|$|\n)/g, '$1$2')
+      // Fix headings where continuation is on next line: "## Word\ns" -> "## Words"
+      .replace(/(#{1,6}\s+[^\n]*?[a-zA-Z])\n([a-z]{1,5})\n/g, '$1$2\n');
+
+    // FIRST PASS: Fix broken words everywhere else
+    replaced = replaced
+      // Fix broken words: "Word\ns" or "Word\nh" -> "Words"
+      .replace(/([a-zA-Z])\n([a-z]{1,5})(\s|$|\n|\.|,|;)/g, '$1$2$3')
+      // Fix broken words at end of line: "Generatio\nn" -> "Generation"
+      .replace(/([a-zA-Z])\n([a-z]{1,5})$/gm, '$1$2')
+      // Fix any remaining broken words in text: "text wor\nd" -> "text word"
+      .replace(/([a-zA-Z])\n([a-z]{1,5})(\s|$)/g, '$1$2$3');
+
+    // SECOND PASS: Merge all mid-sentence newlines (but preserve structure)
+    const lines = replaced.split('\n');
+    const result: string[] = [];
+    let i = 0;
+    let inCodeBlock = false;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Handle code blocks - never merge these
+      if (trimmed.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        result.push(line);
+        i++;
+        continue;
+      }
+      if (inCodeBlock) {
+        result.push(line);
+        i++;
+        continue;
+      }
+
+      // Blank line - keep it (separates paragraphs)
+      if (!trimmed) {
+        result.push('');
+        i++;
+        continue;
+      }
+
+      // Structural elements - check if next line continues them (especially headings)
+      if (trimmed.startsWith('#') || 
+          trimmed.startsWith('![') || 
+          trimmed.startsWith('>') ||
+          trimmed.startsWith('|') ||
+          trimmed.startsWith('- ') ||
+          trimmed.startsWith('* ') ||
+          /^\d+\.\s/.test(trimmed)) {
+        
+        // CRITICAL: For headings, always check if next line is continuation letters and merge
+        if (trimmed.startsWith('#') && i + 1 < lines.length) {
+          const nextLine = lines[i + 1];
+          const nextTrimmed = nextLine.trim();
+          // If next line is just 1-5 lowercase letters (continuation of word), merge immediately
+          if (/^[a-z]{1,5}$/.test(nextTrimmed) || /^[a-z]{1,5}(\s|$|\.|,|;|\n)/.test(nextTrimmed)) {
+            // Merge the continuation into the heading
+            const mergedHeading = trimmed.replace(/\s+$/, '') + nextTrimmed.replace(/^([a-z]+).*/, '$1');
+            result.push(mergedHeading);
+            i += 2;
+            continue;
+          }
+        }
+        
+        result.push(line);
+        i++;
+        continue;
+      }
+
+      // Regular text line - merge ALL following lines until blank/structural
+      let merged = line.trimEnd();
+      i++;
+
+      while (i < lines.length) {
+        const nextLine = lines[i];
+        const nextTrimmed = nextLine.trim();
+
+        // Stop at blank line (new paragraph)
+        if (!nextTrimmed) break;
+
+        // Stop at structural elements
+        if (nextTrimmed.startsWith('#') ||
+            nextTrimmed.startsWith('![') ||
+            nextTrimmed.startsWith('>') ||
+            nextTrimmed.startsWith('|') ||
+            nextTrimmed.startsWith('- ') ||
+            nextTrimmed.startsWith('* ') ||
+            /^\d+\.\s/.test(nextTrimmed)) {
+          break;
+        }
+
+        // Merge: remove trailing space, add space, add next line
+        merged = merged.replace(/\s+$/, '') + ' ' + nextTrimmed;
+        i++;
+      }
+
+      result.push(merged);
+    }
+
+    // THIRD PASS: Ensure proper spacing around headings and images
+    let normalized = result.join('\n')
+      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2') // blank line before heading
+      .replace(/^(#{2,3}[^\n]+)(?!\n\n)/gm, '$1\n\n') // blank line after heading
+      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2') // blank line before image
+      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n'); // blank line after image
 
     return normalized;
   };
@@ -59,28 +402,23 @@ export default function ContentWriterPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Auto-save when content generation completes
+  useEffect(() => {
+    if (!isStreaming && content && content.trim()) {
+      autoSaveContent(content, images);
+    }
+  }, [isStreaming, content, images]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsWriting(true);
-    setResults('');
-    setImages([]);
     setSaveMessage(''); // Clear previous save messages
 
-    try {
-      // Get user ID for image uploads
-      const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'anonymous';
+    // Get user ID for image uploads
+    const supabase = supabaseBrowser();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || 'anonymous';
 
-      const response = await fetch('/api/ai/content-writer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{
-            role: 'user',
-            content: `Create ${formData.contentType} content with the following specifications:
+    const userInput = `Create ${formData.contentType} content with the following specifications:
 Topic: "${formData.topic}"
 Content Type: ${formData.contentType}
 Target Audience: "${formData.targetAudience}"
@@ -88,63 +426,10 @@ Tone: ${formData.tone}
 Length: ${formData.length}
 Additional Context: "${formData.additionalContext}"
 
-Please provide high-quality, engaging content that meets these requirements.`
-          }],
-          userId: userId
-        }),
-      });
+Please provide high-quality, engaging content that meets these requirements.`;
 
-      if (!response.ok) {
-        throw new Error('Content generation failed');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedText = '';
-      let receivedImages: string[] = [];
-      let buffer = ''; // Buffer to hold incomplete lines
-
-      while (true) {
-        const { value, done } = await reader!.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === 'images') {
-                receivedImages = data.urls || [];
-                setImages(receivedImages);
-                console.log('🖼️ Received images:', receivedImages.length);
-              } else if (data.type === 'token') {
-                accumulatedText += data.value;
-                setResults(accumulatedText); // Update display with accumulated text
-              } else if (data.type === 'done') {
-                setIsWriting(false);
-                break;
-              } else if (data.type === 'error') {
-                throw new Error(data.message);
-              }
-            } catch (e) {
-              // Skip incomplete JSON
-            }
-          }
-        }
-      }
-
-      // Automatically save the content when complete
-      if (accumulatedText.trim()) {
-        await autoSaveContent(accumulatedText, receivedImages);
-      }
-    } catch (error) {
-      console.error('Content generation error:', error);
-      setResults(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
-      setIsWriting(false);
-    }
+    // Use the hook to generate content
+    await generateContent(userInput, userId);
   };
 
   const autoSaveContent = async (contentOutput: string, imageUrls: string[] = []) => {
@@ -183,14 +468,6 @@ Please provide high-quality, engaging content that meets these requirements.`
         setSaveMessage('Content completed and saved automatically!');
         console.log('Saved content:', savedContent);
         console.log('Image URLs from saved content:', (savedContent as any)?.image_urls);
-        
-        // Load images from the saved record
-        if (savedContent && (savedContent as any).image_urls && Array.isArray((savedContent as any).image_urls)) {
-          setImages((savedContent as any).image_urls as string[]);
-          console.log('Set images from saved content:', (savedContent as any).image_urls);
-        } else {
-          console.log('No image_urls found in saved content or not an array');
-        }
       }
     } catch (error) {
       console.error('Error auto-saving content:', error);
@@ -198,47 +475,16 @@ Please provide high-quality, engaging content that meets these requirements.`
     }
   };
 
-  // Load images stored in DB for the current user/topic
+  // Images are now managed by the hook and automatically set during generation
   const refreshImagesFromDb = async () => {
-    try {
-      const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('No user found for refresh');
-        return;
-      }
-
-      console.log('Refreshing images for topic:', formData.topic);
-      const { data, error } = await supabase
-        .from('content_writer_outputs')
-        .select('image_urls, topic, created_at')
-        .eq('user_id', user.id)
-        .eq('topic', formData.topic)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      console.log('Refresh query result:', { data, error });
-      
-      if (error) {
-        console.error('Error refreshing images:', error);
-        return;
-      }
-
-      if (data && (data as any).image_urls && Array.isArray((data as any).image_urls)) {
-        setImages((data as any).image_urls as string[]);
-        console.log('Refreshed images:', (data as any).image_urls);
-      } else {
-        console.log('No image_urls found in refresh query');
-      }
-    } catch (err) {
-      console.error('Error in refreshImagesFromDb:', err);
-    }
+    console.log('Images are managed by the content generation hook');
+    console.log('Current images:', images);
+    setSaveMessage('Images are already loaded from the generation process');
   };
 
   const handleSaveContent = async () => {
-    if (!results.trim()) {
-      setSaveMessage('No content results to save');
+    if (!content.trim()) {
+      setSaveMessage('No content to save');
       return;
     }
 
@@ -262,7 +508,7 @@ Please provide high-quality, engaging content that meets these requirements.`
         tone: formData.tone,
         length: formData.length,
         additional_context: formData.additionalContext,
-        content_output: processContent(results, images),
+        content_output: processContent(content, images),
       };
 
       const { data: savedContent, error } = await supabase
@@ -286,11 +532,11 @@ Please provide high-quality, engaging content that meets these requirements.`
   };
 
   const handleDownloadContent = () => {
-    if (!results.trim()) {
+    if (!content.trim()) {
       return;
     }
 
-    const blob = new Blob([results], { type: 'text/plain' });
+    const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -302,7 +548,7 @@ Please provide high-quality, engaging content that meets these requirements.`
   };
 
   const handleScheduleContent = async () => {
-    if (!results.trim()) {
+    if (!content.trim()) {
       setSaveMessage('No content to schedule');
       return;
     }
@@ -335,7 +581,7 @@ Please provide high-quality, engaging content that meets these requirements.`
           tone: formData.tone,
           length: formData.length,
           additional_context: formData.additionalContext,
-          content_output: results,
+          content_output: content,
           image_urls: images
         };
 
@@ -355,7 +601,7 @@ Please provide high-quality, engaging content that meets these requirements.`
       // Schedule the post
       const schedulePayload = {
         title: formData.topic,
-        content: processContent(results, images),
+        content: processContent(content, images),
         scheduled_date: scheduleData.scheduled_date,
         scheduled_time: scheduleData.scheduled_time + ':00',
         platform: scheduleData.platform,
@@ -403,6 +649,27 @@ Please provide high-quality, engaging content that meets these requirements.`
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
+      <style jsx global>{`
+        .content-writer-prose,
+        .content-writer-prose p,
+        .content-writer-prose h1,
+        .content-writer-prose h2,
+        .content-writer-prose h3,
+        .content-writer-prose h4,
+        .content-writer-prose h5,
+        .content-writer-prose h6,
+        .content-writer-prose li,
+        .content-writer-prose blockquote {
+          word-break: normal !important;
+          overflow-wrap: normal !important;
+          hyphens: manual !important;
+          line-break: auto !important;
+        }
+        .content-writer-prose h1,
+        .content-writer-prose h2,
+        .content-writer-prose h3 { text-wrap: balance; }
+        .prose :where(p, h1, h2, h3, h4, h5, h6){ word-break: normal; overflow-wrap: normal; }
+      `}</style>
       
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -545,9 +812,9 @@ Please provide high-quality, engaging content that meets these requirements.`
               <button
                 type="submit"
                 className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                disabled={isWriting}
+                disabled={isStreaming}
               >
-                {isWriting ? (
+                {isStreaming ? (
                   <>
                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -570,8 +837,15 @@ Please provide high-quality, engaging content that meets these requirements.`
             </form>
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8">
+              <p className="text-red-700 font-medium">Error: {error}</p>
+            </div>
+          )}
+
           {/* Results */}
-          {results && (
+          {content && (
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -608,7 +882,7 @@ Please provide high-quality, engaging content that meets these requirements.`
                     contentId={`content-${Date.now()}`} // Generate unique ID
                     contentType="content"
                     contentTitle={formData.topic}
-                    contentBody={processContent(results, images)}
+                    contentBody={processContent(content, images)}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
                     onSuccess={(result) => {
                       setSaveMessage('Content published to WordPress successfully!');
@@ -633,8 +907,8 @@ Please provide high-quality, engaging content that meets these requirements.`
               <div className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
                   <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: typeof results === 'string' ? (marked.parse(processContent(results, images)) as string) : '' }}
+                    className="prose max-w-none content-writer-prose"
+                    dangerouslySetInnerHTML={{ __html: typeof content === 'string' ? (marked.parse(processContent(content, images)) as string) : '' }}
                   />
                 </div>
               </div>
@@ -716,7 +990,7 @@ Please provide high-quality, engaging content that meets these requirements.`
                 </div>
               )}
 
-              {!isWriting && !results.includes('Error:') && (
+              {!isStreaming && !error && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2 text-blue-800">
                     <Download className="h-5 w-5" />
@@ -872,3 +1146,15 @@ Please provide high-quality, engaging content that meets these requirements.`
     </div>
   );
 }
+
+// Global style overrides for heading wrapping behavior
+<style jsx global>{`
+  .content-writer-prose h2,
+  .content-writer-prose h3 {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    hyphens: manual !important;
+    text-wrap: balance;
+  }
+`}</style>
