@@ -100,15 +100,17 @@ Please provide high-quality, engaging content that meets these requirements.`
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let fullResult = '';
+      let accumulatedText = '';
       let receivedImages: string[] = [];
+      let buffer = ''; // Buffer to hold incomplete lines
 
       while (true) {
         const { value, done } = await reader!.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -119,8 +121,8 @@ Please provide high-quality, engaging content that meets these requirements.`
                 setImages(receivedImages);
                 console.log('🖼️ Received images:', receivedImages.length);
               } else if (data.type === 'token') {
-                fullResult += data.value;
-                setResults(fullResult);
+                accumulatedText += data.value;
+                setResults(accumulatedText); // Update display with accumulated text
               } else if (data.type === 'done') {
                 setIsWriting(false);
                 break;
@@ -128,15 +130,15 @@ Please provide high-quality, engaging content that meets these requirements.`
                 throw new Error(data.message);
               }
             } catch (e) {
-              // Ignore parsing errors for incomplete chunks
+              // Skip incomplete JSON
             }
           }
         }
       }
 
       // Automatically save the content when complete
-      if (fullResult.trim()) {
-        await autoSaveContent(fullResult, receivedImages);
+      if (accumulatedText.trim()) {
+        await autoSaveContent(accumulatedText, receivedImages);
       }
     } catch (error) {
       console.error('Content generation error:', error);

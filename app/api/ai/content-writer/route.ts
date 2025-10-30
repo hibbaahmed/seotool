@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
     
     // Search for relevant images first
     let imageUrls: string[] = [];
-    let imageAnalysis = '';
     
     if (process.env.TAVILY_API_KEY) {
       try {
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest) {
 
         console.log('📤 Starting image upload process for', imageUrls.length, 'images');
         
-        // Use the userId from the request, or fallback to 'content-writer' if not provided
         const uploadUserId = userId || 'content-writer';
         
         for (let i = 0; i < imageUrls.length; i++) {
@@ -73,7 +71,6 @@ export async function POST(request: NextRequest) {
           try {
             console.log(`🔄 Starting upload for image ${i + 1}:`, imageUrl);
             
-            // Fetch image
             const response = await fetch(imageUrl, {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -90,15 +87,16 @@ export async function POST(request: NextRequest) {
             const imageBlob = await response.blob();
             console.log(`📦 Image ${i + 1} blob size:`, imageBlob.size, 'bytes', 'contentType:', contentType);
             
-            // Generate unique ID and infer extension from content-type
             const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
-            const typeToExt: Record<string, string> = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+            const typeToExt: Record<string, string> = { 
+              'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 
+              'image/webp': 'webp', 'image/gif': 'gif' 
+            };
             const fileExtension = typeToExt[contentType.toLowerCase()] || 'jpg';
             const filePath = `user_uploads/${uploadUserId}/${id}.${fileExtension}`;
             
             console.log(`📁 Uploading to path:`, filePath);
             
-            // Upload to Supabase Storage
             const uploadResult = await supabase.storage
               .from('photos')
               .upload(filePath, imageBlob, {
@@ -114,7 +112,6 @@ export async function POST(request: NextRequest) {
               continue;
             }
 
-            // Get public URL
             const { data: publicUrlData } = supabase.storage
               .from('photos')
               .getPublicUrl(filePath);
@@ -135,90 +132,173 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Enhanced prompt for content writing with image integration
-    const systemPrompt = `You are an expert content writer and SEO specialist. Create high-quality, engaging content based on the following request.
+    // Professional blog writing prompt
+    const systemPrompt = `You are an expert SEO content writer creating professional, publication-ready blog posts.
 
-I have found ${uploadedImageUrls.length} relevant images for this topic that you should embed in the content using Markdown image syntax. Here are the image URLs (use them in order unless a different image is clearly more relevant to the section):
-${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES (${uploadedImageUrls.length} total):
+${uploadedImageUrls.map((u, i) => `Image ${i + 1}: ${u}`).join('\n')}
 
-Your content should:
-- Be well-structured with clear headings and subheadings
-  - Use Markdown for headings (## for H2, ### for H3) and bold where appropriate
-  - Do not include literal labels like "H2:" or "H3:" anywhere in the text
-- Include relevant keywords naturally
-- Be engaging and valuable to readers
-- Include internal linking suggestions
-- Be optimized for SEO
-- Include a compelling introduction and conclusion
-- Use bullet points and numbered lists where appropriate
-- Be between 1000-2000 words for blog posts
-- Embed actual images throughout the content using Markdown. Use the format: ![short descriptive alt text](IMAGE_URL)
-- Distribute images across sections where they add value. Prefer placing an image immediately after the heading or after the first descriptive paragraph of a section.
-- Do NOT output placeholders like [IMAGE_PLACEMENT: ...]; always place real images using the provided URLs.
+CRITICAL: Write complete words only. Never end a line mid-word. Always complete the full word before moving to the next line.
 
-Format your response with:
-1. **Title** - SEO-optimized headline
-2. **Meta Description** - 150-160 characters
-3. **Content** - Full article in Markdown with proper headings and embedded images using the supplied URLs
-4. **Image Suggestions** - Specific recommendations for where to place images
-5. **SEO Suggestions** - Internal links, additional images, etc.
-6. **Call-to-Action** - Engaging conclusion with CTA
+FORMATTING REQUIREMENTS:
+1. Use proper Markdown: ## for H2, ### for H3 (never write "H2:" or "H3:")
+2. Embed images using: ![descriptive alt text](full-image-url)
+3. Add blank lines before and after headings, images, and lists
+4. Keep paragraphs 2-4 sentences max
+5. Write complete words - never break words with hyphens or across lines
 
-Spacing and formatting requirements:
-- Put a blank line before and after every heading and image
-- Use bullet/numbered lists with standard Markdown spacing
+STRUCTURE:
 
-Make the content informative, engaging, and optimized for search engines.`;
+# [SEO-Optimized Title 50-60 characters]
+
+**Meta Description:** [150-160 character summary with primary keyword]
+
+## Introduction
+
+[Hook with problem/question/statistic in 2-3 sentences]
+
+![Descriptive alt text](${uploadedImageUrls[0] || 'IMAGE_URL_1'})
+
+[2-3 paragraphs establishing context, value, and preview. Total ~200 words.]
+
+## [Major Section Title]
+
+[Introduction paragraph for this section]
+
+### [Subsection Title]
+
+[2-3 paragraphs with specific examples and actionable insights]
+
+**Key takeaways:**
+- First important point with details
+- Second important point with details  
+- Third important point with details
+
+![Section-specific descriptive alt](${uploadedImageUrls[1] || 'IMAGE_URL_2'})
+
+### [Another Subsection]
+
+[More detailed content with examples]
+
+## [Next Major Section]
+
+[Repeat pattern: intro, subsections, bullets, images]
+
+![Relevant visual](${uploadedImageUrls[2] || 'IMAGE_URL_3'})
+
+[Create 5-7 major H2 sections total]
+
+## Conclusion
+
+[2-3 paragraphs summarizing key takeaways and reinforcing main benefit]
+
+![Inspiring closing image](${uploadedImageUrls[4] || 'IMAGE_URL_5'})
+
+**Ready to [specific action]?**
+
+[2-sentence compelling call-to-action]
+
+---
+
+**SEO Notes:**
+- **Primary Keyword:** [main keyword]
+- **Secondary Keywords:** [keyword 1], [keyword 2], [keyword 3]
+- **Internal Links:** "[anchor 1]", "[anchor 2]", "[anchor 3]"
+- **Schema:** Article, HowTo
+- **Update:** Quarterly review
+
+WRITING STYLE:
+- Professional yet conversational
+- Active voice 80%+
+- Mix short and detailed sentences
+- Specific examples over generic statements
+- Direct address: "you" and "your"
+- Frequent visual breaks
+
+TARGET: 1,800-2,500 words
+
+Remember: Complete all words fully. Never split words. Write naturally and professionally.`;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'Missing ANTHROPIC_API_KEY' }, { status: 500 });
     }
 
-    // Try Anthropic with graceful model fallback (404 typically means model not found for the account)
+    // Use the latest Claude models with proper fallback
+    // Model names updated as of October 2025
     const candidateModels = [
-      'claude-3-5-sonnet-20241022',
-      'claude-3-5-sonnet-20240620',
-      'claude-3-5-haiku-20241022'
+      'claude-sonnet-4-5-20250929',  // Latest Sonnet 4.5 (Sep 2025) - best for complex content
+      'claude-haiku-4-5-20251001',   // Latest Haiku 4.5 (Oct 2025) - fast and efficient
+      'claude-sonnet-4-20250514',    // Sonnet 4 (May 2025) - fallback
+      'claude-3-5-sonnet-20241022',  // Claude 3.5 Sonnet - wider availability
+      'claude-3-5-haiku-20241022'    // Claude 3.5 Haiku - final fallback
     ];
 
     let response: Response | null = null;
     let lastErrorBody: string | null = null;
+    let usedModel: string | null = null;
 
     for (const model of candidateModels) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 4000,
-          system: systemPrompt,
-          messages: [
-            { role: 'user', content: userInput }
-          ],
-          stream: true
-        })
-      });
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 4096,
+            temperature: 0.7,
+            system: systemPrompt,
+            messages: [
+              { role: 'user', content: userInput }
+            ],
+            stream: true
+          })
+        });
 
-      if (r.ok) { response = r; break; }
-      try { lastErrorBody = await r.text(); } catch { lastErrorBody = null; }
-      console.error(`Anthropic model ${model} failed (${r.status}). Body:`, lastErrorBody);
-      // 404 is common for unavailable models – try next
+        if (r.ok) { 
+          response = r;
+          usedModel = model;
+          console.log(`✅ Successfully using Claude model: ${model}`);
+          break; 
+        }
+        
+        try { 
+          lastErrorBody = await r.text(); 
+        } catch { 
+          lastErrorBody = null; 
+        }
+        
+        console.warn(`⚠️ Model ${model} unavailable (${r.status}), trying next...`);
+      } catch (fetchError) {
+        console.error(`❌ Error trying model ${model}:`, fetchError);
+        continue;
+      }
     }
 
     if (!response || !response.ok) {
       const detail = lastErrorBody ? ` - ${lastErrorBody}` : '';
-      throw new Error(`API error: ${response ? response.status : 'no_response'}${detail}`);
+      const errorMsg = `All Claude models failed. Last error: ${response ? response.status : 'no_response'}${detail}`;
+      console.error('❌', errorMsg);
+      return NextResponse.json({ 
+        error: 'Content generation failed - no available Claude models',
+        details: lastErrorBody 
+      }, { status: 503 });
     }
 
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          // Send model info
+          if (usedModel) {
+            const modelData = `data: ${JSON.stringify({ type: 'model', name: usedModel })}\n\n`;
+            controller.enqueue(encoder.encode(modelData));
+          }
+
           // Send images first if we found any
           if (uploadedImageUrls.length > 0) {
             const imagesData = `data: ${JSON.stringify({ type: 'images', urls: uploadedImageUrls })}\n\n`;
@@ -226,38 +306,54 @@ Make the content informative, engaging, and optimized for search engines.`;
             console.log('📤 Sent uploaded images to content writer:', uploadedImageUrls.length, 'images');
           }
 
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error('No response body');
+          const reader = response.body?.getReader();
+          if (!reader) throw new Error('No response body');
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          // Buffer to accumulate incomplete chunks and prevent word breaks
+          let buffer = '';
 
-          const chunk = new TextDecoder().decode(value);
-          const lines = chunk.split('\n');
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              // Send any remaining buffered content
+              if (buffer) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: buffer })}\n\n`));
+              }
+              break;
+            }
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
+            const chunk = new TextDecoder().decode(value, { stream: true });
+            buffer += chunk;
+            
+            // Process complete lines only to prevent breaking mid-JSON
+            const lines = buffer.split('\n');
+            // Keep the last incomplete line in buffer
+            buffer = lines.pop() || '';
 
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: parsed.delta.text })}\n\n`));
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (!data || data === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                    const text = parsed.delta.text;
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', value: text })}\n\n`));
+                  }
+                } catch (e) {
+                  // Ignore parsing errors for incomplete JSON
+                  // This is normal during streaming
                 }
-              } catch (e) {
-                // Ignore parsing errors
               }
             }
           }
-        }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-        controller.close();
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          controller.close();
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Unknown error';
-          console.error('Content writer error:', message, err);
+          console.error('❌ Content writer streaming error:', message);
           const errorData = `data: ${JSON.stringify({ type: 'error', message })}\n\n`;
           controller.enqueue(encoder.encode(errorData));
           controller.close();
@@ -273,7 +369,10 @@ Make the content informative, engaging, and optimized for search engines.`;
       },
     });
   } catch (error) {
-    console.error('Content writing error:', error);
-    return NextResponse.json({ error: 'Content generation failed' }, { status: 500 });
+    console.error('❌ Content writing error:', error);
+    return NextResponse.json({ 
+      error: 'Content generation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
