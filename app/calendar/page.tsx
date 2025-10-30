@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, Plus, Edit, Trash2, Eye, Clock, Globe, FileText } from 'lucide-react';
 import BlogCalendar from '@/components/BlogCalendar';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
 interface ScheduledPost {
   id: string;
@@ -41,6 +42,19 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
+  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string }>>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [timeHour, setTimeHour] = useState<string>('09');
+  const [timeMinute, setTimeMinute] = useState<string>('00');
+  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
+  const [stagger, setStagger] = useState<boolean>(false);
+
+  const to24Hour = (h12: string, period: 'AM' | 'PM') => {
+    let h = parseInt(h12, 10) % 12;
+    if (period === 'PM') h += 12;
+    return String(h).padStart(2, '0');
+  };
 
   const handlePostClick = (post: ScheduledPost) => {
     setSelectedPost(post);
@@ -54,7 +68,31 @@ export default function CalendarPage() {
 
   const handleAddPost = (date: string) => {
     setSelectedDate(date);
-    setShowAddModal(true);
+    (async () => {
+      try {
+        setIsLoadingKeywords(true);
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setAvailableKeywords([]);
+        } else {
+          const { data } = await supabase
+            .from('discovered_keywords')
+            .select('id, keyword, scheduled_for_generation, generation_status')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+          const unscheduled = (data || []).filter((k: any) => !k.scheduled_for_generation && k.generation_status !== 'generated');
+          setAvailableKeywords(unscheduled.map((k: any) => ({ id: k.id, keyword: k.keyword })));
+          setSelectedIds([]);
+        }
+      } catch (e) {
+        console.error('Failed to load keywords', e);
+        setAvailableKeywords([]);
+      } finally {
+        setIsLoadingKeywords(false);
+        setShowAddModal(true);
+      }
+    })();
   };
 
   const handleGenerateNow = async (keyword?: ScheduledKeyword) => {
@@ -493,35 +531,97 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Add Post Modal */}
+      {/* Schedule Keywords Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-slate-900">Schedule New Post</h3>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Schedule Keywords</h3>
+                <p className="text-slate-600 text-sm">{formatDate(selectedDate)}</p>
               </div>
-              
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <p className="text-slate-600 mb-4">
-                  To schedule a new post, first create content using our AI Content Writer, then you can schedule it from there.
-                </p>
-                <button
-                  onClick={() => window.location.href = '/content-writer'}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium transition-colors"
-                >
-                  Go to Content Writer
-                </button>
+              <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="text-slate-400 hover:text-slate-600">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Time selector */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Time</label>
+                <div className="flex gap-2 max-w-xs">
+                  <select value={timeHour} onChange={(e)=>setTimeHour(e.target.value)} className="px-3 py-2 border rounded-lg">
+                    {Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0')).map(h=> <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <select value={timeMinute} onChange={(e)=>setTimeMinute(e.target.value)} className="px-3 py-2 border rounded-lg">
+                    {Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=> <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select value={timePeriod} onChange={(e)=>setTimePeriod(e.target.value as 'AM'|'PM')} className="px-3 py-2 border rounded-lg">
+                    <option>AM</option>
+                    <option>PM</option>
+                  </select>
+                </div>
+                <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-600">
+                  <input type="checkbox" checked={stagger} onChange={(e)=>setStagger(e.target.checked)} />
+                  Stagger by 5 minutes per keyword
+                </label>
               </div>
+
+              {/* Keywords list */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Choose keywords to schedule</label>
+                <div className="border rounded-lg divide-y max-h-80 overflow-y-auto">
+                  {isLoadingKeywords ? (
+                    <div className="p-4 text-slate-500 text-sm">Loading keywords...</div>
+                  ) : availableKeywords.length === 0 ? (
+                    <div className="p-4 text-slate-500 text-sm">No unscheduled keywords available.</div>
+                  ) : (
+                    availableKeywords.map(k => (
+                      <label key={k.id} className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(k.id)}
+                          onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
+                        />
+                        <span className="text-slate-800 text-sm">{k.keyword}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
+              <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="px-4 py-2 border rounded-lg hover:bg-slate-50">Cancel</button>
+              <button
+                disabled={selectedIds.length===0}
+                onClick={async ()=>{
+                  try {
+                    const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
+                    for (let i=0;i<selectedIds.length;i++){
+                      const id = selectedIds[i];
+                      let time = baseTime;
+                      if (stagger) {
+                        const hh = parseInt(to24Hour(timeHour, timePeriod),10);
+                        const mm = parseInt(timeMinute,10);
+                        const mins = hh*60 + mm + i*5;
+                        const nh = Math.floor(mins/60)%24; const nm = mins%60;
+                        time = `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}:00`;
+                      }
+                      await fetch('/api/calendar/keywords', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ keyword_id: id, scheduled_date: selectedDate, scheduled_time: time })
+                      });
+                    }
+                    setShowAddModal(false);
+                    setSelectedIds([]);
+                    window.location.reload();
+                  } catch (e) {
+                    console.error(e);
+                    alert('Failed to schedule keywords');
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >Schedule {selectedIds.length>0?`(${selectedIds.length})`:''}</button>
             </div>
           </div>
         </div>

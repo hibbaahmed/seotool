@@ -4,6 +4,8 @@ import { Inngest } from 'inngest';
 export const inngest = new Inngest({ 
   id: 'blog-scheduler',
   name: 'Blog Post Scheduler',
+  // Use the event key from env so server-side event sends work in production
+  eventKey: process.env.INNGEST_EVENT_KEY,
 });
 
 // Define event types for type safety

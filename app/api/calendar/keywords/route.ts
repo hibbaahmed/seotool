@@ -35,9 +35,15 @@ export async function GET(request: NextRequest) {
     if (date) {
       query = query.eq('scheduled_date', date);
     } else if (month) {
-      const [year, monthNum] = month.split('-');
-      const startDate = `${year}-${monthNum}-01`;
-      const endDate = `${year}-${monthNum}-31`;
+      const [yearStr, monthStr] = month.split('-');
+      const year = parseInt(yearStr, 10);
+      const monthIndex = parseInt(monthStr, 10) - 1; // 0-based
+      // First day of month (UTC) and last day of month (UTC)
+      const start = new Date(Date.UTC(year, monthIndex, 1));
+      const end = new Date(Date.UTC(year, monthIndex + 1, 0)); // day 0 of next month = last day of this month
+      const toYMD = (d: Date) => d.toISOString().slice(0, 10);
+      const startDate = toYMD(start);
+      const endDate = toYMD(end);
       query = query.gte('scheduled_date', startDate).lte('scheduled_date', endDate);
     }
 

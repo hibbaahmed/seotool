@@ -380,7 +380,8 @@ Length: Long-form (1500-2500 words)
 
 Please create comprehensive, SEO-optimized content for this topic. Include:
 - An engaging title and meta description
-- Well-structured sections with H2 and H3 headings
+- Well-structured sections using Markdown headings (## for H2, ### for H3)
+- Never write literal labels like "H2:" or "H3:" in the body
 - Actionable insights and valuable information
 - Natural keyword integration
 - Internal linking opportunities

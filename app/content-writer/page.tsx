@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { marked } from 'marked';
 import { PenTool, FileText, ArrowRight, Eye, Download, Save, Calendar, Clock } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
@@ -27,6 +28,30 @@ export default function ContentWriterPage() {
     length: 'medium',
     additionalContext: ''
   });
+
+  // Replace IMAGE_PLACEMENT placeholders with Markdown images and normalize spacing
+  const processContent = (text: string, urls: string[] = []): string => {
+    if (!text) return '';
+
+    let urlIndex = 0;
+    const replaced = text.replace(/\[IMAGE_PLACEMENT:\s*"([^"]+)"\]/g, (_m, alt: string) => {
+      const url = urls[urlIndex++] || urls[urls.length - 1] || '';
+      if (!url) return '';
+      return `\n\n![${alt}](${url})\n\n`;
+    });
+
+    // Ensure blank line before and after headings and images
+    let normalized = replaced
+      // blank line before headings
+      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2')
+      // blank line after heading line if missing
+      .replace(/^(#{2,3}[^\n]*)(?!\n\n)/gm, '$1\n')
+      // ensure blank lines around images
+      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
+      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
+
+    return normalized;
+  };
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -121,6 +146,7 @@ Please provide high-quality, engaging content that meets these requirements.`
   };
 
   const autoSaveContent = async (contentOutput: string, imageUrls: string[] = []) => {
+    const processed = processContent(contentOutput, imageUrls);
     try {
       const supabase = supabaseBrowser();
       const { data: { user } } = await supabase.auth.getUser();
@@ -138,7 +164,7 @@ Please provide high-quality, engaging content that meets these requirements.`
         tone: formData.tone,
         length: formData.length,
         additional_context: formData.additionalContext,
-        content_output: contentOutput,
+        content_output: processed,
         image_urls: imageUrls
       };
 
@@ -234,7 +260,7 @@ Please provide high-quality, engaging content that meets these requirements.`
         tone: formData.tone,
         length: formData.length,
         additional_context: formData.additionalContext,
-        content_output: results,
+        content_output: processContent(results, images),
       };
 
       const { data: savedContent, error } = await supabase
@@ -327,7 +353,7 @@ Please provide high-quality, engaging content that meets these requirements.`
       // Schedule the post
       const schedulePayload = {
         title: formData.topic,
-        content: results,
+        content: processContent(results, images),
         scheduled_date: scheduleData.scheduled_date,
         scheduled_time: scheduleData.scheduled_time + ':00',
         platform: scheduleData.platform,
@@ -580,7 +606,7 @@ Please provide high-quality, engaging content that meets these requirements.`
                     contentId={`content-${Date.now()}`} // Generate unique ID
                     contentType="content"
                     contentTitle={formData.topic}
-                    contentBody={results}
+                    contentBody={processContent(results, images)}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
                     onSuccess={(result) => {
                       setSaveMessage('Content published to WordPress successfully!');
@@ -602,11 +628,12 @@ Please provide high-quality, engaging content that meets these requirements.`
                 </div>
               )}
               
-              <div className="prose prose-lg max-w-none">
+              <div className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                  <pre className="whitespace-pre-wrap text-sm text-slate-900 font-mono leading-relaxed">
-                    {results}
-                  </pre>
+                  <div
+                    className="prose max-w-none"
+                    dangerouslySetInnerHTML={{ __html: typeof results === 'string' ? (marked.parse(processContent(results, images)) as string) : '' }}
+                  />
                 </div>
               </div>
 

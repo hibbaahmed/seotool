@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { marked } from 'marked';
 import { Eye, Download, Trash2, Calendar, Search, Filter, Grid, List, ArrowLeft, TrendingUp, PenTool, Camera, BarChart3, FileText, Clock, Globe, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Link from 'next/link';
@@ -33,6 +34,22 @@ export default function SavedPage() {
   const [wordpressSites, setWordpressSites] = useState<WordPressSite[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
+
+  const processContent = (text: string, urls: string[] = []): string => {
+    if (!text) return '';
+    let idx = 0;
+    let replaced = text.replace(/\[IMAGE_PLACEMENT:\s*"([^"]+)"\]/g, (_m, alt: string) => {
+      const url = urls[idx++] || urls[urls.length - 1] || '';
+      if (!url) return '';
+      return `\n\n![${alt}](${url})\n\n`;
+    });
+    replaced = replaced
+      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2')
+      .replace(/^(#{2,3}[^\n]*)(?!\n\n)/gm, '$1\n')
+      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
+      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
+    return replaced;
+  };
 
   useEffect(() => {
     loadAllSavedItems();
@@ -774,12 +791,13 @@ Generated on: ${new Date(item.created_at).toLocaleString()}`;
                     </div>
                   </div>
                   
-                  <div className="prose prose-lg max-w-none">
+                  <div className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700">
                     <h3 className="font-semibold text-slate-900 mb-4">Generated Content:</h3>
                     <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                      <pre className="whitespace-pre-wrap text-sm text-slate-900 font-mono leading-relaxed">
-                        {selectedItem.data.content_output}
-                      </pre>
+                      <div
+                        className="prose max-w-none"
+                        dangerouslySetInnerHTML={{ __html: selectedItem.data?.content_output ? (marked.parse(processContent(selectedItem.data.content_output, selectedItem.data.image_urls || [])) as string) : '' }}
+                      />
                     </div>
                   </div>
 

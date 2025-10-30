@@ -237,9 +237,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
           return (
             <div
               key={index}
-              className={`h-32 border border-slate-200 p-2 relative ${
+              onClick={() => !isPast && onAddPost?.(date.toISOString().split('T')[0])}
+              className={`h-32 border border-slate-200 p-2 relative group ${
                 isCurrentDay ? 'bg-blue-50 border-blue-300' : ''
-              } ${isPast ? 'bg-slate-50' : 'hover:bg-slate-50'} transition-colors overflow-hidden`}
+              } ${isPast ? 'bg-slate-50 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'} transition-colors overflow-hidden`}
             >
               {/* Date number */}
               <div className={`text-sm font-medium mb-1 ${
@@ -261,7 +262,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                         ? 'bg-red-100 text-red-800 border border-red-200'
                         : 'bg-blue-100 text-blue-800 border border-blue-200'
                     }`}
-                    onClick={() => onPostClick?.(post)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPostClick?.(post);
+                    }}
                     title={post.title}
                   >
                     <div className="truncate font-medium">{post.title}</div>
@@ -285,7 +289,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                   >
                     <div 
                       className="truncate font-medium cursor-pointer pr-6"
-                      onClick={() => onKeywordClick?.(keyword)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onKeywordClick?.(keyword);
+                      }}
                     >
                       🔑 {keyword.keyword}
                     </div>
@@ -330,7 +337,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
               {/* Add post button */}
               {!isPast && (
                 <button
-                  onClick={() => onAddPost?.(date.toISOString().split('T')[0])}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddPost?.(date.toISOString().split('T')[0]);
+                  }}
                   className="absolute top-1 right-1 p-1 hover:bg-slate-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Add post"
                 >

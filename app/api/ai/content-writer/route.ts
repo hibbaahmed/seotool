@@ -138,10 +138,13 @@ export async function POST(request: NextRequest) {
     // Enhanced prompt for content writing with image integration
     const systemPrompt = `You are an expert content writer and SEO specialist. Create high-quality, engaging content based on the following request.
 
-I have found ${uploadedImageUrls.length} relevant images for this topic that you should reference and suggest placement for.
+I have found ${uploadedImageUrls.length} relevant images for this topic that you should embed in the content using Markdown image syntax. Here are the image URLs (use them in order unless a different image is clearly more relevant to the section):
+${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
 Your content should:
 - Be well-structured with clear headings and subheadings
+  - Use Markdown for headings (## for H2, ### for H3) and bold where appropriate
+  - Do not include literal labels like "H2:" or "H3:" anywhere in the text
 - Include relevant keywords naturally
 - Be engaging and valuable to readers
 - Include internal linking suggestions
@@ -149,17 +152,21 @@ Your content should:
 - Include a compelling introduction and conclusion
 - Use bullet points and numbered lists where appropriate
 - Be between 1000-2000 words for blog posts
-- Include strategic image placement suggestions throughout the content
+- Embed actual images throughout the content using Markdown. Use the format: ![short descriptive alt text](IMAGE_URL)
+- Distribute images across sections where they add value. Prefer placing an image immediately after the heading or after the first descriptive paragraph of a section.
+- Do NOT output placeholders like [IMAGE_PLACEMENT: ...]; always place real images using the provided URLs.
 
 Format your response with:
 1. **Title** - SEO-optimized headline
 2. **Meta Description** - 150-160 characters
-3. **Content** - Full article with proper structure and image placement suggestions
+3. **Content** - Full article in Markdown with proper headings and embedded images using the supplied URLs
 4. **Image Suggestions** - Specific recommendations for where to place images
 5. **SEO Suggestions** - Internal links, additional images, etc.
 6. **Call-to-Action** - Engaging conclusion with CTA
 
-When suggesting image placement, use this format: [IMAGE_PLACEMENT: "description of what image should show here"]
+Spacing and formatting requirements:
+- Put a blank line before and after every heading and image
+- Use bullet/numbered lists with standard Markdown spacing
 
 Make the content informative, engaging, and optimized for search engines.`;
 
@@ -168,26 +175,44 @@ Make the content informative, engaging, and optimized for search engines.`;
       return NextResponse.json({ error: 'Missing ANTHROPIC_API_KEY' }, { status: 500 });
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: userInput }
-        ],
-        stream: true
-      })
-    });
+    // Try Anthropic with graceful model fallback (404 typically means model not found for the account)
+    const candidateModels = [
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-sonnet-20240620',
+      'claude-3-5-haiku-20241022'
+    ];
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    let response: Response | null = null;
+    let lastErrorBody: string | null = null;
+
+    for (const model of candidateModels) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4000,
+          system: systemPrompt,
+          messages: [
+            { role: 'user', content: userInput }
+          ],
+          stream: true
+        })
+      });
+
+      if (r.ok) { response = r; break; }
+      try { lastErrorBody = await r.text(); } catch { lastErrorBody = null; }
+      console.error(`Anthropic model ${model} failed (${r.status}). Body:`, lastErrorBody);
+      // 404 is common for unavailable models – try next
+    }
+
+    if (!response || !response.ok) {
+      const detail = lastErrorBody ? ` - ${lastErrorBody}` : '';
+      throw new Error(`API error: ${response ? response.status : 'no_response'}${detail}`);
     }
 
     const encoder = new TextEncoder();

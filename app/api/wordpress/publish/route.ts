@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
+import { marked } from 'marked';
 
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
@@ -253,6 +254,11 @@ export async function POST(request: NextRequest) {
       // WordPress.com API endpoint
       const endpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${siteIdNum}/posts/new`;
       
+      // Convert Markdown to HTML for WordPress.com
+      const htmlContent = typeof postData.content === 'string' 
+        ? (marked.parse(postData.content, { async: false }) as string)
+        : String(postData.content);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -261,7 +267,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           title: postData.title,
-          content: postData.content,
+          content: htmlContent,
           excerpt: publishOptions.excerpt || postData.excerpt,
           status: publishOptions.status || 'publish',
           tags: publishOptions.tags || [],
