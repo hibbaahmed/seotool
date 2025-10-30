@@ -15,7 +15,7 @@ interface StreamMessage {
 }
 
 // Custom hook for content generation with proper streaming
-export function useContentWriter() {
+function useContentWriter() {
   const [content, setContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -127,7 +127,7 @@ export function useContentWriter() {
   };
 }
 
-export function ContentWriterExample() {
+function ContentWriterExample() {
   const { content, images, isStreaming, error, generateContent } = useContentWriter();
   const [input, setInput] = useState('');
 
@@ -185,7 +185,7 @@ export function ContentWriterExample() {
   );
 }
 
-export async function streamContentWriter(
+async function streamContentWriter(
   userInput: string,
   onToken: (text: string) => void,
   onImages?: (urls: string[]) => void,

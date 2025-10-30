@@ -77,25 +77,6 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
-              href="/image-search"
-              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
-                <Image className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Image Search
-              </h3>
-              <p className="text-slate-600 mb-4">
-                Find and generate perfect images
-              </p>
-              <div className="flex items-center text-pink-600 font-medium group-hover:text-pink-700">
-                <span>Get Started</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-              </div>
-            </Link>
-
-            <Link 
               href="/seo-research"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
