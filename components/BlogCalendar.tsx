@@ -344,7 +344,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                         e.stopPropagation();
                         onAddPost?.(date.toISOString().split('T')[0]);
                       }}
-                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded-full shadow hover:bg-blue-700"
+                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 cursor-pointer"
                     >
                       Add
                     </button>

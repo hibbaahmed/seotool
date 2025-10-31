@@ -218,9 +218,9 @@ export default function KeywordsDashboard() {
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('discovered_keywords')
-        .update({ starred: newStarredValue } as any)
+        .update({ starred: newStarredValue })
         .eq('id', keywordId)
         .eq('user_id', user.id);
 
