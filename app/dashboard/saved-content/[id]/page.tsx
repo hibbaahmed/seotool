@@ -42,7 +42,25 @@ export default async function SavedContentDetailPage({ params }: any) {
     }
   }
 
-  const html = marked.parse(contentOutput || '') as string;
+  // Clean content by removing Title and Meta Description sections
+  let cleanedContent = contentOutput;
+  
+  // Remove Title section (with various formats)
+  cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleanedContent = cleanedContent.replace(/(?:^|\n)Title:\s*"?[^"\n]+"?\n?/gi, '');
+  
+  // Remove Meta Description section (with various formats)
+  cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleanedContent = cleanedContent.replace(/(?:^|\n)Meta Description:\s*"?[^"\n]+"?\n?/gi, '');
+  
+  // If there's a "Content" section header, remove it too (keep only the content itself)
+  cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
+  cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
+  
+  // Trim any leading/trailing whitespace
+  cleanedContent = cleanedContent.trim();
+
+  const html = marked.parse(cleanedContent || '') as string;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">

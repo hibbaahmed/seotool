@@ -250,12 +250,12 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
               </div>
 
               {/* Items for this date */}
-              <div className="space-y-1 overflow-y-auto max-h-24">
+              <div className="space-y-1 overflow-y-auto max-h-24 relative z-10">
                 {/* Posts */}
                 {postsForDate.map((post) => (
                   <div
                     key={post.id}
-                    className={`text-xs p-1 rounded cursor-pointer transition-colors ${
+                    className={`text-xs p-1 rounded cursor-pointer transition-colors relative z-20 ${
                       post.status === 'published' 
                         ? 'bg-green-100 text-green-800 border border-green-200'
                         : post.status === 'cancelled'
@@ -276,7 +276,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                 {keywordsForDate.map((keyword) => (
                   <div
                     key={keyword.id}
-                    className={`text-xs p-1 rounded transition-colors relative group ${
+                    className={`text-xs p-1 rounded transition-colors relative z-20 group ${
                       keyword.generation_status === 'generated' 
                         ? 'bg-green-100 text-green-800 border border-green-200'
                         : keyword.generation_status === 'generating'
@@ -288,7 +288,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                     title={keyword.keyword}
                   >
                     <div 
-                      className="truncate font-medium cursor-pointer pr-6"
+                      className="truncate font-medium cursor-pointer pr-6 relative z-30"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (keyword.generation_status === 'generated' && keyword.generated_content_id) {
@@ -307,7 +307,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                           e.stopPropagation();
                           onGenerateKeyword(keyword);
                         }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all opacity-0 group-hover:opacity-100"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all opacity-0 group-hover:opacity-100 z-40"
                         title="Generate Now"
                       >
                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,22 +320,20 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                 ))}
               </div>
 
-              {/* Add post button */}
+              {/* Add post button - positioned in top-right corner */}
               {!isPast && (
-                <>
-                  {/* Centered hover overlay button */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddPost?.(date.toISOString().split('T')[0]);
-                      }}
-                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 cursor-pointer"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddPost?.(date.toISOString().split('T')[0]);
+                  }}
+                  className={`absolute top-1 right-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded shadow hover:bg-blue-700 cursor-pointer transition-opacity z-0 ${
+                    totalItems > 0 ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                  title="Add new post or keyword"
+                >
+                  Add
+                </button>
               )}
             </div>
           );

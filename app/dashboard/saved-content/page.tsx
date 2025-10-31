@@ -43,6 +43,28 @@ const extractTitle = (contentOutput: string, fallbackTopic: string): string => {
   return fallbackTopic;
 };
 
+// Helper function to clean content by removing Title, Meta Description, and Content section headers
+const cleanContent = (contentOutput: string): string => {
+  if (!contentOutput) return '';
+  
+  let cleaned = contentOutput;
+  
+  // Remove Title section (with various formats)
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)Title:\s*"?[^"\n]+"?\n?/gi, '');
+  
+  // Remove Meta Description section (with various formats)
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)Meta Description:\s*"?[^"\n]+"?\n?/gi, '');
+  
+  // If there's a "Content" section header, remove it too (keep only the content itself)
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
+  
+  // Trim any leading/trailing whitespace
+  return cleaned.trim();
+};
+
 export default function SavedContentPage() {
   const [content, setContent] = useState<ContentWriterRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -274,7 +296,7 @@ export default function SavedContentPage() {
               <div className="prose prose-slate max-w-none">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
                   <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
-                    {selectedContent.content_output}
+                    {cleanContent(selectedContent.content_output)}
                   </pre>
                 </div>
               </div>

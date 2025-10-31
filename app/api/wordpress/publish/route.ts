@@ -5,8 +5,16 @@ import { marked } from 'marked';
 
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
-  // Split by sections
-  const sections = fullOutput.split(/^(##? |\d+\. \*\*)/m);
+  let cleaned = fullOutput;
+  
+  // First, remove Title and Meta Description sections explicitly (always remove these)
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)Title:\s*"?[^"\n]+"?\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)Meta Description:\s*"?[^"\n]+"?\n?/gi, '');
+  
+  // Split by sections to find the "Content" section
+  const sections = cleaned.split(/^(##? |\d+\. \*\*)/m);
   
   // Find the "Content" section
   let contentStartIndex = -1;
@@ -23,6 +31,10 @@ function extractContentFromAIOutput(fullOutput: string): string {
   if (contentStartIndex !== -1 && contentStartIndex < sections.length) {
     const contentParts = sections.slice(contentStartIndex);
     let extractedContent = contentParts.join('');
+    
+    // Remove the Content section header itself
+    extractedContent = extractedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
+    extractedContent = extractedContent.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
     
     // Remove any trailing sections like "Image Suggestions", "SEO Suggestions", "Call-to-Action"
     const stopKeywords = [
@@ -48,8 +60,8 @@ function extractContentFromAIOutput(fullOutput: string): string {
     return extractedContent.trim();
   }
   
-  // If no Content section found, return the full output
-  return fullOutput;
+  // If no Content section found, return the cleaned output (without Title/Meta Description)
+  return cleaned.trim();
 }
 
 export async function POST(request: NextRequest) {
