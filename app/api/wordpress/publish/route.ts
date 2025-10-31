@@ -5,45 +5,65 @@ import { marked } from 'marked';
 
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
+  if (!fullOutput) return '';
+  
   let cleaned = fullOutput;
   
-  // First, remove Title and Meta Description sections explicitly (always remove these)
-  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  // Step 1: Remove numbered sections with Title/Meta Description (handles inline formats too)
+  // Pattern: "1. **Title** [text]" or "1. **Title**\n[text]" or "**Title** [text]"
+  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Title\*\*\s*[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*/gi, '');
   cleaned = cleaned.replace(/(?:^|\n)Title:\s*"?[^"\n]+"?\n?/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  
+  // Step 2: Remove Meta Description sections
+  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Meta Description\*\*\s*[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Meta Description\*\*[:\s]*/gi, '');
   cleaned = cleaned.replace(/(?:^|\n)Meta Description:\s*"?[^"\n]+"?\n?/gi, '');
   
-  // Split by sections to find the "Content" section
-  const sections = cleaned.split(/^(##? |\d+\. \*\*)/m);
+  // Step 3: Find and extract the Content section
+  // Look for "3. **Content**" or "**Content**" followed by the actual content
+  const contentMatch = cleaned.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n?(.*)$/is);
   
-  // Find the "Content" section
-  let contentStartIndex = -1;
-  for (let i = 0; i < sections.length; i++) {
-    const section = sections[i];
-    // Check if this section is the Content section
-    if (section.includes('**Content**') || section.includes('# Content') || section.match(/^3\.?\s*\*\*Content/)) {
-      contentStartIndex = i + 1;
-      break;
+  if (contentMatch && contentMatch[1]) {
+    let extractedContent = contentMatch[1];
+    
+    // Remove the duplicate H1 title if it matches (first line after Content should not be duplicate title)
+    // Pattern: "# [Title]" that's redundant
+    const lines = extractedContent.split('\n');
+    let startIndex = 0;
+    
+    // Skip the first H1 heading if it's just a duplicate title
+    for (let i = 0; i < Math.min(3, lines.length); i++) {
+      const line = lines[i].trim();
+      if (line.match(/^#\s+[^\n]+$/)) {
+        // This is likely a duplicate title, skip it and the following blank line
+        startIndex = i + 1;
+        if (i + 1 < lines.length && lines[i + 1].trim() === '') {
+          startIndex = i + 2;
+        }
+        break;
+      } else if (line && !line.startsWith('#')) {
+        // Found actual content, start from here
+        startIndex = i;
+        break;
+      }
     }
-  }
-  
-  // If we found the Content section, extract everything after it
-  if (contentStartIndex !== -1 && contentStartIndex < sections.length) {
-    const contentParts = sections.slice(contentStartIndex);
-    let extractedContent = contentParts.join('');
     
-    // Remove the Content section header itself
-    extractedContent = extractedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
-    extractedContent = extractedContent.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
+    extractedContent = lines.slice(startIndex).join('\n');
     
-    // Remove any trailing sections like "Image Suggestions", "SEO Suggestions", "Call-to-Action"
+    // Remove trailing sections (SEO Suggestions, Call-to-Action, etc.)
     const stopKeywords = [
-      '\n## Image Suggestions',
-      '\n## SEO Suggestions',
-      '\n## Call-to-Action',
-      '\n**Image Suggestions**',
+      '\n4. **SEO Suggestions',
       '\n**SEO Suggestions**',
+      '\n## SEO Suggestions',
+      '\n4. **Image Suggestions',
+      '\n**Image Suggestions**',
+      '\n## Image Suggestions',
+      '\n5. **Call-to-Action',
       '\n**Call-to-Action**',
+      '\n## Call-to-Action',
       '\n4. **Image',
       '\n5. **SEO',
       '\n6. **Call'
@@ -60,7 +80,24 @@ function extractContentFromAIOutput(fullOutput: string): string {
     return extractedContent.trim();
   }
   
-  // If no Content section found, return the cleaned output (without Title/Meta Description)
+  // Step 4: If no Content section marker found, try to extract just the markdown content
+  // Remove any remaining numbered sections and keep only the actual content
+  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*[^*]+\*\*/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\*\*(?:Title|Meta Description|Content)\*\*[:\s]*/gi, '');
+  
+  // Remove duplicate H1 titles (keep only the first one)
+  const lines = cleaned.split('\n');
+  let h1Count = 0;
+  const cleanedLines = lines.filter(line => {
+    if (line.trim().match(/^#\s+[^\n]+$/)) {
+      h1Count++;
+      // Keep only the first H1
+      return h1Count === 1;
+    }
+    return true;
+  });
+  cleaned = cleanedLines.join('\n');
+  
   return cleaned.trim();
 }
 
@@ -174,10 +211,26 @@ export async function POST(request: NextRequest) {
     
     switch (contentType) {
       case 'content':
+        // Extract title from content_output (prefer extracted title over topic)
+        const contentOutput = (content as any).content_output || '';
+        let extractedTitle = (content as any).topic || 'Generated Article';
+        const titlePatterns = [
+          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+        ];
+        for (const pattern of titlePatterns) {
+          const match = contentOutput.match(pattern);
+          if (match && match[1]) {
+            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
+            break;
+          }
+        }
+        
         // Extract clean content from AI output (removes title, meta description, etc.)
-        const extractedContent = extractContentFromAIOutput((content as any).content_output);
+        const extractedContent = extractContentFromAIOutput(contentOutput);
         postData = {
-          title: (content as any).topic,
+          title: extractedTitle,
           content: extractedContent,
           excerpt: extractedContent.substring(0, 160).replace(/[#*]/g, '') + '...',
           status: publishOptions.status || 'publish',
