@@ -43,7 +43,7 @@ export default function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
-  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string }>>([]);
+  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high' }>>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [timeHour, setTimeHour] = useState<string>('09');
   const [timeMinute, setTimeMinute] = useState<string>('00');
@@ -78,11 +78,17 @@ export default function CalendarPage() {
         } else {
           const { data } = await supabase
             .from('discovered_keywords')
-            .select('id, keyword, scheduled_for_generation, generation_status')
+            .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
           const unscheduled = (data || []).filter((k: any) => !k.scheduled_for_generation && k.generation_status !== 'generated');
-          setAvailableKeywords(unscheduled.map((k: any) => ({ id: k.id, keyword: k.keyword })));
+          setAvailableKeywords(unscheduled.map((k: any) => ({ 
+            id: k.id, 
+            keyword: k.keyword,
+            search_volume: k.search_volume,
+            difficulty_score: k.difficulty_score,
+            opportunity_level: k.opportunity_level
+          })));
           setSelectedIds([]);
         }
       } catch (e) {
@@ -540,7 +546,7 @@ export default function CalendarPage() {
           aria-modal="true"
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-100"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl xl:max-w-5xl max-h-[92vh] overflow-y-scroll border border-blue-100"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-blue-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
@@ -610,7 +616,7 @@ export default function CalendarPage() {
                     <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/></svg>
                   </div>
                 </div>
-                <div className="border border-slate-200 rounded-lg max-h-80 overflow-y-auto divide-y divide-slate-100">
+                <div className="border border-slate-200 rounded-lg max-h-80 overflow-y-scroll divide-y divide-slate-100">
                   {isLoadingKeywords ? (
                     <div className="p-4 text-slate-500 text-sm">Loading keywords...</div>
                   ) : availableKeywords.length === 0 ? (
@@ -625,8 +631,20 @@ export default function CalendarPage() {
                             checked={selectedIds.includes(k.id)}
                             onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
                           />
-                          <span className="text-slate-800 text-sm">{k.keyword}</span>
+                          <div className="flex flex-col">
+                            <span className="text-slate-900 text-sm font-medium">{k.keyword}</span>
+                            <span className="text-xs text-slate-500">Volume: {k.search_volume?.toLocaleString?.() || 0} · Difficulty: {k.difficulty_score ?? 0}</span>
+                          </div>
                         </div>
+                        {k.opportunity_level && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                            k.opportunity_level === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
+                            k.opportunity_level === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                            'bg-slate-50 text-slate-700 border-slate-200'
+                          }`}>
+                            {k.opportunity_level.charAt(0).toUpperCase() + k.opportunity_level.slice(1)}
+                          </span>
+                        )}
                       </label>
                     ))
                   )}

@@ -336,16 +336,20 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
 
               {/* Add post button */}
               {!isPast && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddPost?.(date.toISOString().split('T')[0]);
-                  }}
-                  className="absolute top-1 right-1 p-1 hover:bg-slate-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Add post"
-                >
-                  <Plus className="h-3 w-3 text-slate-500" />
-                </button>
+                <>
+                  {/* Centered hover overlay button */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddPost?.(date.toISOString().split('T')[0]);
+                      }}
+                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded-full shadow hover:bg-blue-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           );
