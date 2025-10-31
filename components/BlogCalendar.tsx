@@ -240,7 +240,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
               onClick={() => !isPast && onAddPost?.(date.toISOString().split('T')[0])}
               className={`h-32 border border-slate-200 p-2 relative group ${
                 isCurrentDay ? 'bg-blue-50 border-blue-300' : ''
-              } ${isPast ? 'bg-slate-50 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'} transition-colors overflow-hidden`}
+              } ${isPast ? 'bg-slate-50' : 'hover:bg-slate-50 cursor-pointer'} transition-colors overflow-hidden`}
             >
               {/* Date number */}
               <div className={`text-sm font-medium mb-1 ${
@@ -250,9 +250,9 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
               </div>
 
               {/* Items for this date */}
-              <div className="space-y-1 overflow-y-auto max-h-20">
+              <div className="space-y-1 overflow-y-auto max-h-24">
                 {/* Posts */}
-                {postsForDate.slice(0, 1).map((post) => (
+                {postsForDate.map((post) => (
                   <div
                     key={post.id}
                     className={`text-xs p-1 rounded cursor-pointer transition-colors ${
@@ -273,7 +273,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                 ))}
                 
                 {/* Keywords */}
-                {keywordsForDate.slice(0, totalItems > 2 ? 1 : 2).map((keyword) => (
+                {keywordsForDate.map((keyword) => (
                   <div
                     key={keyword.id}
                     className={`text-xs p-1 rounded transition-colors relative group ${
@@ -291,7 +291,11 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                       className="truncate font-medium cursor-pointer pr-6"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onKeywordClick?.(keyword);
+                        if (keyword.generation_status === 'generated' && keyword.generated_content_id) {
+                          window.location.href = `/dashboard/saved-content/${keyword.generated_content_id}`;
+                        } else {
+                          onKeywordClick?.(keyword);
+                        }
                       }}
                     >
                       🔑 {keyword.keyword}
@@ -326,12 +330,6 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                     )}
                   </div>
                 ))}
-                
-                {totalItems > 2 && (
-                  <div className="text-xs text-slate-500 text-center">
-                    +{totalItems - 2} more
-                  </div>
-                )}
               </div>
 
               {/* Add post button */}
