@@ -92,7 +92,7 @@ export default function KeywordsDashboard() {
             source: kw.source || 'unknown',
             keywordIntent: kw.keyword_intent || 'informational',
             relatedKeywords: kw.related_keywords || [],
-            starred: false,
+            starred: !!kw.starred,
             queued: !!kw.scheduled_for_generation,
             generated: kw.generation_status === 'generated',
             onboardingProfile: profile.profile
@@ -151,7 +151,7 @@ export default function KeywordsDashboard() {
         source: item.source,
         keywordIntent: item.keyword_intent,
         relatedKeywords: item.related_keywords || [],
-        starred: false,
+        starred: !!item.starred,
         queued: !!item.scheduled_for_generation,
         generated: item.generation_status === 'generated'
       }));
@@ -196,10 +196,58 @@ export default function KeywordsDashboard() {
     }
   });
 
-  const toggleStar = (keywordId: string) => {
+  const toggleStar = async (keywordId: string) => {
+    // Optimistically update UI
+    const keyword = keywords.find(k => k.id === keywordId);
+    const newStarredValue = !keyword?.starred;
+    
     setKeywords(prev => prev.map(k => 
-      k.id === keywordId ? { ...k, starred: !k.starred } : k
+      k.id === keywordId ? { ...k, starred: newStarredValue } : k
     ));
+    
+    // Persist to database
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Revert on error if not authenticated
+        setKeywords(prev => prev.map(k => 
+          k.id === keywordId ? { ...k, starred: !newStarredValue } : k
+        ));
+        return;
+      }
+
+      const { error } = await supabase
+        .from('discovered_keywords')
+        .update({ starred: newStarredValue })
+        .eq('id', keywordId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating starred status:', error);
+        // Revert on error
+        setKeywords(prev => {
+          const reverted = prev.map(k => 
+            k.id === keywordId ? { ...k, starred: !newStarredValue } : k
+          );
+          calculateStats(reverted);
+          return reverted;
+        });
+      } else {
+        // Recalculate stats after successful update
+        setKeywords(prev => {
+          calculateStats(prev);
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling star:', error);
+      // Revert on error
+      setKeywords(prev => prev.map(k => 
+        k.id === keywordId ? { ...k, starred: !newStarredValue } : k
+      ));
+    }
   };
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -510,9 +558,6 @@ export default function KeywordsDashboard() {
                       CPC
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Source
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -548,16 +593,6 @@ export default function KeywordsDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                         ${keyword.cpc.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {getSourceIcon(keyword.source)}
-                          <span className="text-sm text-slate-600 capitalize">
-                            {keyword.source === 'dataforseo' ? 'DataForSEO' : 
-                             keyword.source === 'dataforseo_discovery' ? 'DataForSEO Discovery' :
-                             keyword.source.replace('_', ' ')}
-                          </span>
-                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
