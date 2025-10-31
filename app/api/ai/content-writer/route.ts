@@ -154,22 +154,23 @@ STRICT OUTPUT FORMAT (use EXACTLY this structure):
 3. **Content**
 # [Same title as above]
 
-## Introduction
-[Short 1-3 sentence paragraph]
+[Start directly with 2-4 engaging introductory paragraphs. NO "Introduction:" heading or label. Just write compelling paragraphs that hook the reader and provide context. Each paragraph should be 1-3 sentences. Use blank lines to separate paragraphs.]
 
-[Then continue with H2/H3 sections as needed]
+[Then continue with H2 sections (## Section Title) followed by their paragraphs directly - no labels like "Understanding..." or "Introduction:" before paragraphs. Subheadings should be clear and descriptive, followed immediately by relevant paragraphs.]
+
+[Continue with more H2/H3 sections as needed, each with their paragraphs flowing naturally below the subheading.]
+
+[End the Content section with a single closing call-to-action paragraph. Do NOT add any heading like "Call-to-Action:"—just write the CTA as a normal paragraph.]
 
 4. **SEO Suggestions**
 - [3-5 internal link anchor ideas]
 - [Image suggestions if any]
 
-5. **Call-to-Action**
-[One sentence CTA]
-
 CRITICAL RULES:
 - NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
 - Headings (##/###) MUST be complete on ONE line. If too long, rewrite shorter instead of breaking.
 - Use proper Markdown only (## for H2, ### for H3, - for bullets, **bold** as needed).
+- DO NOT use section labels like "Introduction:", "Call-to-Action:", or "Understanding [Topic]:" before paragraphs. Start paragraphs immediately after the main title and after subheadings.
 - Keep paragraphs short (1–3 sentences). Use blank lines between blocks.
 - Aim for 1,500–2,500 words. Tone: professional yet conversational, 8th–10th grade, active voice.
 `;

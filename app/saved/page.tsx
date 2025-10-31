@@ -137,10 +137,10 @@ export default function SavedPage() {
       result.push(merged);
     }
 
-    // THIRD PASS: Ensure proper spacing
+    // THIRD PASS: Ensure proper spacing (blank line around H2-H6 headings and images)
     let normalized = result.join('\n')
-      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2')
-      .replace(/^(#{2,3}[^\n]+)(?!\n\n)/gm, '$1\n\n')
+      .replace(/([^\n])\n(#{2,6}\s)/g, '$1\n\n$2')
+      .replace(/^(#{2,6}[^\n]+)(?!\n\n)/gm, '$1\n\n')
       .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
       .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
     

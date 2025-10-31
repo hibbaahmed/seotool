@@ -388,8 +388,8 @@ export default function ContentWriterPage() {
 
     // THIRD PASS: Ensure proper spacing around headings and images
     let normalized = result.join('\n')
-      .replace(/([^\n])\n(#{2,3}\s)/g, '$1\n\n$2') // blank line before heading
-      .replace(/^(#{2,3}[^\n]+)(?!\n\n)/gm, '$1\n\n') // blank line after heading
+      .replace(/([^\n])\n(#{2,6}\s)/g, '$1\n\n$2') // blank line before H2-H6
+      .replace(/^(#{2,6}[^\n]+)(?!\n\n)/gm, '$1\n\n') // blank line after H2-H6
       .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2') // blank line before image
       .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n'); // blank line after image
 

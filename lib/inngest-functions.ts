@@ -380,12 +380,14 @@ Length: Long-form (1500-2500 words)
 
 Please create comprehensive, SEO-optimized content for this topic. Include:
 - An engaging title and meta description
+- Start directly with 2-4 introductory paragraphs after the main title (NO "Introduction:" heading or label)
 - Well-structured sections using Markdown headings (## for H2, ### for H3)
-- Never write literal labels like "H2:" or "H3:" in the body
+- Never write literal labels like "H2:", "H3:", "Introduction:", or "Understanding [Topic]:" in the body
+- Paragraphs should flow directly after the main title and after subheadings
 - Actionable insights and valuable information
 - Natural keyword integration
 - Internal linking opportunities
-- A strong call-to-action
+- End the article with a single closing call-to-action paragraph, WITHOUT any heading label
 
 ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally incorporate: ${relatedKeywords.join(', ')}` : ''}`;
 
@@ -394,6 +396,7 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
         
         if (process.env.TAVILY_API_KEY) {
           try {
+            console.log('🔍 [Inngest] Searching for images via Tavily for keyword:', keyword);
             const tavilyResponse = await fetch('https://api.tavily.com/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -410,11 +413,18 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
               const tavilyData = await tavilyResponse.json();
               if (tavilyData.images && tavilyData.images.length > 0) {
                 imageUrls = tavilyData.images.filter(Boolean);
+                console.log('🖼️ [Inngest] Found images from Tavily:', imageUrls.length);
+              } else {
+                console.log('⚠️ [Inngest] Tavily returned no images');
               }
+            } else {
+              console.warn('⚠️ [Inngest] Tavily API error:', tavilyResponse.status);
             }
           } catch (error) {
-            console.error('Image search error:', error);
+            console.error('❌ [Inngest] Image search error:', error);
           }
+        } else {
+          console.warn('⚠️ [Inngest] TAVILY_API_KEY not set, skipping image search');
         }
 
         // Use demo images if no images found
@@ -466,6 +476,48 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
           }
         }
 
+        // Build system prompt with images (same format as content-writer API)
+        const systemPrompt = `You are an expert SEO content writer creating professional blog articles.
+
+AVAILABLE IMAGES (embed these using Markdown throughout the article):
+${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+
+Embed images rules:
+- Use: ![concise descriptive alt text](IMAGE_URL)
+- Place images near relevant headings/paragraphs (e.g., after H2 or the first paragraph of a section)
+- Distribute images across the article rather than grouping all at the end
+- Do NOT write placeholders; use the actual URLs above
+
+STRICT OUTPUT FORMAT (use EXACTLY this structure):
+1. **Title**
+[Write a compelling SEO title (~55-60 chars) on ONE line]
+
+2. **Meta Description**
+[Write 150-160 characters on ONE line]
+
+3. **Content**
+# [Same title as above]
+
+[Start directly with 2-4 engaging introductory paragraphs. NO "Introduction:" heading or label. Just write compelling paragraphs that hook the reader and provide context. Each paragraph should be 1-3 sentences. Use blank lines to separate paragraphs.]
+
+[Then continue with H2 sections (## Section Title) followed by their paragraphs directly - no labels like "Understanding..." or "Introduction:" before paragraphs. Subheadings should be clear and descriptive, followed immediately by relevant paragraphs.]
+
+[Continue with more H2/H3 sections as needed, each with their paragraphs flowing naturally below the subheading.]
+
+[End the Content section with a single closing call-to-action paragraph. Do NOT add any heading like "Call-to-Action:"—just write the CTA as a normal paragraph.]
+
+4. **SEO Suggestions**
+- [3-5 internal link anchor ideas]
+- [Image suggestions if any]
+
+CRITICAL RULES:
+- NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
+- Headings (##/###) MUST be complete on ONE line. If too long, rewrite shorter instead of breaking.
+- Use proper Markdown only (## for H2, ### for H3, - for bullets, **bold** as needed).
+- DO NOT use section labels like "Introduction:", "Call-to-Action:", or "Understanding [Topic]:" before paragraphs. Start paragraphs immediately after the main title and after subheadings.
+- Keep paragraphs short (1–3 sentences). Use blank lines between blocks.
+- Aim for 1,500–2,500 words. Tone: professional yet conversational, 8th–10th grade, active voice.`;
+
         // Generate content with Claude
         const modelsToTry: string[] = [
           process.env.ANTHROPIC_MODEL as string,
@@ -490,6 +542,7 @@ ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally
             body: JSON.stringify({
               model,
               max_tokens: 4000,
+              system: systemPrompt,
               messages: [{ role: 'user', content: contentPrompt }]
             })
           });
