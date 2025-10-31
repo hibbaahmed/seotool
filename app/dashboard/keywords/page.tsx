@@ -59,6 +59,7 @@ export default function KeywordsDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [sortBy, setSortBy] = useState<'relevance' | 'volume' | 'difficulty' | 'opportunity'>('relevance');
+  const [activeFilterCard, setActiveFilterCard] = useState<'all' | 'recommended' | 'starred' | 'queued' | 'generated'>('all');
 
   useEffect(() => {
     if (onboardingId) {
@@ -178,8 +179,14 @@ export default function KeywordsDashboard() {
 
   const filteredKeywords = keywords.filter(keyword => {
     const matchesSearch = keyword.keyword.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterLevel === 'all' || keyword.opportunityLevel === filterLevel;
-    return matchesSearch && matchesFilter;
+    const matchesLevel = filterLevel === 'all' || keyword.opportunityLevel === filterLevel;
+    const matchesCard =
+      activeFilterCard === 'all' ? true :
+      activeFilterCard === 'recommended' ? keyword.opportunityLevel === 'high' :
+      activeFilterCard === 'starred' ? keyword.starred :
+      activeFilterCard === 'queued' ? keyword.queued :
+      activeFilterCard === 'generated' ? keyword.generated : true;
+    return matchesSearch && matchesLevel && matchesCard;
   });
 
   const sortedKeywords = [...filteredKeywords].sort((a, b) => {
@@ -419,7 +426,7 @@ export default function KeywordsDashboard() {
 
           {/* Stats Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <button onClick={()=>{ setActiveFilterCard('all'); setFilterLevel('all'); setSearchTerm(''); }} className={`text-left bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-shadow ${activeFilterCard==='all' ? 'border-blue-300 ring-1 ring-blue-200' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50 ring-1 ring-inset ring-indigo-200">
                   <BarChart3 className="h-5 w-5 text-indigo-600" />
@@ -429,9 +436,9 @@ export default function KeywordsDashboard() {
                   <div className="text-sm text-slate-600">All Keywords</div>
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <button onClick={()=>{ setActiveFilterCard('recommended'); setFilterLevel('all'); }} className={`text-left bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-shadow ${activeFilterCard==='recommended' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 ring-1 ring-inset ring-emerald-200">
                   <Target className="h-5 w-5 text-emerald-600" />
@@ -441,9 +448,9 @@ export default function KeywordsDashboard() {
                   <div className="text-sm text-slate-600">Recommended</div>
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <button onClick={()=>{ setActiveFilterCard('starred'); setFilterLevel('all'); }} className={`text-left bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-shadow ${activeFilterCard==='starred' ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 ring-1 ring-inset ring-amber-200">
                   <Star className="h-5 w-5 text-amber-600" />
@@ -453,9 +460,9 @@ export default function KeywordsDashboard() {
                   <div className="text-sm text-slate-600">Starred</div>
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <button onClick={()=>{ setActiveFilterCard('queued'); setFilterLevel('all'); }} className={`text-left bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-shadow ${activeFilterCard==='queued' ? 'border-violet-300 ring-1 ring-violet-200' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 ring-1 ring-inset ring-violet-200">
                   <Clock className="h-5 w-5 text-violet-600" />
@@ -465,9 +472,9 @@ export default function KeywordsDashboard() {
                   <div className="text-sm text-slate-600">Queued</div>
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <button onClick={()=>{ setActiveFilterCard('generated'); setFilterLevel('all'); }} className={`text-left bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-shadow ${activeFilterCard==='generated' ? 'border-sky-300 ring-1 ring-sky-200' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-sky-50 to-indigo-50 ring-1 ring-inset ring-sky-200">
                   <Calendar className="h-5 w-5 text-indigo-600" />
@@ -477,7 +484,7 @@ export default function KeywordsDashboard() {
                   <div className="text-sm text-slate-600">Generated</div>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Controls */}

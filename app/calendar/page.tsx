@@ -43,7 +43,9 @@ export default function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
-  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high' }>>([]);
+  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high'; starred?: boolean; scheduled_for_generation?: boolean; generation_status?: 'pending'|'generating'|'generated'|'failed' }>>([]);
+  const [modalFilter, setModalFilter] = useState<'all'|'recommended'|'starred'>('all');
+  const [keywordSearch, setKeywordSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [timeHour, setTimeHour] = useState<string>('09');
   const [timeMinute, setTimeMinute] = useState<string>('00');
@@ -77,16 +79,19 @@ export default function CalendarPage() {
         } else {
           const { data } = await supabase
             .from('discovered_keywords')
-            .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level')
+            .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level, starred')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
-          const unscheduled = (data || []).filter((k: any) => !k.scheduled_for_generation && k.generation_status !== 'generated');
-          setAvailableKeywords(unscheduled.map((k: any) => ({ 
+          const allKeywords = (data || []);
+          setAvailableKeywords(allKeywords.map((k: any) => ({ 
             id: k.id, 
             keyword: k.keyword,
             search_volume: k.search_volume,
             difficulty_score: k.difficulty_score,
-            opportunity_level: k.opportunity_level
+            opportunity_level: k.opportunity_level,
+            starred: !!k.starred,
+            scheduled_for_generation: !!k.scheduled_for_generation,
+            generation_status: k.generation_status
           })));
           setSelectedIds([]);
         }
@@ -198,9 +203,9 @@ export default function CalendarPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Calendar */}
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-8">
+            {/* Calendar - full width */}
+            <div className="col-span-1">
               <BlogCalendar 
                 onPostClick={handlePostClick}
                 onAddPost={handleAddPost}
@@ -209,10 +214,10 @@ export default function CalendarPage() {
               />
             </div>
 
-            {/* Post/Keyword Details Sidebar */}
-            <div className="lg:col-span-1">
+            {/* Post/Keyword Details Sidebar - removed to enlarge calendar */}
+            <div className="hidden">
               {selectedKeyword ? (
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sticky top-24">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-slate-900">Keyword Details</h3>
                     <button
@@ -343,7 +348,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
               ) : selectedPost ? (
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sticky top-24">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-slate-900">Post Details</h3>
                     <div className="flex gap-2">
@@ -490,19 +495,7 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sticky top-24">
-                  <div className="text-center">
-                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">
-                      Select a Post
-                    </h3>
-                    <p className="text-slate-600 text-sm">
-                      Click on any scheduled post in the calendar to view its details here.
-                    </p>
-                  </div>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -578,6 +571,19 @@ export default function CalendarPage() {
                 </div>
               </div>
 
+              {/* Filter tabs */}
+              <div className="flex items-center gap-2 -mt-2">
+                {(['all','recommended','starred'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={()=>setModalFilter(tab)}
+                    className={`px-3 py-1.5 text-sm rounded-full border ${modalFilter===tab ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
+                  >
+                    {tab === 'all' ? 'All' : tab === 'recommended' ? 'Recommended' : 'Starred'}
+                  </button>
+                ))}
+              </div>
+
               {/* Keywords list */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -603,28 +609,34 @@ export default function CalendarPage() {
                       type="text"
                       placeholder="Search keywords..."
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                      onChange={(e)=>{
-                        const q = e.target.value.toLowerCase();
-                        // Simple client-side filter to improve UX (non-destructive)
-                        setAvailableKeywords(prev => prev.filter(k=>k.keyword.toLowerCase().includes(q) || q===''));
-                      }}
+                      value={keywordSearch}
+                      onChange={(e)=> setKeywordSearch(e.target.value)}
                     />
                     <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/></svg>
                   </div>
                 </div>
                 <div className="border border-slate-200 rounded-lg max-h-80 overflow-y-scroll divide-y divide-slate-100">
+                  {/* Header row */}
+                  <div className="grid grid-cols-[1fr_auto] items-center px-3 py-2 bg-slate-50 text-xs font-medium text-slate-600 sticky top-0 z-10 border-b border-slate-200">
+                    <span>Keyword</span>
+                    <span>Opportunity</span>
+                  </div>
                   {isLoadingKeywords ? (
                     <div className="p-4 text-slate-500 text-sm">Loading keywords...</div>
                   ) : availableKeywords.length === 0 ? (
                     <div className="p-4 text-slate-500 text-sm">No unscheduled keywords available.</div>
                   ) : (
-                    availableKeywords.map(k => (
-                      <label key={k.id} className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50">
+                    availableKeywords
+                      .filter(k => modalFilter==='all' ? true : modalFilter==='recommended' ? k.opportunity_level === 'high' : !!k.starred)
+                      .filter(k => k.keyword.toLowerCase().includes(keywordSearch.toLowerCase()))
+                      .map(k => (
+                      <label key={k.id} className={`flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50 ${k.generation_status==='generated' ? 'opacity-60' : ''}`}>
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
                             className="h-4 w-4 accent-blue-600 focus-visible:outline-none"
                             checked={selectedIds.includes(k.id)}
+                            disabled={k.scheduled_for_generation || k.generation_status==='generated'}
                             onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
                           />
                           <div className="flex flex-col">
@@ -632,15 +644,23 @@ export default function CalendarPage() {
                             <span className="text-xs text-slate-500">Volume: {k.search_volume?.toLocaleString?.() || 0} · Difficulty: {k.difficulty_score ?? 0}</span>
                           </div>
                         </div>
-                        {k.opportunity_level && (
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                            k.opportunity_level === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
-                            k.opportunity_level === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            'bg-slate-50 text-slate-700 border-slate-200'
-                          }`}>
-                            {k.opportunity_level.charAt(0).toUpperCase() + k.opportunity_level.slice(1)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {k.opportunity_level && (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                              k.opportunity_level === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
+                              k.opportunity_level === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                              'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}>
+                              {k.opportunity_level.charAt(0).toUpperCase() + k.opportunity_level.slice(1)}
+                            </span>
+                          )}
+                          {k.scheduled_for_generation && (
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Scheduled</span>
+                          )}
+                          {k.generation_status==='generated' && (
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Generated</span>
+                          )}
+                        </div>
                       </label>
                     ))
                   )}
