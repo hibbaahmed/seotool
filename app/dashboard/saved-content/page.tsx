@@ -21,6 +21,28 @@ interface ContentWriterRecord {
   updated_at: string;
 }
 
+// Helper function to extract title from content_output
+const extractTitle = (contentOutput: string, fallbackTopic: string): string => {
+  if (!contentOutput) return fallbackTopic;
+  
+  // Try to extract title from the content_output
+  // Format variations: **Title**\n[title text], Title:\n[title text], 1. **Title**\n[title text], or Title: "title text"
+  const titlePatterns = [
+    /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
+    /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
+    /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+  ];
+  
+  for (const pattern of titlePatterns) {
+    const match = contentOutput.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim().replace(/^["']|["']$/g, '');
+    }
+  }
+  
+  return fallbackTopic;
+};
+
 export default function SavedContentPage() {
   const [content, setContent] = useState<ContentWriterRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -228,7 +250,7 @@ export default function SavedContentPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h3 className="text-2xl font-bold text-slate-900">
-                {selectedContent.topic}
+                {extractTitle(selectedContent.content_output, selectedContent.topic)}
               </h3>
               <button
                 onClick={() => setSelectedContent(null)}
@@ -317,7 +339,7 @@ export default function SavedContentPage() {
                 <QuickWordPressPublishButton
                   contentId={selectedContent.id}
                   contentType="content"
-                  contentTitle={selectedContent.topic}
+                  contentTitle={extractTitle(selectedContent.content_output, selectedContent.topic)}
                   contentBody={selectedContent.content_output}
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
                   onSuccess={(result) => {

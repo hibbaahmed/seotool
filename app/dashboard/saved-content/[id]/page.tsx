@@ -22,14 +22,34 @@ export default async function SavedContentDetailPage({ params }: any) {
     );
   }
 
-  const html = marked.parse((data as any).content_output || '') as string;
+  // Extract title from content_output if it exists
+  const contentOutput = (data as any).content_output || '';
+  let extractedTitle = (data as any).topic || 'Generated Article';
+  
+  // Try to extract title from the content_output
+  // Format variations: **Title**\n[title text], Title:\n[title text], 1. **Title**\n[title text], or Title: "title text"
+  const titlePatterns = [
+    /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
+    /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
+    /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+  ];
+  
+  for (const pattern of titlePatterns) {
+    const match = contentOutput.match(pattern);
+    if (match && match[1]) {
+      extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
+      break;
+    }
+  }
+
+  const html = marked.parse(contentOutput || '') as string;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
       <div className="pt-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">{(data as any).topic || 'Generated Article'}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">{extractedTitle}</h1>
             {(data as any).created_at && (
               <p className="text-sm text-slate-500 mb-6">Saved on {new Date((data as any).created_at).toLocaleString()}</p>
             )}
