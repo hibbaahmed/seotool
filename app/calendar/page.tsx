@@ -48,7 +48,6 @@ export default function CalendarPage() {
   const [timeHour, setTimeHour] = useState<string>('09');
   const [timeMinute, setTimeMinute] = useState<string>('00');
   const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
-  const [stagger, setStagger] = useState<boolean>(false);
 
   const to24Hour = (h12: string, period: 'AM' | 'PM') => {
     let h = parseInt(h12, 10) % 12;
@@ -575,10 +574,7 @@ export default function CalendarPage() {
                       <option>PM</option>
                     </select>
                   </div>
-                  <label className="ml-3 inline-flex items-center gap-2 text-sm text-slate-700 select-none">
-                    <input type="checkbox" className="h-4 w-4 accent-blue-600" checked={stagger} onChange={(e)=>setStagger(e.target.checked)} />
-                    Stagger by 5 minutes per keyword
-                  </label>
+                  {/* Removed stagger option for simplicity */}
                 </div>
               </div>
 
@@ -660,14 +656,7 @@ export default function CalendarPage() {
                     const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
                     for (let i=0;i<selectedIds.length;i++){
                       const id = selectedIds[i];
-                      let time = baseTime;
-                      if (stagger) {
-                        const hh = parseInt(to24Hour(timeHour, timePeriod),10);
-                        const mm = parseInt(timeMinute,10);
-                        const mins = hh*60 + mm + i*5;
-                        const nh = Math.floor(mins/60)%24; const nm = mins%60;
-                        time = `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}:00`;
-                      }
+                      const time = baseTime;
                       await fetch('/api/calendar/keywords', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

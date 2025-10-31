@@ -220,7 +220,7 @@ export default function KeywordsDashboard() {
 
       const { error } = await supabase
         .from('discovered_keywords')
-        .update({ starred: newStarredValue })
+        .update({ starred: newStarredValue } as any)
         .eq('id', keywordId)
         .eq('user_id', user.id);
 
