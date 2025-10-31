@@ -370,10 +370,10 @@ export default function KeywordsDashboard() {
 
   const getOpportunityColor = (level: string) => {
     switch (level) {
-      case 'high': return 'text-green-600 bg-green-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'low': return 'text-gray-600 bg-gray-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'high': return 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200';
+      case 'medium': return 'text-amber-700 bg-amber-50 ring-1 ring-amber-200';
+      case 'low': return 'text-slate-700 bg-slate-50 ring-1 ring-slate-200';
+      default: return 'text-slate-700 bg-slate-50 ring-1 ring-slate-200';
     }
   };
 
@@ -401,12 +401,12 @@ export default function KeywordsDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <div className="pt-28 md:pt-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
               {onboardingId ? 'Keywords' : 'All Keywords'}
             </h1>
             <p className="text-slate-600">
@@ -419,10 +419,10 @@ export default function KeywordsDashboard() {
 
           {/* Stats Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50 ring-1 ring-inset ring-indigo-200">
+                  <BarChart3 className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div>
                       <div className="text-2xl font-bold text-slate-900">{stats.totalKeywords}</div>
@@ -431,10 +431,10 @@ export default function KeywordsDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Target className="h-5 w-5 text-green-600" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 ring-1 ring-inset ring-emerald-200">
+                  <Target className="h-5 w-5 text-emerald-600" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-900">{stats.recommended}</div>
@@ -443,10 +443,10 @@ export default function KeywordsDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Star className="h-5 w-5 text-yellow-600" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 ring-1 ring-inset ring-amber-200">
+                  <Star className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-900">{stats.starred}</div>
@@ -455,10 +455,10 @@ export default function KeywordsDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-purple-600" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 ring-1 ring-inset ring-violet-200">
+                  <Clock className="h-5 w-5 text-violet-600" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-900">{stats.queued}</div>
@@ -467,9 +467,9 @@ export default function KeywordsDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 rounded-lg">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-sky-50 to-indigo-50 ring-1 ring-inset ring-sky-200">
                   <Calendar className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div>
@@ -481,22 +481,22 @@ export default function KeywordsDashboard() {
           </div>
 
           {/* Controls */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
                   <Plus className="h-4 w-4" />
                   Add Keywords
                 </button>
                 
                 <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search keywords..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-400"
                   />
                 </div>
               </div>
@@ -505,7 +505,7 @@ export default function KeywordsDashboard() {
                 <select
                   value={filterLevel}
                   onChange={(e) => setFilterLevel(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="all">All Opportunities</option>
                   <option value="high">High Opportunity</option>
@@ -516,7 +516,7 @@ export default function KeywordsDashboard() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="relevance">Sort by Relevance</option>
                   <option value="volume">Sort by Volume</option>
@@ -524,7 +524,7 @@ export default function KeywordsDashboard() {
                   <option value="opportunity">Sort by Opportunity</option>
                 </select>
 
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                   <Download className="h-4 w-4" />
                   Export
                 </button>
@@ -537,40 +537,40 @@ export default function KeywordsDashboard() {
           </div>
 
           {/* Keywords Table */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-slate-50/70 backdrop-blur border-b border-slate-200 sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Keyword
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Opportunity
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Difficulty
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Volume
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       CPC
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-100">
                   {sortedKeywords.map((keyword) => (
-                    <tr key={keyword.id} className="hover:bg-gray-50">
+                    <tr key={keyword.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => toggleStar(keyword.id)}
                             className={`p-1 rounded ${
-                              keyword.starred ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'
+                              keyword.starred ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'
                             }`}
                           >
                             <Star className={`h-4 w-4 ${keyword.starred ? 'fill-current' : ''}`} />
@@ -581,7 +581,7 @@ export default function KeywordsDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getOpportunityColor(keyword.opportunityLevel)}`}>
+                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${getOpportunityColor(keyword.opportunityLevel)}`}>
                           {keyword.opportunityLevel.charAt(0).toUpperCase() + keyword.opportunityLevel.slice(1)}
                         </span>
                       </td>
@@ -597,10 +597,10 @@ export default function KeywordsDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => addToQueue(keyword.id)}
-                          className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 shadow-sm ${
                             keyword.queued
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100'
+                              : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100'
                           }`}
                         >
                           {keyword.queued ? (
@@ -626,8 +626,8 @@ export default function KeywordsDashboard() {
           {sortedKeywords.length === 0 && (
             <div className="text-center py-12">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <Search className="h-8 w-8 text-gray-400" />
+                <div className="p-3 bg-slate-100 rounded-full">
+                  <Search className="h-8 w-8 text-slate-400" />
                 </div>
               </div>
               <h3 className="text-lg font-medium text-slate-900 mb-2">No keywords found</h3>

@@ -533,63 +533,107 @@ export default function CalendarPage() {
 
       {/* Schedule Keywords Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-slate-200/30 backdrop-blur-sm"
+          onClick={() => { setShowAddModal(false); setSelectedIds([]); }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-blue-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Schedule Keywords</h3>
                 <p className="text-slate-600 text-sm">{formatDate(selectedDate)}</p>
               </div>
-              <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="text-slate-500 hover:text-slate-700">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6 bg-white">
               {/* Time selector */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Time</label>
-                <div className="flex gap-2 max-w-xs">
-                  <select value={timeHour} onChange={(e)=>setTimeHour(e.target.value)} className="px-3 py-2 border rounded-lg">
-                    {Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0')).map(h=> <option key={h} value={h}>{h}</option>)}
-                  </select>
-                  <select value={timeMinute} onChange={(e)=>setTimeMinute(e.target.value)} className="px-3 py-2 border rounded-lg">
-                    {Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=> <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <select value={timePeriod} onChange={(e)=>setTimePeriod(e.target.value as 'AM'|'PM')} className="px-3 py-2 border rounded-lg">
-                    <option>AM</option>
-                    <option>PM</option>
-                  </select>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-2 bg-white border border-blue-200 rounded-lg p-2 shadow-sm">
+                    <select value={timeHour} onChange={(e)=>setTimeHour(e.target.value)} className="px-3 py-2 bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      {Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0')).map(h=> <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <select value={timeMinute} onChange={(e)=>setTimeMinute(e.target.value)} className="px-3 py-2 bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      {Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=> <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <select value={timePeriod} onChange={(e)=>setTimePeriod(e.target.value as 'AM'|'PM')} className="px-3 py-2 bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      <option>AM</option>
+                      <option>PM</option>
+                    </select>
+                  </div>
+                  <label className="ml-3 inline-flex items-center gap-2 text-sm text-slate-700 select-none">
+                    <input type="checkbox" className="h-4 w-4 accent-blue-600" checked={stagger} onChange={(e)=>setStagger(e.target.checked)} />
+                    Stagger by 5 minutes per keyword
+                  </label>
                 </div>
-                <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-600">
-                  <input type="checkbox" checked={stagger} onChange={(e)=>setStagger(e.target.checked)} />
-                  Stagger by 5 minutes per keyword
-                </label>
               </div>
 
               {/* Keywords list */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Choose keywords to schedule</label>
-                <div className="border rounded-lg divide-y max-h-80 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-slate-700">Choose keywords to schedule</label>
+                  <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">{selectedIds.length} selected</span>
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="selectAll"
+                      type="checkbox"
+                      className="h-4 w-4 accent-blue-600"
+                      checked={availableKeywords.length>0 && selectedIds.length===availableKeywords.length}
+                      onChange={(e)=>{
+                        if (e.target.checked) setSelectedIds(availableKeywords.map(k=>k.id));
+                        else setSelectedIds([]);
+                      }}
+                    />
+                    <label htmlFor="selectAll" className="text-sm text-slate-700">Select all</label>
+                  </div>
+                  <div className="relative flex-1 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder="Search keywords..."
+                      className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      onChange={(e)=>{
+                        const q = e.target.value.toLowerCase();
+                        // Simple client-side filter to improve UX (non-destructive)
+                        setAvailableKeywords(prev => prev.filter(k=>k.keyword.toLowerCase().includes(q) || q===''));
+                      }}
+                    />
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/></svg>
+                  </div>
+                </div>
+                <div className="border border-blue-200 rounded-lg max-h-80 overflow-y-auto divide-y divide-slate-100">
                   {isLoadingKeywords ? (
                     <div className="p-4 text-slate-500 text-sm">Loading keywords...</div>
                   ) : availableKeywords.length === 0 ? (
                     <div className="p-4 text-slate-500 text-sm">No unscheduled keywords available.</div>
                   ) : (
                     availableKeywords.map(k => (
-                      <label key={k.id} className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(k.id)}
-                          onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
-                        />
-                        <span className="text-slate-800 text-sm">{k.keyword}</span>
+                      <label key={k.id} className="flex items-center justify-between p-3 cursor-pointer hover:bg-blue-50/50">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-blue-600"
+                            checked={selectedIds.includes(k.id)}
+                            onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
+                          />
+                          <span className="text-slate-800 text-sm">{k.keyword}</span>
+                        </div>
                       </label>
                     ))
                   )}
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
+            <div className="p-6 border-t border-blue-100 sticky bottom-0 bg-white flex items-center justify-end gap-3">
               <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="px-4 py-2 border rounded-lg hover:bg-slate-50">Cancel</button>
               <button
                 disabled={selectedIds.length===0}
@@ -620,7 +664,7 @@ export default function CalendarPage() {
                     alert('Failed to schedule keywords');
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm disabled:opacity-50"
               >Schedule {selectedIds.length>0?`(${selectedIds.length})`:''}</button>
             </div>
           </div>
