@@ -1,14 +1,8 @@
-'use server';
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { marked } from 'marked';
 
-interface PageProps {
-  params: { id: string };
-}
-
-export default async function SavedContentDetailPage({ params }: PageProps) {
-  const id = params.id;
+export default async function SavedContentDetailPage({ params }: any) {
+  const id = (await params)?.id ?? params?.id;
   const supabase = await supabaseAdmin();
 
   const { data, error } = await supabase
