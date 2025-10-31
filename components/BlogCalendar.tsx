@@ -315,19 +315,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                         </svg>
                       </button>
                     )}
-                    {/* View content button for generated keywords */}
-                    {keyword.generation_status === 'generated' && keyword.generated_content_id && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.href = `/dashboard/saved-content?id=${keyword.generated_content_id}`;
-                        }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-all opacity-0 group-hover:opacity-100"
-                        title="View Content"
-                      >
-                        <Eye className="h-3 w-3" />
-                      </button>
-                    )}
+                    {/* Eye icon removed: clicking the chip opens the detail page directly */}
                   </div>
                 ))}
               </div>
