@@ -60,13 +60,26 @@ body {
   font-weight: 700 !important;
 }
 
-/* Also apply to general prose classes */
+/* Also apply to general prose classes - make headings bold like outrank.so */
+/* Override Tailwind Typography defaults to ensure headings are always bold */
 .prose h1,
 .prose h2,
 .prose h3,
 .prose h4,
 .prose h5,
-.prose h6 {
+.prose h6,
+.prose :where(h1),
+.prose :where(h2),
+.prose :where(h3),
+.prose :where(h4),
+.prose :where(h5),
+.prose :where(h6),
+.prose-lg h1,
+.prose-lg h2,
+.prose-lg h3,
+.prose-lg h4,
+.prose-lg h5,
+.prose-lg h6 {
   font-weight: 700 !important;
 }
 
@@ -75,6 +88,48 @@ body {
   word-break: normal !important;
   overflow-wrap: normal !important;
   hyphens: manual !important;
+}
+
+/* Ensure headings in prose are bold - override any Tailwind Typography defaults */
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  font-weight: 700 !important;
+}
+
+/* Global rule: Make ALL h2, h3 headings bold in blog content (WordPress fetched content) */
+article h2,
+article h3,
+article h4,
+article h5,
+article h6 {
+  font-weight: 700 !important;
+}
+
+/* Also target headings within prose in articles - very specific selectors */
+article .prose h2,
+article .prose h3,
+article .prose h4,
+article .prose h5,
+article .prose h6,
+div.prose h2,
+div.prose h3,
+div.prose h4,
+div.prose h5,
+div.prose h6,
+.prose-lg h2,
+.prose-lg h3,
+.prose-lg h4,
+.prose-lg h5,
+.prose-lg h6 {
+  font-weight: 700 !important;
+}
+
+/* Nuclear option: Target all headings that come from WordPress content */
+div[class*="prose"] h2,
+div[class*="prose"] h3,
+div[class*="prose"] h4,
+div[class*="prose"] h5,
+div[class*="prose"] h6 {
+  font-weight: 700 !important;
 }
 
 /* Ensure proper paragraph spacing in generated content */
@@ -94,4 +149,225 @@ body {
 .content-writer-prose p + h2,
 .content-writer-prose p + h3 {
   margin-top: 1.5em !important;
+}
+
+/* Ensure proper spacing for WordPress blog posts (prose classes) */
+/* Override Tailwind Typography defaults - Target :where() selectors specifically */
+.prose :where(p),
+.prose-lg :where(p) {
+  margin-top: 1.5em !important;
+  margin-bottom: 1.5em !important;
+}
+
+.prose :where(p:first-child),
+.prose-lg :where(p:first-child) {
+  margin-top: 0 !important;
+}
+
+.prose :where(p:last-child),
+.prose-lg :where(p:last-child) {
+  margin-bottom: 0 !important;
+}
+
+/* Paragraph after paragraph - ensure spacing */
+.prose p + p,
+.prose-lg p + p {
+  margin-top: 1.5em !important;
+}
+
+/* Spacing after headings - first paragraph after heading */
+.prose :where(h2 + p),
+.prose :where(h3 + p),
+.prose :where(h4 + p),
+.prose :where(h5 + p),
+.prose :where(h6 + p),
+.prose-lg :where(h2 + p),
+.prose-lg :where(h3 + p),
+.prose-lg :where(h4 + p),
+.prose-lg :where(h5 + p),
+.prose-lg :where(h6 + p),
+.prose h2 + p,
+.prose h3 + p,
+.prose h4 + p,
+.prose h5 + p,
+.prose h6 + p,
+.prose-lg h2 + p,
+.prose-lg h3 + p,
+.prose-lg h4 + p,
+.prose-lg h5 + p,
+.prose-lg h6 + p {
+  margin-top: 1.25em !important;
+}
+
+/* Spacing before headings (more space before new sections) */
+.prose :where(p + h2),
+.prose :where(p + h3),
+.prose :where(p + h4),
+.prose :where(p + h5),
+.prose :where(p + h6),
+.prose-lg :where(p + h2),
+.prose-lg :where(p + h3),
+.prose-lg :where(p + h4),
+.prose-lg :where(p + h5),
+.prose-lg :where(p + h6),
+.prose p + h2,
+.prose p + h3,
+.prose p + h4,
+.prose-lg p + h2,
+.prose-lg p + h3,
+.prose-lg p + h4 {
+  margin-top: 2em !important;
+}
+
+/* Spacing for headings themselves - bottom margin */
+.prose :where(h2),
+.prose :where(h3),
+.prose :where(h4),
+.prose :where(h5),
+.prose :where(h6),
+.prose-lg :where(h2),
+.prose-lg :where(h3),
+.prose-lg :where(h4),
+.prose-lg :where(h5),
+.prose-lg :where(h6),
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6,
+.prose-lg h2,
+.prose-lg h3,
+.prose-lg h4,
+.prose-lg h5,
+.prose-lg h6 {
+  margin-bottom: 1em !important;
+  margin-top: 0 !important; /* Will be set by p + h2 rule above */
+}
+
+/* Ensure first heading after content starts has proper spacing */
+.prose :where(h2:first-of-type),
+.prose :where(h3:first-of-type),
+.prose :where(h4:first-of-type),
+.prose-lg :where(h2:first-of-type),
+.prose-lg :where(h3:first-of-type),
+.prose-lg :where(h4:first-of-type),
+.prose h2:first-of-type,
+.prose h3:first-of-type,
+.prose h4:first-of-type,
+.prose-lg h2:first-of-type,
+.prose-lg h3:first-of-type,
+.prose-lg h4:first-of-type {
+  margin-top: 2em !important;
+}
+
+/* Spacing between consecutive headings */
+.prose h2 + h3,
+.prose h3 + h4,
+.prose-lg h2 + h3,
+.prose-lg h3 + h4 {
+  margin-top: 1.5em !important;
+}
+
+/* Article-specific spacing (bridgely.io blog posts) - HIGH SPECIFICITY */
+article .prose p,
+article .prose-lg p,
+article div.prose p,
+article div.prose-lg p {
+  margin-top: 1.5em !important;
+  margin-bottom: 1.5em !important;
+}
+
+article .prose p:first-child,
+article .prose-lg p:first-child,
+article div.prose p:first-child,
+article div.prose-lg p:first-child {
+  margin-top: 0 !important;
+}
+
+article .prose p + p,
+article .prose-lg p + p,
+article div.prose p + p,
+article div.prose-lg p + p {
+  margin-top: 1.5em !important;
+}
+
+article .prose h2 + p,
+article .prose h3 + p,
+article .prose h4 + p,
+article .prose h5 + p,
+article .prose h6 + p,
+article .prose-lg h2 + p,
+article .prose-lg h3 + p,
+article .prose-lg h4 + p,
+article .prose-lg h5 + p,
+article .prose-lg h6 + p,
+article div.prose h2 + p,
+article div.prose h3 + p,
+article div.prose h4 + p,
+article div.prose-lg h2 + p,
+article div.prose-lg h3 + p,
+article div.prose-lg h4 + p {
+  margin-top: 1.25em !important;
+}
+
+article .prose p + h2,
+article .prose p + h3,
+article .prose p + h4,
+article .prose-lg p + h2,
+article .prose-lg p + h3,
+article .prose-lg p + h4,
+article div.prose p + h2,
+article div.prose p + h3,
+article div.prose p + h4,
+article div.prose-lg p + h2,
+article div.prose-lg p + h3,
+article div.prose-lg p + h4 {
+  margin-top: 2em !important;
+}
+
+article .prose h2,
+article .prose h3,
+article .prose h4,
+article .prose h5,
+article .prose h6,
+article .prose-lg h2,
+article .prose-lg h3,
+article .prose-lg h4,
+article .prose-lg h5,
+article .prose-lg h6,
+article div.prose h2,
+article div.prose h3,
+article div.prose h4,
+article div.prose-lg h2,
+article div.prose-lg h3,
+article div.prose-lg h4 {
+  margin-bottom: 1em !important;
+}
+
+/* Ultimate fallback - target any element with prose class anywhere */
+[class*="prose"] p {
+  margin-top: 1.5em !important;
+  margin-bottom: 1.5em !important;
+}
+
+[class*="prose"] p + p {
+  margin-top: 1.5em !important;
+}
+
+[class*="prose"] h2 + p,
+[class*="prose"] h3 + p,
+[class*="prose"] h4 + p {
+  margin-top: 1.25em !important;
+}
+
+[class*="prose"] p + h2,
+[class*="prose"] p + h3,
+[class*="prose"] p + h4 {
+  margin-top: 2em !important;
+}
+
+[class*="prose"] h2,
+[class*="prose"] h3,
+[class*="prose"] h4 {
+  margin-bottom: 1em !important;
 }

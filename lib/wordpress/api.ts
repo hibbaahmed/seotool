@@ -80,6 +80,29 @@ export class WordPressAPI {
       html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
     }
     
+    // Add inline styles for proper spacing (ensures spacing regardless of theme CSS)
+    html = this.addInlineSpacing(html);
+    
+    return html;
+  }
+
+  private addInlineSpacing(html: string): string {
+    // Add inline styles to ensure proper spacing in WordPress
+    // This ensures spacing works regardless of the WordPress theme's CSS
+    
+    // Add spacing to paragraphs (1.5em top and bottom)
+    html = html.replace(/<p>/gi, '<p style="margin-top: 1.5em; margin-bottom: 1.5em; line-height: 1.75;">');
+    
+    // Add spacing to headings
+    html = html.replace(/<h2>/gi, '<h2 style="margin-top: 2em; margin-bottom: 1em; font-weight: 700;">');
+    html = html.replace(/<h3>/gi, '<h3 style="margin-top: 1.75em; margin-bottom: 0.875em; font-weight: 700;">');
+    html = html.replace(/<h4>/gi, '<h4 style="margin-top: 1.5em; margin-bottom: 0.75em; font-weight: 700;">');
+    html = html.replace(/<h5>/gi, '<h5 style="margin-top: 1.5em; margin-bottom: 0.75em; font-weight: 700;">');
+    html = html.replace(/<h6>/gi, '<h6 style="margin-top: 1.5em; margin-bottom: 0.75em; font-weight: 700;">');
+    
+    // Remove top margin from first paragraph
+    html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
+    
     return html;
   }
 
