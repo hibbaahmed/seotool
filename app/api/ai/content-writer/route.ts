@@ -132,8 +132,13 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Extract topic/keyword for better optimization
+    const extractedTopic = topic || (userInput.match(/Topic:\s*"?([^"\n]+)"?/i)?.[1] || '').trim();
+    
     // Simple, direct prompt to avoid word-breaking issues
     const systemPrompt = `You are an expert SEO content writer creating professional blog articles.
+
+${extractedTopic ? `PRIMARY KEYWORD/TOPIC FOR THIS ARTICLE: "${extractedTopic}" - You MUST optimize the title and content for this specific keyword.` : ''}
 
 AVAILABLE IMAGES (embed these using Markdown throughout the article):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
@@ -146,10 +151,10 @@ Embed images rules:
 
 STRICT OUTPUT FORMAT (use EXACTLY this structure):
 1. **Title**
-[Write a compelling SEO title (~55-60 chars) on ONE line]
+[Write a compelling SEO title (~55-60 chars) on ONE line. CRITICAL: The title MUST be optimized for the primary keyword/topic from the user's input${extractedTopic ? ` ("${extractedTopic}")` : ''}. Include the main keyword naturally near the beginning of the title for maximum SEO impact. If related keywords are provided, consider incorporating them as well, but prioritize the primary keyword/topic. Make it engaging and click-worthy while ensuring strong keyword relevance.]
 
 2. **Meta Description**
-[Write 150-160 characters on ONE line]
+[Write 150-160 characters on ONE line. Include the primary keyword${extractedTopic ? ` "${extractedTopic}"` : ''} naturally in the meta description for SEO optimization.]
 
 3. **Content**
 # [Same title as above]

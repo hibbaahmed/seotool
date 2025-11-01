@@ -401,13 +401,14 @@ Tone: professional
 Length: Long-form (1500-2500 words)
 
 Please create comprehensive, SEO-optimized content for this topic. Include:
-- An engaging title and meta description
+- An engaging title OPTIMIZED FOR THE KEYWORD "${keyword}" - the title must include this primary keyword naturally near the beginning for maximum SEO impact
+- A meta description that includes the primary keyword "${keyword}" for SEO optimization
 - Start directly with 2-4 introductory paragraphs after the main title (NO "Introduction:" heading or label)
 - Well-structured sections using Markdown headings (## for H2, ### for H3)
 - Never write literal labels like "H2:", "H3:", "Introduction:", or "Understanding [Topic]:" in the body
 - Paragraphs should flow directly after the main title and after subheadings
 - Actionable insights and valuable information
-- Natural keyword integration
+- Natural keyword integration (prioritize "${keyword}" but also incorporate related keywords naturally)
 - Internal linking opportunities
 - End the article with a single closing call-to-action paragraph, WITHOUT any heading label
 
@@ -512,10 +513,10 @@ Embed images rules:
 
 STRICT OUTPUT FORMAT (use EXACTLY this structure):
 1. **Title**
-[Write a compelling SEO title (~55-60 chars) on ONE line]
+[Write a compelling SEO title (~55-60 chars) on ONE line. CRITICAL: The title MUST be optimized for the primary keyword "${keyword}" from the topic. Include the main keyword naturally near the beginning of the title for maximum SEO impact. If related keywords are provided, consider incorporating them as well, but prioritize the primary keyword. Make it engaging and click-worthy while ensuring strong keyword relevance.]
 
 2. **Meta Description**
-[Write 150-160 characters on ONE line]
+[Write 150-160 characters on ONE line. Include the primary keyword "${keyword}" naturally in the meta description for SEO optimization.]
 
 3. **Content**
 # [Same title as above]

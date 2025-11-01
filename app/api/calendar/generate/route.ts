@@ -193,7 +193,8 @@ AVAILABLE IMAGES (embed these using Markdown throughout the article):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
 Please create comprehensive, SEO-optimized content for this topic. Include:
-- An engaging title and meta description
+- An engaging title OPTIMIZED FOR THE KEYWORD "${keywordText}" - the title must include this primary keyword naturally near the beginning for maximum SEO impact
+- A meta description that includes the primary keyword "${keywordText}" for SEO optimization
 - Start directly with 2-4 introductory paragraphs after the main title (NO "Introduction:" heading or label)
 - Embed images using ![alt text](URL) near relevant sections - place images after H2 headings or first paragraphs
 - Distribute images throughout the article (not all at the end)
@@ -202,7 +203,7 @@ Please create comprehensive, SEO-optimized content for this topic. Include:
 - Never write literal labels like "H2:", "H3:", "Introduction:", or "Understanding [Topic]:" in the body
 - Paragraphs should flow directly after the main title and after subheadings
 - Actionable insights and valuable information
-- Natural keyword integration
+- Natural keyword integration (prioritize "${keywordText}" but also incorporate related keywords naturally)
 - Internal linking opportunities
 - End the article with a single closing call-to-action paragraph, WITHOUT any heading label
 
