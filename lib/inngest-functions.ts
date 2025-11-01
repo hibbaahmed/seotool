@@ -2,6 +2,7 @@ import { inngest, type Events } from '@/lib/inngest';
 import { createClient } from '@/utils/supabase/server';
 import { getAdapter } from '@/lib/integrations/getAdapter';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { marked } from 'marked';
 
 // Function to schedule a blog post for publishing
 export const scheduleBlogPost = inngest.createFunction(
@@ -644,10 +645,131 @@ CRITICAL RULES:
           postType: site.post_type,
         });
 
-        const excerpt = (generatedContent.content || '').slice(0, 160) + '...';
+        // Extract title from content_output (same logic as manual publish route)
+        const contentOutput = generatedContent.content || '';
+        let extractedTitle = keyword;
+        
+        // First, try to extract from Title section
+        const titlePatterns = [
+          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+        ];
+        for (const pattern of titlePatterns) {
+          const match = contentOutput.match(pattern);
+          if (match && match[1]) {
+            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
+            break;
+          }
+        }
+        
+        // If title not found yet, try to extract from H1 in content section
+        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+        if (contentSectionMatch) {
+          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+          if (h1Match && h1Match[1]) {
+            const h1Title = h1Match[1].trim();
+            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
+              extractedTitle = h1Title;
+            }
+          }
+        }
+        
+        // Extract and clean content (same logic as extractContentFromAIOutput)
+        let cleaned = contentOutput;
+        
+        // Remove numbered sections
+        cleaned = cleaned.replace(/^\d+\.?\s*\*\*Title\*\*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*Title:.*$/gmi, '');
+        cleaned = cleaned.replace(/^\*\*Title\*\*[:\s]*.*$/gmi, '');
+        cleaned = cleaned.replace(/^Title:\s*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*\*\*Meta Description\*\*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*Meta Description:.*$/gmi, '');
+        cleaned = cleaned.replace(/^\*\*Meta Description\*\*[:\s]*.*$/gmi, '');
+        cleaned = cleaned.replace(/^Meta Description:\s*.*$/gmi, '');
+        
+        // Extract Content section
+        const contentPatterns = [
+          /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
+          /(?:^|\n)\*\*Content\*\*[:\s]*\n?(.*)$/is,
+          /(?:^|\n)3\.\s+\*\*Content\*\*[:\s]*\n?(.*)$/is
+        ];
+        
+        let extractedContent = '';
+        for (const pattern of contentPatterns) {
+          const match = cleaned.match(pattern);
+          if (match && match[1]) {
+            extractedContent = match[1];
+            break;
+          }
+        }
+        
+        if (!extractedContent) {
+          extractedContent = cleaned;
+        }
+        
+        // Remove duplicate H1 title at the start
+        const lines = extractedContent.split('\n');
+        let startIndex = 0;
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+          const line = lines[i].trim();
+          if (line.match(/^#\s+.+$/)) {
+            startIndex = i + 1;
+            while (startIndex < lines.length && lines[startIndex].trim() === '') {
+              startIndex++;
+            }
+            break;
+          } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
+            startIndex = i;
+            break;
+          }
+        }
+        extractedContent = lines.slice(startIndex).join('\n');
+        
+        // Remove remaining numbered sections
+        extractedContent = extractedContent.replace(/^\d+\.?\s*\*\*[^*]+\*\*.*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\d+\.?\s*[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*:.*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
+        
+        // Remove trailing sections
+        const stopKeywords = [
+          '\n4. **SEO Suggestions',
+          '\n**SEO Suggestions**',
+          '\n## SEO Suggestions',
+          '\n4. **Image Suggestions',
+          '\n**Image Suggestions**',
+          '\n## Image Suggestions',
+          '\n5. **Call-to-Action',
+          '\n**Call-to-Action**',
+          '\n## Call-to-Action'
+        ];
+        for (const stopKeyword of stopKeywords) {
+          const index = extractedContent.indexOf(stopKeyword);
+          if (index !== -1) {
+            extractedContent = extractedContent.substring(0, index);
+            break;
+          }
+        }
+        
+        // Clean up whitespace
+        extractedContent = extractedContent
+          .replace(/\n{3,}/g, '\n\n')
+          .replace(/^\s+/gm, '')
+          .trim();
+        
+        // Convert markdown to HTML
+        let htmlContent = marked.parse(extractedContent, { async: false }) as string;
+        // Ensure markdown images are converted (fallback)
+        if (htmlContent.includes('![') && htmlContent.includes('](')) {
+          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+        }
+        
+        const excerpt = extractedContent.substring(0, 160).replace(/[#*]/g, '') + '...';
         const result = await adapter.publish({
-          title: keyword,
-          html: generatedContent.content,
+          title: extractedTitle,
+          html: htmlContent,
           excerpt,
           tags: ['ai-generated', 'seotool'],
         });

@@ -71,8 +71,16 @@ export class WordPressAPI {
 
   private convertMarkdownToHtml(markdown: string): string {
     // Convert markdown to HTML and return as string
-    const html = marked.parse(markdown, { async: false });
-    return typeof html === 'string' ? html : String(html);
+    let html = marked.parse(markdown, { async: false });
+    html = typeof html === 'string' ? html : String(html);
+    
+    // Ensure markdown images are converted to HTML (in case marked didn't convert them)
+    // Convert ![alt](url) to <img src="url" alt="alt" />
+    if (html.includes('![') && html.includes('](')) {
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+    }
+    
+    return html;
   }
 
   // Test connection

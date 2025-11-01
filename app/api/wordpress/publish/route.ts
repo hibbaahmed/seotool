@@ -254,6 +254,8 @@ export async function POST(request: NextRequest) {
         // Extract title from content_output (prefer extracted title over topic)
         const contentOutput = (content as any).content_output || '';
         let extractedTitle = (content as any).topic || 'Generated Article';
+        
+        // First, try to extract from Title section
         const titlePatterns = [
           /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
           /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
@@ -264,6 +266,42 @@ export async function POST(request: NextRequest) {
           if (match && match[1]) {
             extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
             break;
+          }
+        }
+        
+        // If title not found yet, try to extract from H1 in content section
+        // The content structure is: "3. **Content**\n# [Title]\n[content...]"
+        // Look for the first H1 that appears after "Content" section marker
+        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+        if (contentSectionMatch) {
+          // Find H1 after Content section
+          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+          if (h1Match && h1Match[1]) {
+            const h1Title = h1Match[1].trim();
+            // Only use H1 if it looks like a real title (not just "Content" or section marker)
+            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
+              extractedTitle = h1Title;
+            }
+          }
+        }
+        
+        // Fallback: try to find any H1 in the content
+        if (extractedTitle === (content as any).topic || extractedTitle === 'Generated Article') {
+          const h1Patterns = [
+            /(?:^|\n)#\s+([^\n]+)/,  // Match # Title on its own line
+            /#\s+([^\n]+)/  // Match # Title anywhere
+          ];
+          for (const pattern of h1Patterns) {
+            const matches = contentOutput.match(pattern);
+            if (matches && matches[1]) {
+              const h1Title = matches[1].trim();
+              // Only use H1 if it looks like a real title (not just "Content" or section marker)
+              if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
+                extractedTitle = h1Title;
+                break;
+              }
+            }
           }
         }
         
@@ -360,9 +398,19 @@ export async function POST(request: NextRequest) {
       const endpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${siteIdNum}/posts/new`;
       
       // Convert Markdown to HTML for WordPress.com
-      const htmlContent = typeof postData.content === 'string' 
-        ? (marked.parse(postData.content, { async: false }) as string)
-        : String(postData.content);
+      // Ensure images are properly converted from markdown (![alt](url)) to HTML (<img>)
+      let htmlContent: string;
+      if (typeof postData.content === 'string') {
+        // Parse markdown to HTML
+        htmlContent = marked.parse(postData.content, { async: false }) as string;
+        // Double-check that markdown images were converted (should be HTML <img> tags now)
+        if (htmlContent.includes('![') && htmlContent.includes('](')) {
+          // If markdown images still exist, manually convert them
+          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+        }
+      } else {
+        htmlContent = String(postData.content);
+      }
       
       const response = await fetch(endpoint, {
         method: 'POST',
