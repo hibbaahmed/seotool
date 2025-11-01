@@ -10,6 +10,32 @@ export async function POST(request: NextRequest) {
     const topicMatch = userInput.match(/Topic: "([^"]+)"/);
     const topic = topicMatch ? topicMatch[1] : userInput.split('\n')[0] || 'content creation';
     
+    // Search for relevant YouTube videos
+    let youtubeVideos: Array<{ id: string; title: string; url: string }> = [];
+    
+    if (process.env.YOUTUBE_API_KEY) {
+      try {
+        console.log('🎥 Searching for YouTube videos for topic:', topic);
+        const youtubeResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(topic)}&maxResults=3&key=${process.env.YOUTUBE_API_KEY}&videoEmbeddable=true`
+        );
+        
+        if (youtubeResponse.ok) {
+          const youtubeData = await youtubeResponse.json();
+          if (youtubeData.items && youtubeData.items.length > 0) {
+            youtubeVideos = youtubeData.items.map((item: any) => ({
+              id: item.id.videoId,
+              title: item.snippet.title,
+              url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+            }));
+            console.log('🎥 Found YouTube videos:', youtubeVideos.length);
+          }
+        }
+      } catch (error) {
+        console.error('❌ YouTube search error:', error);
+      }
+    }
+    
     // Search for relevant images first
     let imageUrls: string[] = [];
     
@@ -149,6 +175,17 @@ Embed images rules:
 - Distribute images across the article rather than grouping all at the end
 - Do NOT write placeholders; use the actual URLs above
 
+${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed these using HTML iframe or Markdown):
+${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id} - URL: ${v.url}`).join('\n')}
+
+Embed YouTube videos rules:
+- Use HTML iframe format: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+- Replace VIDEO_ID with the actual video ID from the list above
+- Place videos after relevant H2 sections or key paragraphs where they add value
+- Embed 1-2 videos throughout the article (not all at once)
+- Include a brief context sentence before each video explaining why it's relevant
+- Do NOT write placeholders; use the actual video IDs provided above` : ''}
+
 STRICT OUTPUT FORMAT (use EXACTLY this structure):
 1. **Title**
 [Write a compelling SEO title (~55-60 chars) on ONE line. CRITICAL: The title MUST be optimized for the primary keyword/topic from the user's input${extractedTopic ? ` ("${extractedTopic}")` : ''}. Include the main keyword naturally near the beginning of the title for maximum SEO impact. If related keywords are provided, consider incorporating them as well, but prioritize the primary keyword/topic. Make it engaging and click-worthy while ensuring strong keyword relevance.]
@@ -270,6 +307,11 @@ CRITICAL RULES:
           // Send images event first so the client can display them immediately
           if (uploadedImageUrls.length > 0) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'images', urls: uploadedImageUrls })}\n\n`));
+          }
+
+          // Send YouTube videos event so the client can display them
+          if (youtubeVideos.length > 0) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'videos', videos: youtubeVideos })}\n\n`));
           }
 
           const reader = response.body?.getReader();

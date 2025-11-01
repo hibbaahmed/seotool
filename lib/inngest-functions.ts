@@ -414,6 +414,32 @@ Please create comprehensive, SEO-optimized content for this topic. Include:
 
 ${relatedKeywords && relatedKeywords.length > 0 ? `Related keywords to naturally incorporate: ${relatedKeywords.join(', ')}` : ''}`;
 
+        // Search for relevant YouTube videos
+        let youtubeVideos: Array<{ id: string; title: string; url: string }> = [];
+        
+        if (process.env.YOUTUBE_API_KEY) {
+          try {
+            console.log('🎥 [Inngest] Searching for YouTube videos for keyword:', keyword);
+            const youtubeResponse = await fetch(
+              `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&maxResults=3&key=${process.env.YOUTUBE_API_KEY}&videoEmbeddable=true`
+            );
+            
+            if (youtubeResponse.ok) {
+              const youtubeData = await youtubeResponse.json();
+              if (youtubeData.items && youtubeData.items.length > 0) {
+                youtubeVideos = youtubeData.items.map((item: any) => ({
+                  id: item.id.videoId,
+                  title: item.snippet.title,
+                  url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+                }));
+                console.log('🎥 [Inngest] Found YouTube videos:', youtubeVideos.length);
+              }
+            }
+          } catch (error) {
+            console.error('❌ [Inngest] YouTube search error:', error);
+          }
+        }
+
         // Search for images using Tavily
         let imageUrls: string[] = [];
         
@@ -510,6 +536,17 @@ Embed images rules:
 - Place images near relevant headings/paragraphs (e.g., after H2 or the first paragraph of a section)
 - Distribute images across the article rather than grouping all at the end
 - Do NOT write placeholders; use the actual URLs above
+
+${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed these using HTML iframe or Markdown):
+${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id} - URL: ${v.url}`).join('\n')}
+
+Embed YouTube videos rules:
+- Use HTML iframe format: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+- Replace VIDEO_ID with the actual video ID from the list above
+- Place videos after relevant H2 sections or key paragraphs where they add value
+- Embed 1-2 videos throughout the article (not all at once)
+- Include a brief context sentence before each video explaining why it's relevant
+- Do NOT write placeholders; use the actual video IDs provided above` : ''}
 
 STRICT OUTPUT FORMAT (use EXACTLY this structure):
 1. **Title**
@@ -667,35 +704,81 @@ CRITICAL RULES:
           postType: site.post_type,
         });
 
-        // Extract title from content_output (same logic as manual publish route)
+        // Extract title from content_output - prioritize generated title over keyword
         const contentOutput = generatedContent.content || '';
-        let extractedTitle = keyword;
+        let extractedTitle = null;
         
-        // First, try to extract from Title section
+        // Priority 1: Extract from Title section with comprehensive patterns
         const titlePatterns = [
-          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
-          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
-          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+          /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
+          /Title[:\s]+\*\*([^\n]+?)\*\*/i,
+          /Title[:\s]+"([^"]+?)"/i,
+          /Title[:\s]+'([^']+?)'/i
         ];
+        
         for (const pattern of titlePatterns) {
           const match = contentOutput.match(pattern);
           if (match && match[1]) {
-            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
-            break;
+            const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
+            // Validate: title should be meaningful (not just "Title" or the keyword)
+            if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== keyword.toLowerCase()) {
+              extractedTitle = candidate;
+              break;
+            }
           }
         }
         
-        // If title not found yet, try to extract from H1 in content section
-        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
-        if (contentSectionMatch) {
-          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
-          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
-          if (h1Match && h1Match[1]) {
-            const h1Title = h1Match[1].trim();
-            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
-              extractedTitle = h1Title;
+        // Priority 2: Extract from H1 in content section (after "Content" marker)
+        if (!extractedTitle) {
+          const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+          if (contentSectionMatch) {
+            const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+            const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+            if (h1Match && h1Match[1]) {
+              const h1Title = h1Match[1].trim();
+              // Validate: should be a real title, not section markers
+              if (h1Title.length > 5 && 
+                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
+                  h1Title.toLowerCase() !== keyword.toLowerCase()) {
+                extractedTitle = h1Title;
+              }
             }
           }
+        }
+        
+        // Priority 3: Try to find any H1 in the content
+        if (!extractedTitle) {
+          const h1Patterns = [
+            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
+            /#\s+([^\n]+?)(?:\n|$)/m
+          ];
+          for (const pattern of h1Patterns) {
+            const matches = [...contentOutput.matchAll(pattern)];
+            for (const match of matches) {
+              if (match && match[1]) {
+                const h1Title = match[1].trim();
+                if (h1Title.length > 5 && 
+                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+                    h1Title.toLowerCase() !== keyword.toLowerCase()) {
+                  extractedTitle = h1Title;
+                  break;
+                }
+              }
+            }
+            if (extractedTitle) break;
+          }
+        }
+        
+        // Final fallback: use keyword only if absolutely no title found
+        if (!extractedTitle) {
+          extractedTitle = keyword;
+          console.warn(`⚠️ Could not extract title from content, using keyword: ${keyword}`);
+        } else {
+          console.log(`✅ Extracted title: ${extractedTitle}`);
         }
         
         // Extract and clean content (same logic as extractContentFromAIOutput)

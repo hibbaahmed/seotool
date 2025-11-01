@@ -22,24 +22,79 @@ export default async function SavedContentDetailPage({ params }: any) {
     );
   }
 
-  // Extract title from content_output if it exists
+  // Extract title from content_output - prioritize generated title over topic
   const contentOutput = (data as any).content_output || '';
-  let extractedTitle = (data as any).topic || 'Generated Article';
+  const topic = (data as any).topic || 'Generated Article';
+  let extractedTitle = null;
   
-  // Try to extract title from the content_output
-  // Format variations: **Title**\n[title text], Title:\n[title text], 1. **Title**\n[title text], or Title: "title text"
+  // Priority 1: Extract from Title section with comprehensive patterns
   const titlePatterns = [
-    /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
-    /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
-    /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+    /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+    /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+    /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+    /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
+    /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
+    /Title[:\s]+\*\*([^\n]+?)\*\*/i,
+    /Title[:\s]+"([^"]+?)"/i,
+    /Title[:\s]+'([^']+?)'/i
   ];
   
   for (const pattern of titlePatterns) {
     const match = contentOutput.match(pattern);
     if (match && match[1]) {
-      extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
-      break;
+      const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
+      // Validate: title should be meaningful (not just "Title" or the topic)
+      if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== topic.toLowerCase()) {
+        extractedTitle = candidate;
+        break;
+      }
     }
+  }
+  
+  // Priority 2: Extract from H1 in content section (after "Content" marker)
+  if (!extractedTitle) {
+    const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+    if (contentSectionMatch) {
+      const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+      const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+      if (h1Match && h1Match[1]) {
+        const h1Title = h1Match[1].trim();
+        // Validate: should be a real title, not section markers
+        if (h1Title.length > 5 && 
+            !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
+            h1Title.toLowerCase() !== topic.toLowerCase()) {
+          extractedTitle = h1Title;
+        }
+      }
+    }
+  }
+  
+  // Priority 3: Try to find any H1 in the content
+  if (!extractedTitle) {
+    const h1Patterns = [
+      /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/gm,
+      /#\s+([^\n]+?)(?:\n|$)/gm
+    ];
+    for (const pattern of h1Patterns) {
+      const matches = [...contentOutput.matchAll(pattern)];
+      for (const match of matches) {
+        if (match && match[1]) {
+          const h1Title = match[1].trim();
+          if (h1Title.length > 5 && 
+              !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+              h1Title.toLowerCase() !== topic.toLowerCase()) {
+            extractedTitle = h1Title;
+            break;
+          }
+        }
+      }
+      if (extractedTitle) break;
+    }
+  }
+  
+  // Final fallback: use topic only if absolutely no title found
+  if (!extractedTitle) {
+    extractedTitle = topic;
   }
 
   // Clean content by removing Title and Meta Description sections

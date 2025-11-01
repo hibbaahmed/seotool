@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
 import { marked } from 'marked';
+import { addInternalLinksToContent } from '@/lib/add-links-to-content';
 
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
   // Add inline styles to ensure proper spacing in WordPress
   // This ensures spacing works regardless of the WordPress theme's CSS
   
-  // Add spacing to paragraphs (1.5em top and bottom)
+  // Preserve iframes and embeds first (extract them temporarily)
+  const iframePlaceholders: string[] = [];
+  const iframeRegex = /<iframe[^>]*>.*?<\/iframe>/gis;
+  html = html.replace(iframeRegex, (match) => {
+    const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+    iframePlaceholders.push(match);
+    return placeholder;
+  });
+  
+  // Add spacing to paragraphs (1.5em top and bottom) - but not inside placeholders
   html = html.replace(/<p>/gi, '<p style="margin-top: 1.5em; margin-bottom: 1.5em; line-height: 1.75;">');
   
   // Add spacing to headings
@@ -20,6 +30,11 @@ function addInlineSpacing(html: string): string {
   
   // Remove top margin from first paragraph
   html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
+  
+  // Restore iframes and embeds
+  iframePlaceholders.forEach((iframe, index) => {
+    html = html.replace(`__IFRAME_PLACEHOLDER_${index}__`, iframe);
+  });
   
   return html;
 }
@@ -272,58 +287,82 @@ export async function POST(request: NextRequest) {
     
     switch (contentType) {
       case 'content':
-        // Extract title from content_output (prefer extracted title over topic)
+        // Extract title from content_output - prioritize generated title over topic
         const contentOutput = (content as any).content_output || '';
-        let extractedTitle = (content as any).topic || 'Generated Article';
+        const topic = (content as any).topic || 'Generated Article';
+        let extractedTitle = null;
         
-        // First, try to extract from Title section
+        // Priority 1: Extract from Title section with comprehensive patterns
         const titlePatterns = [
-          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
-          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
-          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+          /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
+          /Title[:\s]+\*\*([^\n]+?)\*\*/i,
+          /Title[:\s]+"([^"]+?)"/i,
+          /Title[:\s]+'([^']+?)'/i
         ];
+        
         for (const pattern of titlePatterns) {
           const match = contentOutput.match(pattern);
           if (match && match[1]) {
-            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
-            break;
-          }
-        }
-        
-        // If title not found yet, try to extract from H1 in content section
-        // The content structure is: "3. **Content**\n# [Title]\n[content...]"
-        // Look for the first H1 that appears after "Content" section marker
-        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
-        if (contentSectionMatch) {
-          // Find H1 after Content section
-          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
-          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
-          if (h1Match && h1Match[1]) {
-            const h1Title = h1Match[1].trim();
-            // Only use H1 if it looks like a real title (not just "Content" or section marker)
-            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
-              extractedTitle = h1Title;
+            const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
+            // Validate: title should be meaningful (not just "Title" or the topic)
+            if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== topic.toLowerCase()) {
+              extractedTitle = candidate;
+              break;
             }
           }
         }
         
-        // Fallback: try to find any H1 in the content
-        if (extractedTitle === (content as any).topic || extractedTitle === 'Generated Article') {
-          const h1Patterns = [
-            /(?:^|\n)#\s+([^\n]+)/,  // Match # Title on its own line
-            /#\s+([^\n]+)/  // Match # Title anywhere
-          ];
-          for (const pattern of h1Patterns) {
-            const matches = contentOutput.match(pattern);
-            if (matches && matches[1]) {
-              const h1Title = matches[1].trim();
-              // Only use H1 if it looks like a real title (not just "Content" or section marker)
-              if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
+        // Priority 2: Extract from H1 in content section (after "Content" marker)
+        if (!extractedTitle) {
+          const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+          if (contentSectionMatch) {
+            const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+            const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+            if (h1Match && h1Match[1]) {
+              const h1Title = h1Match[1].trim();
+              // Validate: should be a real title, not section markers
+              if (h1Title.length > 5 && 
+                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
+                  h1Title.toLowerCase() !== topic.toLowerCase()) {
                 extractedTitle = h1Title;
-                break;
               }
             }
           }
+        }
+        
+        // Priority 3: Try to find any H1 in the content
+        if (!extractedTitle) {
+          const h1Patterns = [
+            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
+            /#\s+([^\n]+?)(?:\n|$)/m
+          ];
+          for (const pattern of h1Patterns) {
+            const matches = [...contentOutput.matchAll(pattern)];
+            for (const match of matches) {
+              if (match && match[1]) {
+                const h1Title = match[1].trim();
+                if (h1Title.length > 5 && 
+                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+                    h1Title.toLowerCase() !== topic.toLowerCase()) {
+                  extractedTitle = h1Title;
+                  break;
+                }
+              }
+            }
+            if (extractedTitle) break;
+          }
+        }
+        
+        // Final fallback: use topic only if absolutely no title found
+        if (!extractedTitle) {
+          extractedTitle = topic;
+          console.warn(`⚠️ Could not extract title from content, using topic: ${topic}`);
+        } else {
+          console.log(`✅ Extracted title: ${extractedTitle}`);
         }
         
         // Extract clean content from AI output (removes title, meta description, etc.)
@@ -431,8 +470,23 @@ export async function POST(request: NextRequest) {
         }
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
+        
+        // Add automatic internal links AFTER converting to HTML
+        const { linkedContent } = await addInternalLinksToContent(
+          htmlContent,
+          postData.title,
+          process.env.NEXT_PUBLIC_BASE_URL
+        );
+        htmlContent = linkedContent;
       } else {
         htmlContent = String(postData.content);
+        // Add links even for non-markdown content
+        const { linkedContent } = await addInternalLinksToContent(
+          htmlContent,
+          postData.title,
+          process.env.NEXT_PUBLIC_BASE_URL
+        );
+        htmlContent = linkedContent;
       }
       
       const response = await fetch(endpoint, {
@@ -467,6 +521,14 @@ export async function POST(request: NextRequest) {
       if (!wpAPI) {
         return NextResponse.json({ error: 'WordPress API not initialized' }, { status: 500 });
       }
+      
+      // Add automatic internal links to content before publishing (for self-hosted)
+      const { linkedContent } = await addInternalLinksToContent(
+        postData.content,
+        postData.title,
+        process.env.NEXT_PUBLIC_BASE_URL
+      );
+      postData.content = linkedContent;
       
       if (publishOptions.publishDate) {
         publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);

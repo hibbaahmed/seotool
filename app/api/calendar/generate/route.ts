@@ -9,7 +9,16 @@ function addInlineSpacing(html: string): string {
   // Add inline styles to ensure proper spacing in WordPress
   // This ensures spacing works regardless of the WordPress theme's CSS
   
-  // Add spacing to paragraphs (1.5em top and bottom)
+  // Preserve iframes and embeds first (extract them temporarily)
+  const iframePlaceholders: string[] = [];
+  const iframeRegex = /<iframe[^>]*>.*?<\/iframe>/gis;
+  html = html.replace(iframeRegex, (match) => {
+    const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+    iframePlaceholders.push(match);
+    return placeholder;
+  });
+  
+  // Add spacing to paragraphs (1.5em top and bottom) - but not inside placeholders
   html = html.replace(/<p>/gi, '<p style="margin-top: 1.5em; margin-bottom: 1.5em; line-height: 1.75;">');
   
   // Add spacing to headings
@@ -21,6 +30,11 @@ function addInlineSpacing(html: string): string {
   
   // Remove top margin from first paragraph
   html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
+  
+  // Restore iframes and embeds
+  iframePlaceholders.forEach((iframe, index) => {
+    html = html.replace(`__IFRAME_PLACEHOLDER_${index}__`, iframe);
+  });
   
   return html;
 }
@@ -197,8 +211,9 @@ Please create comprehensive, SEO-optimized content for this topic. Include:
 - A meta description that includes the primary keyword "${keywordText}" for SEO optimization
 - Start directly with 2-4 introductory paragraphs after the main title (NO "Introduction:" heading or label)
 - Embed images using ![alt text](URL) near relevant sections - place images after H2 headings or first paragraphs
-- Distribute images throughout the article (not all at the end)
-- Use actual image URLs provided above (DO NOT write placeholders)
+- Embed relevant YouTube videos using HTML iframe format when available - place videos after relevant H2 sections where they add value
+- Distribute images and videos throughout the article (not all at the end)
+- Use actual image URLs and video IDs provided above (DO NOT write placeholders)
 - Well-structured sections using Markdown headings (## for H2, ### for H3)
 - Never write literal labels like "H2:", "H3:", "Introduction:", or "Understanding [Topic]:" in the body
 - Paragraphs should flow directly after the main title and after subheadings
@@ -373,35 +388,81 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
         .maybeSingle();
 
       if (site) {
-        // Extract title from content_output
+        // Extract title from content_output - prioritize generated title over keyword
         const contentOutput = fullContent || '';
-        let extractedTitle = keywordText;
+        let extractedTitle = null;
         
-        // First, try to extract from Title section
+        // Priority 1: Extract from Title section with comprehensive patterns
         const titlePatterns = [
-          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
-          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
-          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+          /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
+          /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
+          /Title[:\s]+\*\*([^\n]+?)\*\*/i,
+          /Title[:\s]+"([^"]+?)"/i,
+          /Title[:\s]+'([^']+?)'/i
         ];
+        
         for (const pattern of titlePatterns) {
           const match = contentOutput.match(pattern);
           if (match && match[1]) {
-            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
-            break;
+            const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
+            // Validate: title should be meaningful (not just "Title" or the keyword)
+            if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== keywordText.toLowerCase()) {
+              extractedTitle = candidate;
+              break;
+            }
           }
         }
         
-        // If title not found yet, try to extract from H1 in content section
-        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
-        if (contentSectionMatch) {
-          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
-          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
-          if (h1Match && h1Match[1]) {
-            const h1Title = h1Match[1].trim();
-            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
-              extractedTitle = h1Title;
+        // Priority 2: Extract from H1 in content section (after "Content" marker)
+        if (!extractedTitle) {
+          const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+          if (contentSectionMatch) {
+            const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+            const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+            if (h1Match && h1Match[1]) {
+              const h1Title = h1Match[1].trim();
+              // Validate: should be a real title, not section markers
+              if (h1Title.length > 5 && 
+                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
+                  h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+                extractedTitle = h1Title;
+              }
             }
           }
+        }
+        
+        // Priority 3: Try to find any H1 in the content
+        if (!extractedTitle) {
+          const h1Patterns = [
+            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
+            /#\s+([^\n]+?)(?:\n|$)/m
+          ];
+          for (const pattern of h1Patterns) {
+            const matches = [...contentOutput.matchAll(pattern)];
+            for (const match of matches) {
+              if (match && match[1]) {
+                const h1Title = match[1].trim();
+                if (h1Title.length > 5 && 
+                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+                    h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+                  extractedTitle = h1Title;
+                  break;
+                }
+              }
+            }
+            if (extractedTitle) break;
+          }
+        }
+        
+        // Final fallback: use keyword only if absolutely no title found
+        if (!extractedTitle) {
+          extractedTitle = keywordText;
+          console.warn(`⚠️ Could not extract title from content, using keyword: ${keywordText}`);
+        } else {
+          console.log(`✅ Extracted title: ${extractedTitle}`);
         }
         
         // Extract and clean content (same logic as extractContentFromAIOutput)
@@ -559,6 +620,20 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
         }
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
+        
+        // Add automatic internal links to content before publishing
+        try {
+          const { addInternalLinksToContent } = await import('@/lib/add-links-to-content');
+          const { linkedContent } = await addInternalLinksToContent(
+            htmlContent,
+            extractedTitle,
+            process.env.NEXT_PUBLIC_BASE_URL
+          );
+          htmlContent = linkedContent;
+        } catch (linkError) {
+          console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
+          // Continue without links if linking fails
+        }
         
         const provider = (site as any).provider || ((site as any).access_token ? 'wpcom' : 'wordpress');
         const adapter = getAdapter(provider, {

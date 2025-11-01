@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
+import { addInternalLinksToContent } from '@/lib/add-links-to-content';
 
 export async function GET(request: NextRequest) {
   try {
@@ -136,11 +137,18 @@ export async function POST(request: NextRequest) {
       updatedAt: (site as any).updated_at,
     });
 
-    // Prepare post data
+    // Add automatic internal links to content before publishing
+    const { linkedContent, linksAdded } = await addInternalLinksToContent(
+      content,
+      title,
+      process.env.NEXT_PUBLIC_BASE_URL
+    );
+
+    // Prepare post data with linked content
     const postData = {
       title,
-      content,
-      excerpt: excerpt || content.substring(0, 160) + '...',
+      content: linkedContent,
+      excerpt: excerpt || linkedContent.substring(0, 160) + '...',
       status,
       categories,
       tags,

@@ -7,9 +7,10 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 
 interface StreamMessage {
-  type: 'model' | 'images' | 'token' | 'done' | 'error';
+  type: 'model' | 'images' | 'videos' | 'token' | 'done' | 'error';
   name?: string;
   urls?: string[];
+  videos?: Array<{ id: string; title: string; url: string }>;
   value?: string;
   message?: string;
 }
@@ -19,6 +20,7 @@ function useContentWriter() {
   const [content, setContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [videos, setVideos] = useState<Array<{ id: string; title: string; url: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
   const sanitizeLiveContent = (text: string): string => {
@@ -35,6 +37,7 @@ function useContentWriter() {
     setError(null);
     setContent('');
     setImages([]);
+    setVideos([]);
 
     try {
       const response = await fetch('/api/ai/content-writer', {
@@ -87,6 +90,13 @@ function useContentWriter() {
                   }
                   break;
                 
+                case 'videos':
+                  if (data.videos) {
+                    setVideos(data.videos);
+                    console.log('Received videos:', data.videos.length);
+                  }
+                  break;
+                
                 case 'token':
                   if (data.value) {
                     // Accumulate content properly - no word breaks
@@ -121,6 +131,7 @@ function useContentWriter() {
   return {
     content,
     images,
+    videos,
     isStreaming,
     error,
     generateContent
@@ -249,7 +260,7 @@ async function streamContentWriter(
 }
 
 export default function ContentWriterPage() {
-  const { content, images, isStreaming, error, generateContent } = useContentWriter();
+  const { content, images, videos, isStreaming, error, generateContent } = useContentWriter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -990,6 +1001,65 @@ Please provide high-quality, engaging content that meets these requirements.`;
                   />
                 </div>
               </div>
+
+              {/* Generated YouTube Videos */}
+              {videos.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <h4 className="text-xl font-bold text-slate-900">Relevant YouTube Videos</h4>
+                    <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded-full">
+                      {videos.length} videos
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {videos.map((video, index) => (
+                      <div key={index} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                        <div className="aspect-video mb-3">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${video.id}`}
+                            title={video.title}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="rounded-lg"
+                          />
+                        </div>
+                        <h5 className="font-semibold text-slate-900 mb-2 line-clamp-2">{video.title}</h5>
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Watch on YouTube
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-2 text-red-800">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-medium">Video Integration Tips:</span>
+                    </div>
+                    <ul className="mt-2 text-sm text-red-700 space-y-1">
+                      <li>• Videos are automatically selected based on your content topic</li>
+                      <li>• These videos are already embedded in your generated content using iframes</li>
+                      <li>• Videos enhance engagement and provide additional value to readers</li>
+                      <li>• The iframe embed code is ready to use in WordPress or other platforms</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
 
               {/* Generated Images */}
               {images.length > 0 && (

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { Calendar, Clock, User, ArrowLeft, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import RelatedPosts from '@/components/RelatedPosts';
+import LinkedContent from '@/components/LinkedContent';
 
 interface Post {
   id: string;
@@ -195,10 +197,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   </button>
                 </div>
 
-                {/* Content */}
-                <div 
-                  className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100"
-                  dangerouslySetInnerHTML={{ __html: post.content }}
+                {/* Content with Automatic Internal Linking */}
+                <LinkedContent
+                  content={post.content}
+                  slug={slug}
+                  className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-a:font-medium prose-a:transition-colors"
                 />
 
                 {/* Tags */}
@@ -220,6 +223,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 )}
               </div>
             </article>
+
+            {/* Related Posts Section */}
+            <RelatedPosts currentSlug={slug} limit={6} />
           </div>
         </div>
       </div>
