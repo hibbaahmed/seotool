@@ -50,9 +50,48 @@ body {
   text-wrap: balance;
 }
 
+/* Make all headings bold like outrank.so */
+.content-writer-prose h1,
+.content-writer-prose h2,
+.content-writer-prose h3,
+.content-writer-prose h4,
+.content-writer-prose h5,
+.content-writer-prose h6 {
+  font-weight: 700 !important;
+}
+
+/* Also apply to general prose classes */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-weight: 700 !important;
+}
+
 /* Override Tailwind Typography (.prose) defaults that can force word breaks */
 .prose :where(p, h1, h2, h3, h4, h5, h6) {
   word-break: normal !important;
   overflow-wrap: normal !important;
   hyphens: manual !important;
+}
+
+/* Ensure proper paragraph spacing in generated content */
+.content-writer-prose p + p {
+  margin-top: 1.25em !important;
+}
+
+.content-writer-prose p {
+  margin-bottom: 1em !important;
+}
+
+.content-writer-prose h2 + p,
+.content-writer-prose h3 + p {
+  margin-top: 0.75em !important;
+}
+
+.content-writer-prose p + h2,
+.content-writer-prose p + h3 {
+  margin-top: 1.5em !important;
 }

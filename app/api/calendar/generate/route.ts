@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { getAdapter } from '@/lib/integrations/getAdapter';
+import { marked } from 'marked';
 
 // POST /api/calendar/generate - Generate content for a keyword immediately
 export async function POST(request: NextRequest) {
@@ -335,6 +337,228 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
           generated_at: new Date().toISOString(),
         })
         .eq('id', keyword_id);
+    }
+
+    // Auto-publish to user's connected WordPress site if available
+    try {
+      const { data: site } = await serviceSupabase
+        .from('wordpress_sites')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (site) {
+        // Extract title from content_output
+        const contentOutput = fullContent || '';
+        let extractedTitle = keywordText;
+        
+        // First, try to extract from Title section
+        const titlePatterns = [
+          /(?:^|\n)(?:\d+\.\s*)?\*\*Title\*\*[:\s]*\n([^\n]+)/i,
+          /(?:^|\n)Title:\s*"?([^"\n]+)"?/i,
+          /(?:^|\n)\*\*Title\*\*[:\s]*\n([^\n]+)/i
+        ];
+        for (const pattern of titlePatterns) {
+          const match = contentOutput.match(pattern);
+          if (match && match[1]) {
+            extractedTitle = match[1].trim().replace(/^["']|["']$/g, '');
+            break;
+          }
+        }
+        
+        // If title not found yet, try to extract from H1 in content section
+        const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+        if (contentSectionMatch) {
+          const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+          const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+          if (h1Match && h1Match[1]) {
+            const h1Title = h1Match[1].trim();
+            if (h1Title.length > 10 && !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action)/i)) {
+              extractedTitle = h1Title;
+            }
+          }
+        }
+        
+        // Extract and clean content (same logic as extractContentFromAIOutput)
+        let cleaned = contentOutput;
+        
+        // Remove numbered sections
+        cleaned = cleaned.replace(/^\d+\.?\s*\*\*Title\*\*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*Title:.*$/gmi, '');
+        cleaned = cleaned.replace(/^\*\*Title\*\*[:\s]*.*$/gmi, '');
+        cleaned = cleaned.replace(/^Title:\s*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*\*\*Meta Description\*\*.*$/gmi, '');
+        cleaned = cleaned.replace(/^\d+\.?\s*Meta Description:.*$/gmi, '');
+        cleaned = cleaned.replace(/^\*\*Meta Description\*\*[:\s]*.*$/gmi, '');
+        cleaned = cleaned.replace(/^Meta Description:\s*.*$/gmi, '');
+        
+        // Extract Content section
+        const contentPatterns = [
+          /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
+          /(?:^|\n)\*\*Content\*\*[:\s]*\n?(.*)$/is,
+          /(?:^|\n)3\.\s+\*\*Content\*\*[:\s]*\n?(.*)$/is
+        ];
+        
+        let extractedContent = '';
+        for (const pattern of contentPatterns) {
+          const match = cleaned.match(pattern);
+          if (match && match[1]) {
+            extractedContent = match[1];
+            break;
+          }
+        }
+        
+        if (!extractedContent) {
+          extractedContent = cleaned;
+        }
+        
+        // Remove duplicate H1 title at the start
+        const lines = extractedContent.split('\n');
+        let startIndex = 0;
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+          const line = lines[i].trim();
+          if (line.match(/^#\s+.+$/)) {
+            startIndex = i + 1;
+            while (startIndex < lines.length && lines[startIndex].trim() === '') {
+              startIndex++;
+            }
+            break;
+          } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
+            startIndex = i;
+            break;
+          }
+        }
+        extractedContent = lines.slice(startIndex).join('\n');
+        
+        // Remove remaining numbered sections
+        extractedContent = extractedContent.replace(/^\d+\.?\s*\*\*[^*]+\*\*.*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\d+\.?\s*[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*:.*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
+        extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
+        
+        // Remove trailing sections
+        const stopKeywords = [
+          '\n4. **SEO Suggestions',
+          '\n**SEO Suggestions**',
+          '\n## SEO Suggestions',
+          '\n4. **Image Suggestions',
+          '\n**Image Suggestions**',
+          '\n## Image Suggestions',
+          '\n5. **Call-to-Action',
+          '\n**Call-to-Action**',
+          '\n## Call-to-Action'
+        ];
+        for (const stopKeyword of stopKeywords) {
+          const index = extractedContent.indexOf(stopKeyword);
+          if (index !== -1) {
+            extractedContent = extractedContent.substring(0, index);
+            break;
+          }
+        }
+        
+        // Clean up whitespace
+        extractedContent = extractedContent
+          .replace(/\n{3,}/g, '\n\n')
+          .replace(/^\s+/gm, '')
+          .trim();
+        
+        // Apply paragraph spacing
+        const linesArray = extractedContent.split('\n');
+        const spacedLines: string[] = [];
+        
+        for (let i = 0; i < linesArray.length; i++) {
+          const currentLine = linesArray[i];
+          const currentTrimmed = currentLine.trim();
+          
+          spacedLines.push(currentLine);
+          
+          if (i < linesArray.length - 1) {
+            const nextLine = linesArray[i + 1];
+            const nextTrimmed = nextLine.trim();
+            
+            if (!currentTrimmed) {
+              continue;
+            }
+            
+            const isCurrentParagraph = currentTrimmed && 
+                !currentTrimmed.startsWith('#') &&
+                !currentTrimmed.startsWith('![') &&
+                !currentTrimmed.startsWith('>') &&
+                !currentTrimmed.startsWith('|') &&
+                !currentTrimmed.startsWith('- ') &&
+                !currentTrimmed.startsWith('* ') &&
+                !/^\d+\.\s/.test(currentTrimmed);
+            
+            const isNextParagraph = nextTrimmed &&
+                !nextTrimmed.startsWith('#') &&
+                !nextTrimmed.startsWith('![') &&
+                !nextTrimmed.startsWith('>') &&
+                !nextTrimmed.startsWith('|') &&
+                !nextTrimmed.startsWith('- ') &&
+                !nextTrimmed.startsWith('* ') &&
+                !/^\d+\.\s/.test(nextTrimmed);
+            
+            if (isCurrentParagraph && isNextParagraph) {
+              let hasBlankLine = false;
+              for (let j = i + 1; j < linesArray.length && j <= i + 2; j++) {
+                if (!linesArray[j].trim()) {
+                  hasBlankLine = true;
+                  break;
+                }
+                if (linesArray[j].trim() && 
+                    (linesArray[j].trim().startsWith('#') || 
+                     linesArray[j].trim().startsWith('![') ||
+                     linesArray[j].trim().startsWith('>') ||
+                     linesArray[j].trim().startsWith('|') ||
+                     linesArray[j].trim().startsWith('- ') ||
+                     linesArray[j].trim().startsWith('* ') ||
+                     /^\d+\.\s/.test(linesArray[j].trim()))) {
+                  break;
+                }
+              }
+              
+              if (!hasBlankLine) {
+                spacedLines.push('');
+              }
+            }
+          }
+        }
+        
+        extractedContent = spacedLines.join('\n');
+        extractedContent = extractedContent.replace(/\n{3,}/g, '\n\n');
+        
+        // Convert markdown to HTML
+        let htmlContent = marked.parse(extractedContent, { async: false }) as string;
+        if (htmlContent.includes('![') && htmlContent.includes('](')) {
+          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+        }
+        
+        const provider = (site as any).provider || ((site as any).access_token ? 'wpcom' : 'wordpress');
+        const adapter = getAdapter(provider, {
+          accessToken: (site as any).access_token,
+          siteId: (site as any).site_id,
+          url: (site as any).url,
+          username: (site as any).username,
+          password: (site as any).password,
+          postType: (site as any).post_type,
+        });
+        
+        const excerpt = extractedContent.substring(0, 160).replace(/[#*]/g, '') + '...';
+        const publishResult = await adapter.publish({
+          title: extractedTitle,
+          html: htmlContent,
+          excerpt,
+          tags: ['ai-generated', 'seotool'],
+        });
+        
+        console.log('✅ Calendar content auto-published to WordPress:', publishResult);
+      }
+    } catch (autoPublishError) {
+      // Don't fail the request if auto-publish fails - content is still saved
+      console.error('⚠️ Auto-publish failed (content still saved):', autoPublishError);
     }
 
     return NextResponse.json({

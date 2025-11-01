@@ -137,12 +137,90 @@ export default function SavedPage() {
       result.push(merged);
     }
 
-    // THIRD PASS: Ensure proper spacing (blank line around H2-H6 headings and images)
+    // THIRD PASS: Ensure proper spacing around headings and images
     let normalized = result.join('\n')
-      .replace(/([^\n])\n(#{2,6}\s)/g, '$1\n\n$2')
-      .replace(/^(#{2,6}[^\n]+)(?!\n\n)/gm, '$1\n\n')
-      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2')
-      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n');
+      .replace(/([^\n])\n(#{2,6}\s)/g, '$1\n\n$2') // blank line before H2-H6
+      .replace(/^(#{2,6}[^\n]+)(?!\n\n)/gm, '$1\n\n') // blank line after H2-H6
+      .replace(/([^\n])\n(!\[[^\]]*\]\([^\)]+\))/g, '$1\n\n$2') // blank line before image
+      .replace(/(!\[[^\]]*\]\([^\)]+\))(?!\n\n)/g, '$1\n\n'); // blank line after image
+
+    // FOURTH PASS: Ensure blank lines between paragraphs
+    // Add blank line between consecutive non-empty lines that aren't structural elements
+    const linesArray = normalized.split('\n');
+    const spacedLines: string[] = [];
+    
+    for (let i = 0; i < linesArray.length; i++) {
+      const currentLine = linesArray[i];
+      const currentTrimmed = currentLine.trim();
+      
+      spacedLines.push(currentLine);
+      
+      // Check if we need to add spacing after this line
+      if (i < linesArray.length - 1) {
+        const nextLine = linesArray[i + 1];
+        const nextTrimmed = nextLine.trim();
+        
+        // Skip if current line is already blank
+        if (!currentTrimmed) {
+          continue;
+        }
+        
+        // If current line is a paragraph (non-structural) and next line is also a paragraph
+        const isCurrentParagraph = currentTrimmed && 
+            !currentTrimmed.startsWith('#') &&
+            !currentTrimmed.startsWith('![') &&
+            !currentTrimmed.startsWith('>') &&
+            !currentTrimmed.startsWith('|') &&
+            !currentTrimmed.startsWith('- ') &&
+            !currentTrimmed.startsWith('* ') &&
+            !/^\d+\.\s/.test(currentTrimmed);
+        
+        const isNextParagraph = nextTrimmed &&
+            !nextTrimmed.startsWith('#') &&
+            !nextTrimmed.startsWith('![') &&
+            !nextTrimmed.startsWith('>') &&
+            !nextTrimmed.startsWith('|') &&
+            !nextTrimmed.startsWith('- ') &&
+            !nextTrimmed.startsWith('* ') &&
+            !/^\d+\.\s/.test(nextTrimmed);
+        
+        if (isCurrentParagraph && isNextParagraph) {
+          // Check if there's NOT already a blank line between them
+          // Look ahead to see if there's already a blank line
+          let hasBlankLine = false;
+          for (let j = i + 1; j < linesArray.length && j <= i + 2; j++) {
+            if (!linesArray[j].trim()) {
+              hasBlankLine = true;
+              break;
+            }
+            // If we hit another paragraph or structural element, stop looking
+            if (linesArray[j].trim() && 
+                (linesArray[j].trim().startsWith('#') || 
+                 linesArray[j].trim().startsWith('![') ||
+                 linesArray[j].trim().startsWith('>') ||
+                 linesArray[j].trim().startsWith('|') ||
+                 linesArray[j].trim().startsWith('- ') ||
+                 linesArray[j].trim().startsWith('* ') ||
+                 /^\d+\.\s/.test(linesArray[j].trim()))) {
+              break;
+            }
+          }
+          
+          if (!hasBlankLine) {
+            spacedLines.push('');
+          }
+        }
+      }
+    }
+    
+    normalized = spacedLines.join('\n');
+
+    // FIFTH PASS: Ensure proper spacing after intro paragraphs (after main H1 title)
+    // Add blank line after intro paragraphs if missing
+    normalized = normalized.replace(/#\s+[^\n]+(?:\n\n)?([^\n#][^\n]+)(?=\n##)/g, '# $1\n\n');
+    
+    // Clean up any triple+ newlines (should be max 2)
+    normalized = normalized.replace(/\n{3,}/g, '\n\n');
     
     return normalized;
   };

@@ -628,7 +628,7 @@ CRITICAL RULES:
           .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (!site) {
           console.log('No active WordPress site connected; skipping auto-publish');
@@ -758,6 +758,77 @@ CRITICAL RULES:
           .replace(/\n{3,}/g, '\n\n')
           .replace(/^\s+/gm, '')
           .trim();
+        
+        // Apply paragraph spacing (ensure blank lines between paragraphs)
+        const linesArray = extractedContent.split('\n');
+        const spacedLines: string[] = [];
+        
+        for (let i = 0; i < linesArray.length; i++) {
+          const currentLine = linesArray[i];
+          const currentTrimmed = currentLine.trim();
+          
+          spacedLines.push(currentLine);
+          
+          // Check if we need to add spacing after this line
+          if (i < linesArray.length - 1) {
+            const nextLine = linesArray[i + 1];
+            const nextTrimmed = nextLine.trim();
+            
+            // Skip if current line is already blank
+            if (!currentTrimmed) {
+              continue;
+            }
+            
+            // If current line is a paragraph (non-structural) and next line is also a paragraph
+            const isCurrentParagraph = currentTrimmed && 
+                !currentTrimmed.startsWith('#') &&
+                !currentTrimmed.startsWith('![') &&
+                !currentTrimmed.startsWith('>') &&
+                !currentTrimmed.startsWith('|') &&
+                !currentTrimmed.startsWith('- ') &&
+                !currentTrimmed.startsWith('* ') &&
+                !/^\d+\.\s/.test(currentTrimmed);
+            
+            const isNextParagraph = nextTrimmed &&
+                !nextTrimmed.startsWith('#') &&
+                !nextTrimmed.startsWith('![') &&
+                !nextTrimmed.startsWith('>') &&
+                !nextTrimmed.startsWith('|') &&
+                !nextTrimmed.startsWith('- ') &&
+                !nextTrimmed.startsWith('* ') &&
+                !/^\d+\.\s/.test(nextTrimmed);
+            
+            if (isCurrentParagraph && isNextParagraph) {
+              // Check if there's NOT already a blank line between them
+              let hasBlankLine = false;
+              for (let j = i + 1; j < linesArray.length && j <= i + 2; j++) {
+                if (!linesArray[j].trim()) {
+                  hasBlankLine = true;
+                  break;
+                }
+                // If we hit another paragraph or structural element, stop looking
+                if (linesArray[j].trim() && 
+                    (linesArray[j].trim().startsWith('#') || 
+                     linesArray[j].trim().startsWith('![') ||
+                     linesArray[j].trim().startsWith('>') ||
+                     linesArray[j].trim().startsWith('|') ||
+                     linesArray[j].trim().startsWith('- ') ||
+                     linesArray[j].trim().startsWith('* ') ||
+                     /^\d+\.\s/.test(linesArray[j].trim()))) {
+                  break;
+                }
+              }
+              
+              if (!hasBlankLine) {
+                spacedLines.push('');
+              }
+            }
+          }
+        }
+        
+        extractedContent = spacedLines.join('\n');
+        // Clean up any triple+ newlines (should be max 2)
+        extractedContent = extractedContent.replace(/\n{3,}/g, '\n\n');
         
         // Convert markdown to HTML
         let htmlContent = marked.parse(extractedContent, { async: false }) as string;
