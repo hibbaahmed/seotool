@@ -57,6 +57,41 @@ export default async function SavedContentDetailPage({ params }: any) {
   cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
   cleanedContent = cleanedContent.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
   
+  // Remove the duplicate H1 title (which appears as "# [Title]" after the Content section marker)
+  // This is the title that matches the extracted title, so we remove it to avoid duplication
+  const lines = cleanedContent.split('\n');
+  let startIndex = 0;
+  
+  // Skip duplicate H1 at the start (which matches the extracted title)
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const line = lines[i].trim();
+    // Check if this is an H1 that matches the extracted title
+    if (line.match(/^#\s+.+$/)) {
+      const h1Title = line.replace(/^#\s+/, '').trim();
+      // If the H1 matches the extracted title (allowing for small variations), skip it
+      if (h1Title.toLowerCase() === extractedTitle.toLowerCase() || 
+          h1Title.toLowerCase().includes(extractedTitle.toLowerCase()) ||
+          extractedTitle.toLowerCase().includes(h1Title.toLowerCase())) {
+        startIndex = i + 1;
+        // Skip any blank lines after the H1
+        while (startIndex < lines.length && lines[startIndex].trim() === '') {
+          startIndex++;
+        }
+        break;
+      } else if (line && !line.match(/^\d+\./)) {
+        // Found actual content (not a heading or numbered item)
+        startIndex = i;
+        break;
+      }
+    } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
+      // Found actual content (not a heading or numbered item)
+      startIndex = i;
+      break;
+    }
+  }
+  
+  cleanedContent = lines.slice(startIndex).join('\n');
+  
   // Trim any leading/trailing whitespace
   cleanedContent = cleanedContent.trim();
 

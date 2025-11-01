@@ -44,7 +44,7 @@ const extractTitle = (contentOutput: string, fallbackTopic: string): string => {
 };
 
 // Helper function to clean content by removing Title, Meta Description, and Content section headers
-const cleanContent = (contentOutput: string): string => {
+const cleanContent = (contentOutput: string, extractedTitle?: string): string => {
   if (!contentOutput) return '';
   
   let cleaned = contentOutput;
@@ -60,6 +60,42 @@ const cleanContent = (contentOutput: string): string => {
   // If there's a "Content" section header, remove it too (keep only the content itself)
   cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/gi, '\n');
   cleaned = cleaned.replace(/(?:^|\n)(?:\d+\.\s*)?#\s*Content[:\s]*\n/gi, '\n');
+  
+  // Remove the duplicate H1 title (which appears as "# [Title]" after the Content section marker)
+  if (extractedTitle) {
+    const lines = cleaned.split('\n');
+    let startIndex = 0;
+    
+    // Skip duplicate H1 at the start (which matches the extracted title)
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const line = lines[i].trim();
+      // Check if this is an H1 that matches the extracted title
+      if (line.match(/^#\s+.+$/)) {
+        const h1Title = line.replace(/^#\s+/, '').trim();
+        // If the H1 matches the extracted title (allowing for small variations), skip it
+        if (h1Title.toLowerCase() === extractedTitle.toLowerCase() || 
+            h1Title.toLowerCase().includes(extractedTitle.toLowerCase()) ||
+            extractedTitle.toLowerCase().includes(h1Title.toLowerCase())) {
+          startIndex = i + 1;
+          // Skip any blank lines after the H1
+          while (startIndex < lines.length && lines[startIndex].trim() === '') {
+            startIndex++;
+          }
+          break;
+        } else if (line && !line.match(/^\d+\./)) {
+          // Found actual content (not a heading or numbered item)
+          startIndex = i;
+          break;
+        }
+      } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
+        // Found actual content (not a heading or numbered item)
+        startIndex = i;
+        break;
+      }
+    }
+    
+    cleaned = lines.slice(startIndex).join('\n');
+  }
   
   // Trim any leading/trailing whitespace
   return cleaned.trim();
@@ -296,7 +332,7 @@ export default function SavedContentPage() {
               <div className="prose prose-slate max-w-none">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
                   <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
-                    {cleanContent(selectedContent.content_output)}
+                    {cleanContent(selectedContent.content_output, extractTitle(selectedContent.content_output, selectedContent.topic))}
                   </pre>
                 </div>
               </div>

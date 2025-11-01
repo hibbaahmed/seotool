@@ -106,9 +106,14 @@ export class WordPressAPI {
 
   // Update an existing post
   async updatePost(id: number, post: Partial<WordPressPost>): Promise<WordPressPost> {
+    const postWithHtmlContent = {
+      ...post,
+      ...(post.content ? { content: this.convertMarkdownToHtml(post.content) } : {}),
+    };
+
     return this.makeRequest(`/posts/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(post),
+      body: JSON.stringify(postWithHtmlContent),
     });
   }
 
@@ -211,13 +216,16 @@ export class WordPressAPI {
 
   // Schedule a post
   async schedulePost(post: WordPressPost, publishDate: string): Promise<WordPressPost> {
+    const postWithHtmlContent = {
+      ...post,
+      content: this.convertMarkdownToHtml(post.content),
+      status: 'future' as const,
+      date: publishDate,
+    };
+
     return this.makeRequest('/posts', {
       method: 'POST',
-      body: JSON.stringify({
-        ...post,
-        status: 'future',
-        date: publishDate,
-      }),
+      body: JSON.stringify(postWithHtmlContent),
     });
   }
 

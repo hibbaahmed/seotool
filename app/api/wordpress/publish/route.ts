@@ -9,96 +9,136 @@ function extractContentFromAIOutput(fullOutput: string): string {
   
   let cleaned = fullOutput;
   
-  // Step 1: Remove numbered sections with Title/Meta Description (handles inline formats too)
-  // Pattern: "1. **Title** [text]" or "1. **Title**\n[text]" or "**Title** [text]"
-  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Title\*\*\s*[^\n]+\n?/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\*\*Title\*\*[:\s]*\n[^\n]+\n?/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)Title:\s*"?[^"\n]+"?\n?/gi, '');
+  // Step 1: Remove ALL numbered sections (very aggressive pattern matching)
+  // Handle patterns: "1. **Title**", "1\. \*\*Title\*\*", "**Title**", with or without text after
+  // Match lines starting with number, period, optional space, and Title/Meta/Content markers
+  cleaned = cleaned.replace(/^\d+\.?\s*\*\*Title\*\*.*$/gmi, '');
+  cleaned = cleaned.replace(/^\d+\.?\s*Title:.*$/gmi, '');
+  cleaned = cleaned.replace(/^\*\*Title\*\*[:\s]*.*$/gmi, '');
+  cleaned = cleaned.replace(/^Title:\s*.*$/gmi, '');
+  // Also handle escaped versions
+  cleaned = cleaned.replace(/^\d+\\.\s*\\\*\\\*Title\\\*\\\*.*$/gmi, '');
   
   // Step 2: Remove Meta Description sections
-  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Meta Description\*\*\s*[^\n]+\n?/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\*\*Meta Description\*\*[:\s]*\n[^\n]+\n?/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*Meta Description\*\*[:\s]*/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)Meta Description:\s*"?[^"\n]+"?\n?/gi, '');
+  cleaned = cleaned.replace(/^\d+\.?\s*\*\*Meta Description\*\*.*$/gmi, '');
+  cleaned = cleaned.replace(/^\d+\.?\s*Meta Description:.*$/gmi, '');
+  cleaned = cleaned.replace(/^\*\*Meta Description\*\*[:\s]*.*$/gmi, '');
+  cleaned = cleaned.replace(/^Meta Description:\s*.*$/gmi, '');
+  // Also handle escaped versions
+  cleaned = cleaned.replace(/^\d+\\.\s*\\\*\\\*Meta Description\\\*\\\*.*$/gmi, '');
   
-  // Step 3: Find and extract the Content section
-  // Look for "3. **Content**" or "**Content**" followed by the actual content
-  const contentMatch = cleaned.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n?(.*)$/is);
+  // Step 3: Find and extract the Content section (handle escaped and non-escaped markdown)
+  // Look for "3. **Content**" or "**Content**" followed by actual content
+  const contentPatterns = [
+    /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
+    /(?:^|\n)\*\*Content\*\*[:\s]*\n?(.*)$/is,
+    /(?:^|\n)3\.\s+\*\*Content\*\*[:\s]*\n?(.*)$/is
+  ];
   
-  if (contentMatch && contentMatch[1]) {
-    let extractedContent = contentMatch[1];
-    
-    // Remove the duplicate H1 title if it matches (first line after Content should not be duplicate title)
-    // Pattern: "# [Title]" that's redundant
-    const lines = extractedContent.split('\n');
-    let startIndex = 0;
-    
-    // Skip the first H1 heading if it's just a duplicate title
-    for (let i = 0; i < Math.min(3, lines.length); i++) {
-      const line = lines[i].trim();
-      if (line.match(/^#\s+[^\n]+$/)) {
-        // This is likely a duplicate title, skip it and the following blank line
-        startIndex = i + 1;
-        if (i + 1 < lines.length && lines[i + 1].trim() === '') {
-          startIndex = i + 2;
-        }
-        break;
-      } else if (line && !line.startsWith('#')) {
-        // Found actual content, start from here
-        startIndex = i;
-        break;
-      }
+  let extractedContent = '';
+  for (const pattern of contentPatterns) {
+    const match = cleaned.match(pattern);
+    if (match && match[1]) {
+      extractedContent = match[1];
+      break;
     }
-    
-    extractedContent = lines.slice(startIndex).join('\n');
-    
-    // Remove trailing sections (SEO Suggestions, Call-to-Action, etc.)
-    const stopKeywords = [
-      '\n4. **SEO Suggestions',
-      '\n**SEO Suggestions**',
-      '\n## SEO Suggestions',
-      '\n4. **Image Suggestions',
-      '\n**Image Suggestions**',
-      '\n## Image Suggestions',
-      '\n5. **Call-to-Action',
-      '\n**Call-to-Action**',
-      '\n## Call-to-Action',
-      '\n4. **Image',
-      '\n5. **SEO',
-      '\n6. **Call'
-    ];
-    
-    for (const keyword of stopKeywords) {
-      const index = extractedContent.indexOf(keyword);
-      if (index !== -1) {
-        extractedContent = extractedContent.substring(0, index);
-        break;
-      }
-    }
-    
-    return extractedContent.trim();
   }
   
-  // Step 4: If no Content section marker found, try to extract just the markdown content
-  // Remove any remaining numbered sections and keep only the actual content
-  cleaned = cleaned.replace(/(?:^|\n)\d+\.\s*\*\*[^*]+\*\*/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\*\*(?:Title|Meta Description|Content)\*\*[:\s]*/gi, '');
+  // If no Content section found, try to use everything after removing metadata sections
+  if (!extractedContent) {
+    extractedContent = cleaned;
+  }
   
-  // Remove duplicate H1 titles (keep only the first one)
-  const lines = cleaned.split('\n');
-  let h1Count = 0;
-  const cleanedLines = lines.filter(line => {
-    if (line.trim().match(/^#\s+[^\n]+$/)) {
-      h1Count++;
-      // Keep only the first H1
-      return h1Count === 1;
+  // Step 4: Remove the duplicate H1 title (if present after Content marker)
+  const lines = extractedContent.split('\n');
+  let startIndex = 0;
+  
+  // Skip duplicate H1 at the start
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const line = lines[i].trim();
+    if (line.match(/^#\s+.+$/)) {
+      // Found H1, skip it and any blank lines after it
+      startIndex = i + 1;
+      while (startIndex < lines.length && lines[startIndex].trim() === '') {
+        startIndex++;
+      }
+      break;
+    } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
+      // Found actual content (not a heading or numbered item)
+      startIndex = i;
+      break;
     }
-    return true;
-  });
-  cleaned = cleanedLines.join('\n');
+  }
   
-  return cleaned.trim();
+  extractedContent = lines.slice(startIndex).join('\n');
+  
+  // Step 5: Remove any remaining numbered sections and metadata (very aggressive)
+  extractedContent = extractedContent.replace(/^\d+\.?\s*\*\*[^*]+\*\*.*$/gmi, '');
+  extractedContent = extractedContent.replace(/^\d+\.?\s*[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*:.*$/gmi, '');
+  // Remove lines that are just section markers
+  extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
+  extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
+  
+  // Step 6: Remove trailing sections (SEO Suggestions, Call-to-Action, etc.)
+  const stopKeywords = [
+    '\n4. **SEO Suggestions',
+    '\n**SEO Suggestions**',
+    '\n## SEO Suggestions',
+    '\n4. **Image Suggestions',
+    '\n**Image Suggestions**',
+    '\n## Image Suggestions',
+    '\n5. **Call-to-Action',
+    '\n**Call-to-Action**',
+    '\n## Call-to-Action',
+    '\n4. **Image',
+    '\n5. **SEO',
+    '\n6. **Call',
+    '\nSEO Suggestions',
+    '\nImage Suggestions',
+    '\nCall-to-Action'
+  ];
+  
+  for (const keyword of stopKeywords) {
+    const index = extractedContent.indexOf(keyword);
+    if (index !== -1) {
+      extractedContent = extractedContent.substring(0, index);
+      break;
+    }
+  }
+  
+  // Step 7: Final cleanup - remove any remaining numbered section markers
+  // Do multiple passes to catch any we missed
+  const sectionMarkers = [
+    /^\d+\.\s*\*\*Title\*\*/gmi,
+    /^\d+\.\s*\*\*Meta Description\*\*/gmi,
+    /^\d+\.\s*\*\*Content\*\*/gmi,
+    /^\d+\.\s*\*\*SEO Suggestions\*\*/gmi,
+    /^\d+\.\s*\*\*Image Suggestions\*\*/gmi,
+    /^\d+\.\s*\*\*Call-to-Action\*\*/gmi,
+    /^\*\*Title\*\*/gmi,
+    /^\*\*Meta Description\*\*/gmi,
+    /^\*\*Content\*\*/gmi,
+    /^\*\*SEO Suggestions\*\*/gmi,
+    /^\*\*Image Suggestions\*\*/gmi,
+    /^\*\*Call-to-Action\*\*/gmi,
+  ];
+  
+  for (const pattern of sectionMarkers) {
+    extractedContent = extractedContent.replace(pattern, '');
+  }
+  
+  // Step 8: Clean up extra whitespace and ensure proper paragraph spacing
+  extractedContent = extractedContent
+    .replace(/\n{3,}/g, '\n\n')  // Replace 3+ newlines with double newline
+    .replace(/^\s+/gm, '')        // Remove leading whitespace from lines
+    .replace(/\n\n\n+/g, '\n\n')  // Ensure max 2 newlines between paragraphs
+    .trim();
+  
+  // Step 9: Ensure proper spacing after headings
+  extractedContent = extractedContent.replace(/(^##?[^\n]+\n)(\n)/gm, '$1\n');
+  extractedContent = extractedContent.replace(/([^\n])\n(##?[^\n]+$)/gm, '$1\n\n$2');
+  
+  return extractedContent;
 }
 
 export async function POST(request: NextRequest) {

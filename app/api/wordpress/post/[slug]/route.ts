@@ -1,5 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Helper function to clean HTML content from numbered sections (1. **Title**, 2. **Meta Description**, etc.)
+function cleanBlogContent(html: string): string {
+  if (!html) return html;
+  
+  let cleaned = html;
+  
+  // Remove numbered sections at the start of content (most common case)
+  // Handle: "1. **Title** [title text] 2. **Meta Description** [description text]"
+  // This pattern handles both sections appearing together at the start
+  
+  // First, remove the entire opening section that contains both Title and Meta Description
+  // Match from start: "1. **Title** ... 2. **Meta Description** ..." until we hit actual content
+  cleaned = cleaned.replace(/^(<p>)?\s*\d+\.?\s*\*\*Title\*\*\s+[^\n<]+(<\/p>)?\s*(<p>)?\s*\d+\.?\s*\*\*Meta\s+Description\*\*\s+[^\n<]+(<\/p>)?/gi, '');
+  cleaned = cleaned.replace(/^(<p>)?\s*1\.\s*\*\*Title\*\*\s+[^\n<]+(<\/p>)?\s*(<p>)?\s*2\.\s*\*\*Meta\s+Description\*\*\s+[^\n<]+(<\/p>)?/gi, '');
+  
+  // Remove individual numbered Title sections (with text after)
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*\*\*Title\*\*\s+[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*<strong>Title<\/strong>\s+[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/^\s*\d+\.?\s*\*\*Title\*\*\s+[^\n<]+/gim, ''); // Start of string
+  cleaned = cleaned.replace(/(<p>)?\s*\d+\.?\s*\*\*Title\*\*\s+[^\n<]{0,300}/gi, '');
+  
+  // Remove individual numbered Meta Description sections (with text after)
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*\*\*Meta\s+Description\*\*\s+[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*<strong>Meta\s+Description<\/strong>\s+[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/^\s*\d+\.?\s*\*\*Meta\s+Description\*\*\s+[^\n<]+/gim, ''); // Start of string
+  cleaned = cleaned.replace(/(<p>)?\s*\d+\.?\s*\*\*Meta\s+Description\*\*\s+[^\n<]{0,300}/gi, '');
+  
+  // Remove paragraphs that are ONLY the numbered section header (without text)
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*\*\*Title\*\*\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*\*\*Meta\s+Description\*\*\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*<strong>Title<\/strong>\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\d+\.?\s*<strong>Meta\s+Description<\/strong>\s*<\/p>/gi, '');
+  
+  // Handle standalone section markers (without numbers)
+  cleaned = cleaned.replace(/<p>\s*\*\*Title\*\*[:\s]*[^<]*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\*\*Meta\s+Description\*\*[:\s]*[^<]*<\/p>/gi, '');
+  cleaned = cleaned.replace(/^\s*\*\*Title\*\*[:\s]*[^\n<]+/gim, '');
+  cleaned = cleaned.replace(/^\s*\*\*Meta\s+Description\*\*[:\s]*[^\n<]+/gim, '');
+  
+  // Handle patterns that might span multiple lines or be in plain text
+  cleaned = cleaned.replace(/\d+\.\s*\*\*Title\*\*\s+[^\n<]{0,500}/gi, '');
+  cleaned = cleaned.replace(/\d+\.\s*\*\*Meta\s+Description\*\*\s+[^\n<]{0,500}/gi, '');
+  
+  // Clean up extra empty paragraphs or whitespace
+  cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*<\/p>/gi, ''); // Multiple passes
+  cleaned = cleaned.replace(/\n\s*\n\s*\n+/g, '\n\n');
+  cleaned = cleaned.replace(/^\s+|\s+$/gm, ''); // Trim each line
+  cleaned = cleaned.replace(/^(\s*<p>\s*<\/p>\s*)+/gi, ''); // Remove leading empty paragraphs
+  
+  return cleaned.trim();
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -24,7 +77,12 @@ export async function GET(
       });
 
       if (data && (data as any).post) {
-        return NextResponse.json({ post: (data as any).post });
+        const post = (data as any).post;
+        // Clean the content if it exists
+        if (post.content) {
+          post.content = cleanBlogContent(post.content);
+        }
+        return NextResponse.json({ post });
       }
     } catch (graphqlError) {
       console.log('GraphQL not available, falling back to REST API');
@@ -44,7 +102,7 @@ export async function GET(
       const transformedPost = {
         id: post.ID,
         title: post.title,
-        content: post.content,
+        content: cleanBlogContent(post.content),
         excerpt: (post.excerpt || '').replace(/<[^>]*>/g, ''),
         slug: post.slug,
         date: post.date,
@@ -73,7 +131,7 @@ export async function GET(
     const transformedPost = {
       id: post.id,
       title: post.title.rendered,
-      content: post.content.rendered,
+      content: cleanBlogContent(post.content.rendered),
       excerpt: post.excerpt.rendered?.replace(/<[^>]*>/g, '') || '',
       slug: post.slug,
       date: post.date,
