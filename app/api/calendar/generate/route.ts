@@ -11,8 +11,30 @@ function addInlineSpacing(html: string): string {
   
   // Preserve iframes and embeds first (extract them temporarily)
   const iframePlaceholders: string[] = [];
-  const iframeRegex = /<iframe[^>]*>.*?<\/iframe>/gis;
+  // Match iframes including self-closing or with content - handle multiline
+  const iframeRegex = /<iframe[^>]*>(?:.*?<\/iframe>|)/gis;
+  const embedRegex = /<embed[^>]*\/?>/gis;
+  const objectRegex = /<object[^>]*>.*?<\/object>/gis;
+  
+  // Extract iframes (including YouTube embeds)
   html = html.replace(iframeRegex, (match) => {
+    if (match.trim()) {
+      const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+      iframePlaceholders.push(match);
+      return placeholder;
+    }
+    return match;
+  });
+  
+  // Extract embeds
+  html = html.replace(embedRegex, (match) => {
+    const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+    iframePlaceholders.push(match);
+    return placeholder;
+  });
+  
+  // Extract objects
+  html = html.replace(objectRegex, (match) => {
     const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
     iframePlaceholders.push(match);
     return placeholder;
@@ -150,9 +172,42 @@ export async function POST(request: NextRequest) {
             continue;
           }
           
-          const contentType = resp.headers.get('Content-Type') || 'image/jpeg';
+          // Get content type from headers or infer from URL/blob
+          let contentType = resp.headers.get('Content-Type') || '';
+          
+          // If no content type, try to infer from URL extension
+          if (!contentType || contentType === 'application/octet-stream') {
+            const urlPath = new URL(externalUrl).pathname.toLowerCase();
+            if (urlPath.endsWith('.png')) {
+              contentType = 'image/png';
+            } else if (urlPath.endsWith('.gif')) {
+              contentType = 'image/gif';
+            } else if (urlPath.endsWith('.webp')) {
+              contentType = 'image/webp';
+            } else {
+              contentType = 'image/jpeg'; // Default fallback
+            }
+          }
+          
           const blob = await resp.blob();
           console.log(`📦 Image ${i + 1} blob size:`, blob.size, 'bytes', 'contentType:', contentType);
+          
+          // Validate blob type matches expected content type
+          if (blob.type && blob.type !== contentType && blob.type !== 'application/octet-stream') {
+            // Use blob's actual type if it's a valid image type
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            if (validImageTypes.includes(blob.type)) {
+              contentType = blob.type;
+              console.log(`📝 Using blob's actual type: ${contentType}`);
+            }
+          }
+          
+          // Ensure contentType is valid (not application/octet-stream)
+          const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+          if (!validImageTypes.includes(contentType)) {
+            console.warn(`⚠️ Invalid content type ${contentType}, defaulting to image/jpeg`);
+            contentType = 'image/jpeg';
+          }
           
           const id = `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
           const typeToExt: Record<string, string> = { 
@@ -165,12 +220,12 @@ export async function POST(request: NextRequest) {
           const ext = typeToExt[contentType.toLowerCase()] || 'jpg';
           const path = `user_uploads/${user.id}/${id}.${ext}`;
 
-          console.log(`📁 Uploading to path:`, path);
+          console.log(`📁 Uploading to path:`, path, 'with contentType:', contentType);
 
           const uploadRes = await storage.storage.from('photos').upload(path, blob, {
             cacheControl: '3600',
             upsert: true,
-            contentType,
+            contentType: contentType, // Explicitly set valid content type
           });
           
           console.log(`📤 Upload result for image ${i + 1}:`, uploadRes);
@@ -522,6 +577,13 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
         extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
         extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
         
+        // Remove "Internal link anchor ideas" section and image suggestions at the end
+        // Match from "Internal link anchor ideas:" to the end, or from any "Internal link" mention
+        extractedContent = extractedContent.replace(/\n*\n?Internal link anchor ideas:[\s\S]*$/gmi, '');
+        extractedContent = extractedContent.replace(/\n*\n?Image suggestions?:[\s\S]*$/gmi, '');
+        // Remove any remaining "Internal link" mentions
+        extractedContent = extractedContent.replace(/\n*\n?Internal link[^:]*:[\s\S]*$/gmi, '');
+        
         // Remove trailing sections
         const stopKeywords = [
           '\n4. **SEO Suggestions',
@@ -624,12 +686,17 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
         // Add automatic internal links to content before publishing
         try {
           const { addInternalLinksToContent } = await import('@/lib/add-links-to-content');
-          const { linkedContent } = await addInternalLinksToContent(
+          console.log('🔗 Attempting to add internal links to content...');
+          const { linkedContent, linksAdded } = await addInternalLinksToContent(
             htmlContent,
-            extractedTitle,
-            process.env.NEXT_PUBLIC_BASE_URL
+            extractedTitle
           );
-          htmlContent = linkedContent;
+          if (linksAdded > 0) {
+            console.log(`✅ Successfully added ${linksAdded} internal links`);
+            htmlContent = linkedContent;
+          } else {
+            console.log('⚠️ No links were added (no similar posts found or no matches)');
+          }
         } catch (linkError) {
           console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
           // Continue without links if linking fails

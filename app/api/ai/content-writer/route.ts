@@ -109,9 +109,42 @@ export async function POST(request: NextRequest) {
               throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
             }
 
-            const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+            // Get content type from headers or infer from URL/blob
+            let contentType = response.headers.get('Content-Type') || '';
+            
+            // If no content type, try to infer from URL extension
+            if (!contentType || contentType === 'application/octet-stream') {
+              const urlPath = new URL(imageUrl).pathname.toLowerCase();
+              if (urlPath.endsWith('.png')) {
+                contentType = 'image/png';
+              } else if (urlPath.endsWith('.gif')) {
+                contentType = 'image/gif';
+              } else if (urlPath.endsWith('.webp')) {
+                contentType = 'image/webp';
+              } else {
+                contentType = 'image/jpeg'; // Default fallback
+              }
+            }
+            
             const imageBlob = await response.blob();
             console.log(`📦 Image ${i + 1} blob size:`, imageBlob.size, 'bytes', 'contentType:', contentType);
+            
+            // Validate blob type matches expected content type
+            if (imageBlob.type && imageBlob.type !== contentType && imageBlob.type !== 'application/octet-stream') {
+              // Use blob's actual type if it's a valid image type
+              const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+              if (validImageTypes.includes(imageBlob.type)) {
+                contentType = imageBlob.type;
+                console.log(`📝 Using blob's actual type: ${contentType}`);
+              }
+            }
+            
+            // Ensure contentType is valid (not application/octet-stream)
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            if (!validImageTypes.includes(contentType)) {
+              console.warn(`⚠️ Invalid content type ${contentType}, defaulting to image/jpeg`);
+              contentType = 'image/jpeg';
+            }
             
             const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
             const typeToExt: Record<string, string> = { 
@@ -121,14 +154,14 @@ export async function POST(request: NextRequest) {
             const fileExtension = typeToExt[contentType.toLowerCase()] || 'jpg';
             const filePath = `user_uploads/${uploadUserId}/${id}.${fileExtension}`;
             
-            console.log(`📁 Uploading to path:`, filePath);
+            console.log(`📁 Uploading to path:`, filePath, 'with contentType:', contentType);
             
             const uploadResult = await supabase.storage
               .from('photos')
               .upload(filePath, imageBlob, {
                 cacheControl: '3600',
                 upsert: true,
-                contentType,
+                contentType: contentType, // Explicitly set valid content type
               });
 
             console.log(`📤 Upload result for image ${i + 1}:`, uploadResult);

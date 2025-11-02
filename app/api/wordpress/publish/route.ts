@@ -11,8 +11,30 @@ function addInlineSpacing(html: string): string {
   
   // Preserve iframes and embeds first (extract them temporarily)
   const iframePlaceholders: string[] = [];
-  const iframeRegex = /<iframe[^>]*>.*?<\/iframe>/gis;
+  // Match iframes including self-closing or with content - handle multiline
+  const iframeRegex = /<iframe[^>]*>(?:.*?<\/iframe>|)/gis;
+  const embedRegex = /<embed[^>]*\/?>/gis;
+  const objectRegex = /<object[^>]*>.*?<\/object>/gis;
+  
+  // Extract iframes (including YouTube embeds)
   html = html.replace(iframeRegex, (match) => {
+    if (match.trim()) {
+      const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+      iframePlaceholders.push(match);
+      return placeholder;
+    }
+    return match;
+  });
+  
+  // Extract embeds
+  html = html.replace(embedRegex, (match) => {
+    const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
+    iframePlaceholders.push(match);
+    return placeholder;
+  });
+  
+  // Extract objects
+  html = html.replace(objectRegex, (match) => {
     const placeholder = `__IFRAME_PLACEHOLDER_${iframePlaceholders.length}__`;
     iframePlaceholders.push(match);
     return placeholder;
@@ -472,21 +494,41 @@ export async function POST(request: NextRequest) {
         htmlContent = addInlineSpacing(htmlContent);
         
         // Add automatic internal links AFTER converting to HTML
-        const { linkedContent } = await addInternalLinksToContent(
-          htmlContent,
-          postData.title,
-          process.env.NEXT_PUBLIC_BASE_URL
-        );
-        htmlContent = linkedContent;
+        try {
+          console.log('🔗 Attempting to add internal links to content...');
+          const { linkedContent, linksAdded } = await addInternalLinksToContent(
+            htmlContent,
+            postData.title
+          );
+          if (linksAdded > 0) {
+            console.log(`✅ Successfully added ${linksAdded} internal links`);
+            htmlContent = linkedContent;
+          } else {
+            console.log('⚠️ No links were added (no similar posts found or no matches)');
+          }
+        } catch (linkError) {
+          console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
+          // Continue without links if linking fails
+        }
       } else {
         htmlContent = String(postData.content);
         // Add links even for non-markdown content
-        const { linkedContent } = await addInternalLinksToContent(
-          htmlContent,
-          postData.title,
-          process.env.NEXT_PUBLIC_BASE_URL
-        );
-        htmlContent = linkedContent;
+        try {
+          console.log('🔗 Attempting to add internal links to content...');
+          const { linkedContent, linksAdded } = await addInternalLinksToContent(
+            htmlContent,
+            postData.title
+          );
+          if (linksAdded > 0) {
+            console.log(`✅ Successfully added ${linksAdded} internal links`);
+            htmlContent = linkedContent;
+          } else {
+            console.log('⚠️ No links were added (no similar posts found or no matches)');
+          }
+        } catch (linkError) {
+          console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
+          // Continue without links if linking fails
+        }
       }
       
       const response = await fetch(endpoint, {

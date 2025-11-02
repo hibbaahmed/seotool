@@ -140,8 +140,7 @@ export async function POST(request: NextRequest) {
     // Add automatic internal links to content before publishing
     const { linkedContent, linksAdded } = await addInternalLinksToContent(
       content,
-      title,
-      process.env.NEXT_PUBLIC_BASE_URL
+      title
     );
 
     // Prepare post data with linked content

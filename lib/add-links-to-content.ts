@@ -3,34 +3,100 @@
  * This ensures links are saved directly in WordPress content
  */
 
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
 export async function addInternalLinksToContent(
   content: string,
   title: string,
-  baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  baseUrl?: string
 ): Promise<{ linkedContent: string; linksAdded: number }> {
   try {
-    // Generate a temporary slug from title for finding related posts
-    const tempSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    // Fetch related posts (we'll need to get all posts and find similar ones)
-    // Since we don't have the slug yet, we'll use a simplified approach
-    const response = await fetch(`${baseUrl}/api/wordpress/posts?limit=50`, {
-      cache: 'no-store'
-    });
-
-    if (!response.ok) {
-      console.log('⚠️ Failed to fetch posts for linking:', response.status);
+    console.log('🔗 Starting interlinking process for:', title);
+    
+    // Fetch posts directly from WordPress API to avoid server-side fetch issues
+    // This works both in development and production
+    const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+    if (!wpUrl) {
+      console.error('⚠️ NEXT_PUBLIC_WORDPRESS_API_URL not set');
       return { linkedContent: content, linksAdded: 0 };
     }
 
-    const { posts } = await response.json();
-    if (!posts || posts.length === 0) {
+    // Check if using WordPress.com or self-hosted
+    const isWPCom = wpUrl.includes('wordpress.com');
+    let posts: any[] = [];
+
+    if (isWPCom) {
+      // For WordPress.com, fetch from Supabase where posts are stored
+      try {
+        const supabase = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        
+        const { data: wpSites } = await supabase
+          .from('wordpress_sites')
+          .select('*')
+          .eq('provider', 'wpcom')
+          .single();
+
+        if (wpSites) {
+          const siteId = (wpSites as any).site_id;
+          const accessToken = (wpSites as any).access_token;
+          
+          const wpResponse = await fetch(
+            `https://public-api.wordpress.com/rest/v1.1/sites/${siteId}/posts?number=50&status=publish`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+              cache: 'no-store',
+            }
+          );
+          
+          if (wpResponse.ok) {
+            const data = await wpResponse.json();
+            posts = data.posts || [];
+            console.log(`📚 Fetched ${posts.length} posts from WordPress.com`);
+          }
+        }
+      } catch (err) {
+        console.error('⚠️ Error fetching from WordPress.com:', err);
+      }
+    } else {
+      // For self-hosted WordPress, use REST API
+      try {
+        const wpResponse = await fetch(`${wpUrl}/wp-json/wp/v2/posts?per_page=50&_embed`, {
+          cache: 'no-store',
+        });
+        
+        if (wpResponse.ok) {
+          posts = await wpResponse.json();
+          console.log(`📚 Fetched ${posts.length} posts from self-hosted WordPress`);
+        }
+      } catch (err) {
+        console.error('⚠️ Error fetching from self-hosted WordPress:', err);
+      }
+    }
+
+    if (posts.length === 0) {
       console.log('⚠️ No posts found for linking');
       return { linkedContent: content, linksAdded: 0 };
     }
+    
+    // Transform posts to consistent format
+    const transformedPosts = posts.map((post: any) => {
+      if (isWPCom) {
+        return {
+          title: post.title || '',
+          slug: post.slug || '',
+        };
+      } else {
+        return {
+          title: post.title?.rendered || post.title || '',
+          slug: post.slug || '',
+        };
+      }
+    });
     
     console.log(`🔗 Found ${posts.length} posts to check for linking opportunities`);
 
@@ -51,7 +117,7 @@ export async function addInternalLinksToContent(
     const allKeywords = [...new Set([...titleKeywords, ...capitalizedWords])];
 
     // Find similar posts based on title keywords
-    const similarPosts = posts
+    const similarPosts = transformedPosts
       .map((post: any) => {
         const postTitle = post.title || '';
         const postTitleWords = postTitle
@@ -206,10 +272,9 @@ export async function addInternalLinksToContent(
             const before = linkedContent.substring(0, matchIndex);
             const after = linkedContent.substring(matchIndex + matchedText.length);
             
-            // Create WordPress-friendly permalink
-            // WordPress uses relative URLs for internal links, or we can use the post slug
-            // Format: /post-slug/ (WordPress permalink structure)
-            const linkUrl = `/${post.slug}/`;
+            // Create correct blog post URL
+            // Blog posts are at /blog/slug/ not /slug/
+            const linkUrl = `/blog/${post.slug}/`;
             
             // Insert link with WordPress-friendly attributes
             const linkedPhrase = `<a href="${linkUrl}" class="internal-link" data-link-type="auto-generated">${linkText}</a>`;
