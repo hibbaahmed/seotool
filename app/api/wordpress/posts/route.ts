@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { decodeHtmlEntitiesServer } from '@/lib/decode-html-entities';
 
 export async function GET(request: NextRequest) {
   console.log('WordPress posts API called:', request.url);
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
         // Transform GraphQL response to match our existing format
         const transformedPosts = (data as any).posts.nodes.map((post: any) => ({
           id: post.id,
-          title: post.title,
+          title: decodeHtmlEntitiesServer(post.title || 'Untitled'),
           excerpt: post.excerpt?.replace(/<[^>]*>/g, '') || '',
           content: post.content,
           slug: post.slug,
@@ -83,9 +84,10 @@ export async function GET(request: NextRequest) {
     const transformedPosts = posts.map((post: any) => {
       // Normalize both WP.com and self-hosted responses
       const isWPCom = !!post.ID; // WP.com uses ID (caps)
+      const rawTitle = isWPCom ? post.title : post.title?.rendered;
       return {
         id: isWPCom ? post.ID : post.id,
-        title: isWPCom ? post.title : post.title?.rendered,
+        title: decodeHtmlEntitiesServer(rawTitle || 'Untitled'),
         excerpt: (isWPCom ? post.excerpt : post.excerpt?.rendered)?.replace(/<[^>]*>/g, '') || '',
         content: isWPCom ? post.content : post.content?.rendered,
         slug: post.slug,

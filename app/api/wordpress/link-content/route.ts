@@ -38,20 +38,58 @@ export async function POST(request: NextRequest) {
     for (const post of relatedPosts.slice(0, maxLinks)) {
       if (linksAdded >= maxLinks) break;
 
-      // Extract 2-3 word phrases from post title for natural linking
-      const titleWords = post.title.split(/\s+/).filter(w => w.length > 4);
+      // Extract important words from post title (including brand names)
+      const allTitleWords = post.title.split(/\s+/);
+      const importantWords = allTitleWords.filter((w: string) => {
+        const clean = w.replace(/[^\w]/g, '').toLowerCase();
+        return clean.length > 4 || (clean.length >= 3 && /[A-Z]/.test(w.charAt(0)));
+      });
       
-      if (titleWords.length < 2) continue;
+      if (importantWords.length === 0) continue;
 
       const phrases: string[] = [];
       
-      // Create 2-word phrases
-      for (let i = 0; i <= titleWords.length - 2; i++) {
-        phrases.push(titleWords.slice(i, i + 2).join(' '));
+      // Add single important words (brand names like "Synthesia")
+      // Check for capitalized words that might be brand names
+      allTitleWords.forEach((w: string) => {
+        // Remove punctuation but keep the base word (e.g., "Synthesia's" -> "Synthesia")
+        const clean = w.replace(/['".,!?;:]/g, '').replace(/[^\w]/g, '');
+        if (clean.length >= 5 && /^[A-Z]/.test(clean) && !/^(The|A|An|In|On|At|To|For|Of|With|By)$/i.test(clean)) {
+          // Add both the base word and the original (for possessive matching)
+          if (!phrases.includes(clean)) {
+            phrases.push(clean);
+          }
+          // Also add original if it has possessive or is different
+          if (w.includes("'s") && !phrases.includes(w)) {
+            phrases.push(w);
+          }
+        }
+      });
+      
+      // Create 2-word phrases from important words
+      if (importantWords.length >= 2) {
+        for (let i = 0; i <= importantWords.length - 2; i++) {
+          phrases.push(importantWords.slice(i, i + 2).join(' '));
+        }
       }
+      
+      // Also add single important words (for brand names)
+      importantWords.forEach((w: string) => {
+        // Remove punctuation but keep base word
+        const clean = w.replace(/['".,!?;:]/g, '').replace(/[^\w]/g, '').toLowerCase();
+        if (clean.length >= 5 && !phrases.some(p => p.toLowerCase().replace(/['".,!?;:]/g, '').includes(clean))) {
+          phrases.push(w);
+        }
+      });
 
-      // Sort by length (longer first) for better matching)
-      phrases.sort((a, b) => b.length - a.length);
+      // Sort by length (longer first), prioritize capitalized words (brand names)
+      phrases.sort((a, b) => {
+        const aIsCapitalized = /^[A-Z]/.test(a.replace(/[^\w]/g, ''));
+        const bIsCapitalized = /^[A-Z]/.test(b.replace(/[^\w]/g, ''));
+        if (aIsCapitalized && !bIsCapitalized) return -1;
+        if (!aIsCapitalized && bIsCapitalized) return 1;
+        return b.length - a.length;
+      });
 
       let linkedThisPost = false;
 
@@ -59,10 +97,13 @@ export async function POST(request: NextRequest) {
       for (const phrase of phrases) {
         if (linksAdded >= maxLinks || linkedThisPost) break;
 
-        const escapedPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Clean phrase of punctuation for matching
+        const cleanPhrase = phrase.replace(/[^\w\s]/g, '');
+        const escapedPhrase = cleanPhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         
         // Find all occurrences of the phrase (case-insensitive)
-        const regex = new RegExp(`\\b${escapedPhrase}\\b`, 'gi');
+        // Allow for possessive forms and punctuation (e.g., "Synthesia" matches "Synthesia's")
+        const regex = new RegExp(`\\b${escapedPhrase}['s]*\\b`, 'gi');
         let match;
         
         while ((match = regex.exec(linkedContent)) !== null && !linkedThisPost) {
@@ -85,12 +126,20 @@ export async function POST(request: NextRequest) {
 
           // Only proceed if we're not inside an existing link, HTML tag, iframe, or embed
           if (lastLinkOpen <= lastLinkClose && !isInsideTag && !isInsideIframe && !isInsideEmbed) {
-            const phraseText = match[0];
+            // Use the matched text from content (includes any punctuation/possessive)
+            const matchedText = match[0];
+            // Find the base word (without possessive) for the link text
+            const baseWord = cleanPhrase;
+            // Use matched text for link, but clean it if it's just possessive
+            const linkText = matchedText.endsWith("'s") && matchedText.toLowerCase().startsWith(baseWord.toLowerCase()) 
+              ? matchedText 
+              : baseWord;
+            
             const before = linkedContent.substring(0, matchIndex);
-            const after = linkedContent.substring(matchIndex + phraseText.length);
+            const after = linkedContent.substring(matchIndex + matchedText.length);
             
             // Insert link
-            const linkedPhrase = `<a href="/blog/${post.slug}" class="internal-link" data-link-type="auto-generated">${phraseText}</a>`;
+            const linkedPhrase = `<a href="/blog/${post.slug}" class="internal-link" data-link-type="auto-generated">${linkText}</a>`;
             linkedContent = before + linkedPhrase + after;
             
             linksAdded++;

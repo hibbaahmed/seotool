@@ -319,11 +319,17 @@ export default function CalendarPage() {
 
                     {/* Actions */}
                     <div className="pt-4 border-t border-slate-200 space-y-2">
-                      {selectedKeyword.generation_status === 'pending' && (
+                      {(selectedKeyword.generation_status === 'pending' || selectedKeyword.generation_status === 'generated' || selectedKeyword.generation_status === 'failed') && (
                         <button
                           onClick={() => handleGenerateNow()}
                           disabled={isGenerating}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className={`w-full ${
+                            selectedKeyword.generation_status === 'generated' 
+                              ? 'bg-orange-600 hover:bg-orange-700' 
+                              : selectedKeyword.generation_status === 'failed'
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-blue-600 hover:bg-blue-700'
+                          } text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                         >
                           {isGenerating ? (
                             <>
@@ -333,7 +339,11 @@ export default function CalendarPage() {
                           ) : (
                             <>
                               <FileText className="h-4 w-4" />
-                              Generate Now
+                              {selectedKeyword.generation_status === 'generated' 
+                                ? 'Regenerate Content' 
+                                : selectedKeyword.generation_status === 'failed'
+                                ? 'Retry Generation'
+                                : 'Generate Now'}
                             </>
                           )}
                         </button>
@@ -630,13 +640,13 @@ export default function CalendarPage() {
                       .filter(k => modalFilter==='all' ? true : modalFilter==='recommended' ? k.opportunity_level === 'high' : !!k.starred)
                       .filter(k => k.keyword.toLowerCase().includes(keywordSearch.toLowerCase()))
                       .map(k => (
-                      <label key={k.id} className={`flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50 ${k.generation_status==='generated' ? 'opacity-60' : ''}`}>
+                      <label key={k.id} className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50">
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
                             className="h-4 w-4 accent-blue-600 focus-visible:outline-none"
                             checked={selectedIds.includes(k.id)}
-                            disabled={k.scheduled_for_generation || k.generation_status==='generated'}
+                            disabled={k.scheduled_for_generation}
                             onChange={(e)=> setSelectedIds(prev => e.target.checked ? [...prev, k.id] : prev.filter(id=>id!==k.id))}
                           />
                           <div className="flex flex-col">

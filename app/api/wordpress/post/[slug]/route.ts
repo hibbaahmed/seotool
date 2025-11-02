@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { decodeHtmlEntitiesServer } from '@/lib/decode-html-entities';
 
 // Helper function to clean HTML content from numbered sections (1. **Title**, 2. **Meta Description**, etc.)
 function cleanBlogContent(html: string): string {
@@ -82,6 +83,10 @@ export async function GET(
         if (post.content) {
           post.content = cleanBlogContent(post.content);
         }
+        // Decode HTML entities in title
+        if (post.title) {
+          post.title = decodeHtmlEntitiesServer(post.title);
+        }
         return NextResponse.json({ post });
       }
     } catch (graphqlError) {
@@ -101,7 +106,7 @@ export async function GET(
       if (!post || !post.ID) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
       const transformedPost = {
         id: post.ID,
-        title: post.title,
+        title: decodeHtmlEntitiesServer(post.title || 'Untitled'),
         content: cleanBlogContent(post.content),
         excerpt: (post.excerpt || '').replace(/<[^>]*>/g, ''),
         slug: post.slug,
@@ -130,7 +135,7 @@ export async function GET(
     // Transform REST API response to match GraphQL format
     const transformedPost = {
       id: post.id,
-      title: post.title.rendered,
+      title: decodeHtmlEntitiesServer(post.title?.rendered || 'Untitled'),
       content: cleanBlogContent(post.content.rendered),
       excerpt: post.excerpt.rendered?.replace(/<[^>]*>/g, '') || '',
       slug: post.slug,

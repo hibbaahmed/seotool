@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateContentSimilarity, type PostMetadata } from '@/lib/blog-interlinking';
+import { decodeHtmlEntitiesServer } from '@/lib/decode-html-entities';
 
 interface Post {
   id: string;
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Transform current post to match our Post interface
     const currentPostData: Post = {
       id: currentPost.id.toString(),
-      title: currentPost.title,
+      title: decodeHtmlEntitiesServer(currentPost.title || 'Untitled'),
       slug: currentPost.slug,
       excerpt: currentPost.excerpt || '',
       categories: currentPost.categories?.nodes?.map((c: any) => c.name) || [],

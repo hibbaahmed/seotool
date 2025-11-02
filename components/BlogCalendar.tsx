@@ -300,15 +300,21 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                     >
                       🔑 {keyword.keyword}
                     </div>
-                    {/* Generate button for pending keywords */}
-                    {keyword.generation_status === 'pending' && onGenerateKeyword && (
+                    {/* Generate button for pending, generated, or failed keywords */}
+                    {(keyword.generation_status === 'pending' || keyword.generation_status === 'generated' || keyword.generation_status === 'failed') && onGenerateKeyword && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onGenerateKeyword(keyword);
                         }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all opacity-0 group-hover:opacity-100 z-40"
-                        title="Generate Now"
+                        className={`absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-white rounded transition-all opacity-0 group-hover:opacity-100 z-40 ${
+                          keyword.generation_status === 'generated' 
+                            ? 'bg-orange-600 hover:bg-orange-700' 
+                            : keyword.generation_status === 'failed'
+                            ? 'bg-red-600 hover:bg-red-700'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                        title={keyword.generation_status === 'generated' ? 'Regenerate Content' : keyword.generation_status === 'failed' ? 'Retry Generation' : 'Generate Now'}
                       >
                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

@@ -437,8 +437,8 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
         // Priority 3: Try to find any H1 in the content
         if (!extractedTitle) {
           const h1Patterns = [
-            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
-            /#\s+([^\n]+?)(?:\n|$)/m
+            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/gm,
+            /#\s+([^\n]+?)(?:\n|$)/gm
           ];
           for (const pattern of h1Patterns) {
             const matches = [...contentOutput.matchAll(pattern)];
