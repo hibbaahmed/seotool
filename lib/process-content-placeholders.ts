@@ -21,9 +21,10 @@ export function processContentPlaceholders(
     return '';
   });
 
-  // Replace [Table: description] placeholders with formatted marker
+  // Remove [Table: description] placeholders entirely (tables should be already generated)
   processed = processed.replace(/\[Table:\s*([^\]]+)\]/gi, (match, description) => {
-    return `\n\n> 📊 **Table**: ${description.trim()}\n> _(Detailed comparison table)_\n\n`;
+    // Just remove the placeholder - the AI should have generated the actual table
+    return '';
   });
 
   return processed;

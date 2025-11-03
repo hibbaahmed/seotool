@@ -164,6 +164,62 @@ function extractContentFromAIOutput(fullOutput: string): string {
     }
   }
   
+  // Remove Key Takeaways sections entirely
+  extractedContent = extractedContent.replace(/\n(?:##\s*)?Key Takeaways:?\s*[\s\S]*?(?=\n##\s|$)/gmi, '\n');
+  // Remove [Call-to-Action]: placeholder lines
+  extractedContent = extractedContent.replace(/^\s*\[Call-to-Action\]:.*$/gmi, '');
+  // Remove boilerplate lines like "Here is a 2,700-word comprehensive ... blog post ..."
+  extractedContent = extractedContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
+  // Clean up H3 headings with bold markdown (### **Text** -> ### Text)
+  extractedContent = extractedContent.replace(/^###\s+\*\*(.+?)\*\*\s*$/gmi, '### $1');
+  // Also clean H2 headings with bold (## **Text** -> ## Text)
+  extractedContent = extractedContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
+  
+  // Remove repetitive content after conclusion
+  // Find the conclusion heading and keep only the conclusion section (first substantial paragraph)
+  const conclusionRegex = /(?:^|\n)##\s+Conclusion\s*\n/i;
+  const conclusionMatch = extractedContent.match(conclusionRegex);
+  
+  if (conclusionMatch && conclusionMatch.index !== undefined) {
+    const conclusionStart = conclusionMatch.index;
+    const afterConclusionStart = conclusionStart + conclusionMatch[0].length;
+    const afterConclusion = extractedContent.substring(afterConclusionStart);
+    
+    // Find the first substantial paragraph (ending with double newline or end of string)
+    // This is the main conclusion paragraph
+    const firstParagraphMatch = afterConclusion.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
+    
+    if (firstParagraphMatch && firstParagraphMatch.index !== undefined) {
+      const firstParaEnd = afterConclusionStart + firstParagraphMatch.index + firstParagraphMatch[0].length;
+      
+      // Check if there's repetitive content after the first paragraph
+      const afterFirstPara = afterConclusion.substring(firstParagraphMatch[0].length);
+      const repetitivePattern = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gmi;
+      
+      if (afterFirstPara.match(repetitivePattern)) {
+        // Remove everything after the first conclusion paragraph
+        extractedContent = extractedContent.substring(0, firstParaEnd).trim();
+      } else {
+        // Keep first 2 paragraphs if they're substantial and not repetitive
+        const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
+        let conclusionEnd = conclusionStart + conclusionMatch[0].length;
+        for (let i = 0; i < Math.min(2, paragraphMatches.length); i++) {
+          const paraText = paragraphMatches[i];
+          if (paraText && paraText.trim().length > 20) {
+            const paraIndex = afterConclusion.indexOf(paraText);
+            if (paraIndex !== -1) {
+              conclusionEnd = afterConclusionStart + paraIndex + paraText.length;
+            }
+          }
+        }
+        extractedContent = extractedContent.substring(0, conclusionEnd).trim();
+      }
+    }
+    
+    // Final cleanup: Remove any remaining repetitive bullet-like sentences
+    extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
+  }
+  
   // Step 7: Final cleanup - remove any remaining numbered section markers
   // Do multiple passes to catch any we missed
   const sectionMarkers = [

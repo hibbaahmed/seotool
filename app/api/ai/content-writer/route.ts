@@ -228,10 +228,29 @@ CRITICAL STRUCTURE REQUIREMENTS:
 - 5-7 H2 sections (major topics)
 - Each H2 MUST contain 2-3 H3 subsections (specific techniques/tools/strategies)
 - Include at least 7 specific examples with real numbers
-- Add 2-3 comparison tables using markdown
+- Add 2-3 professional comparison tables (REQUIRED)
 - Create FAQ section with 5-7 questions
 - Use > blockquotes for pro tips
 - Word count: 2,500-3,500 words
+
+COMPARISON TABLES FORMAT (MANDATORY - Add 2-3 tables):
+- Create titled comparison tables with descriptive headings
+- Format: Use H3 heading with title like "10-Point Comparison: [Topic]" or "[Number]-Point Comparison: [Topic]"
+- Include 5-10 comparison rows with 4-6 columns
+- Common column headers: Feature/Approach/Method, Complexity, Resources Needed, Outcomes/Results, Use Cases, Advantages/Benefits, Time Required, Cost
+- Use proper markdown table format:
+  
+  ### [Number]-Point Comparison: [Topic Description]
+  
+  | [Row Header Column] | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+  | --- | --- | --- | --- | --- | --- |
+  | Option/Method 1 | Value/details | Value/details | Value/details | Value/details | Value/details |
+  | Option/Method 2 | Value/details | Value/details | Value/details | Value/details | Value/details |
+  | Option/Method 3 | Value/details | Value/details | Value/details | Value/details | Value/details |
+  
+- Place tables strategically after relevant H2 sections or within H3 subsections
+- Include real metrics, comparisons, and actionable data
+- Make tables useful for reader decision-making
 
 FORMATTING:
 - Use **bold** for key terms on first mention

@@ -548,6 +548,25 @@ Embed YouTube videos rules:
 - Include a brief context sentence before each video explaining why it's relevant
 - Do NOT write placeholders; use the actual video IDs provided above` : ''}
 
+COMPARISON TABLES (REQUIRED - Add 2-3 tables):
+- Create professional comparison tables with descriptive H3 titles
+- Format: Use H3 heading like "### [Number]-Point Comparison: [Topic Description]"
+- Include 5-10 comparison rows with 4-6 columns
+- Common columns: Feature/Approach/Method, Complexity, Resources, Outcomes, Use Cases, Advantages, Time, Cost
+- Use proper markdown table format:
+  
+  ### [Number]-Point Comparison: [Topic]
+  
+  | [Row Header] | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+  | --- | --- | --- | --- | --- | --- |
+  | Option 1 | Details | Details | Details | Details | Details |
+  | Option 2 | Details | Details | Details | Details | Details |
+  | Option 3 | Details | Details | Details | Details | Details |
+  
+- Place tables after relevant H2 sections or within H3 subsections
+- Include real metrics, data, and actionable comparisons
+- Make tables useful for reader decision-making
+
 STRICT OUTPUT FORMAT (use EXACTLY this structure):
 1. **Title**
 [Write a compelling SEO title (~55-60 chars) on ONE line. CRITICAL: The title MUST be optimized for the primary keyword "${keyword}" from the topic. Include the main keyword naturally near the beginning of the title for maximum SEO impact. If related keywords are provided, consider incorporating them as well, but prioritize the primary keyword. Make it engaging and click-worthy while ensuring strong keyword relevance.]
@@ -581,9 +600,9 @@ CRITICAL RULES:
         // Generate content with Claude
         const modelsToTry: string[] = [
           process.env.ANTHROPIC_MODEL as string,
-          'claude-3-5-sonnet-20240620',
-          'claude-3-sonnet-20240229',
-          'claude-3-haiku-20240307'
+          'claude-3-5-sonnet-20241022',
+          'claude-3-5-haiku-20241022',
+          'claude-3-opus-20240229'
         ].filter(Boolean);
 
         let content = '';
@@ -607,7 +626,7 @@ CRITICAL RULES:
                 },
                 body: JSON.stringify({
                   model,
-                  max_tokens: 4000,
+                  max_tokens: 8000,
                   system: systemPrompt,
                   messages: [{ role: 'user', content: contentPrompt }]
                 })

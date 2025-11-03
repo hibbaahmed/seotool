@@ -421,10 +421,25 @@ STRUCTURE (CRITICAL - FOLLOW EXACTLY):
    
    [Smooth transition paragraph to next H2]
 
-5. COMPARISON TABLES
-   - Add 2-3 markdown tables comparing tools, approaches, or timeframes
-   - Include specific metrics and data
-   - Example: | Feature | Tool A | Tool B |
+5. COMPARISON TABLES (REQUIRED - Add 2-3 tables)
+   - Create professional comparison tables with descriptive titles
+   - Format: Start with a title like "10-Point Comparison: [Topic]" or "[Number]-Point Comparison: [Topic]"
+   - Include 5-7 comparison points with multiple columns
+   - Common columns: Feature/Approach, Complexity, Resources Needed, Outcomes, Use Cases, Advantages/Benefits, Time Required, Cost
+   - Use markdown table format:
+     
+     Example format:
+     ### [Title]: [Topic Comparison]
+     
+     | [Row Header] | Column 1 | Column 2 | Column 3 | Column 4 |
+     | --- | --- | --- | --- | --- |
+     | Option/Approach 1 | Details | Details | Details | Details |
+     | Option/Approach 2 | Details | Details | Details | Details |
+     | Option/Approach 3 | Details | Details | Details | Details |
+     
+   - Place tables strategically: After relevant H2 sections or within H3 subsections
+   - Include real data, metrics, and specific comparisons
+   - Make comparisons actionable and useful for decision-making
 
 6. FAQ SECTION
    - Create 5-7 common questions
@@ -522,6 +537,7 @@ Content explaining this subsection...`;
     // Stream the response and collect the full content
     let fullContent = '';
     let streamedImageUrls: string[] = [];
+    let streamedVideos: Array<{ id: string; title?: string; url?: string }> = [];
     const reader = contentResponse.body?.getReader();
     
     if (reader) {
@@ -541,6 +557,8 @@ Content explaining this subsection...`;
               
               if (data.type === 'images' && data.urls) {
                 streamedImageUrls = data.urls;
+              } else if (data.type === 'videos' && data.videos) {
+                streamedVideos = Array.isArray(data.videos) ? data.videos : [];
               } else if (data.type === 'token' && data.value) {
                 fullContent += data.value;
               }
@@ -554,22 +572,66 @@ Content explaining this subsection...`;
 
     // Use the uploaded images as the final image URLs
     const finalImageUrls = uploadedImageUrls.length > 0 ? uploadedImageUrls : streamedImageUrls;
+    const finalVideos = streamedVideos;
 
-    // Post-process content: Add table of contents and normalize spacing
+    // Remove boilerplate opening line like: "Here is a 2,700-word comprehensive ... blog post ..."
+    fullContent = fullContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
+
+    // Ensure at least one YouTube video embed if available and none present
     try {
-      const { addTableOfContents } = await import('@/lib/add-table-of-contents');
+      const hasIframe = /<iframe\s[^>]*src="https:\/\/www\.youtube\.com\/embed\//i.test(fullContent);
+      if (!hasIframe && finalVideos && finalVideos.length > 0) {
+        const first = finalVideos[0] as any;
+        const videoId = first?.id || (first?.url ? String(first.url).split('v=')[1]?.split('&')[0] : '');
+        if (videoId) {
+          const iframeHtml = `\n\n<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n\n`;
+          const firstH2Idx = fullContent.search(/\n##\s+[^\n]+/);
+          if (firstH2Idx !== -1) {
+            const h2End = fullContent.indexOf('\n', firstH2Idx + 1);
+            const insertAt = h2End !== -1 ? h2End + 1 : fullContent.length;
+            fullContent = fullContent.slice(0, insertAt) + iframeHtml + fullContent.slice(insertAt);
+            console.log('🎥 Inserted fallback YouTube iframe after first H2');
+          } else {
+            const firstParaMatch = fullContent.match(/^(.+?)(\n\n|$)/s);
+            if (firstParaMatch && typeof firstParaMatch.index === 'number') {
+              const insertAt = firstParaMatch[0].length;
+              fullContent = fullContent.slice(0, insertAt) + iframeHtml + fullContent.slice(insertAt);
+              console.log('🎥 Inserted fallback YouTube iframe after intro');
+            } else {
+              fullContent += iframeHtml;
+              console.log('🎥 Appended fallback YouTube iframe at end');
+            }
+          }
+        }
+      }
+    } catch (videoInsertErr) {
+      console.warn('⚠️ Failed to insert fallback YouTube iframe:', videoInsertErr);
+    }
+
+    // Post-process content: normalize spacing and placeholders (no in-article TOC)
+    try {
       const { processContentPlaceholders, normalizeContentSpacing } = await import('@/lib/process-content-placeholders');
-      
-      // Add TOC for better navigation (if article is long enough)
-      fullContent = addTableOfContents(fullContent);
-      
+
       // Process any remaining placeholders
       fullContent = processContentPlaceholders(fullContent, finalImageUrls);
-      
+
       // Normalize spacing for better readability
       fullContent = normalizeContentSpacing(fullContent);
-      
-      console.log('✨ Content post-processing complete (TOC, placeholders, spacing)');
+
+      // Remove any in-article Table of Contents sections if present
+      fullContent = fullContent.replace(/\n##\s*Table of Contents[\s\S]*?(?=\n##\s|$)/gmi, '\n');
+      // Remove standalone '##' lines
+      fullContent = fullContent.replace(/^\s*##\s*$/gmi, '');
+      // Remove Key Takeaways sections entirely
+      fullContent = fullContent.replace(/\n(?:##\s*)?Key Takeaways:?\s*[\s\S]*?(?=\n##\s|$)/gmi, '\n');
+      // Remove [Call-to-Action]: placeholder lines
+      fullContent = fullContent.replace(/^\s*\[Call-to-Action\]:.*$/gmi, '');
+      // Clean up H3 headings with bold markdown (### **Text** -> ### Text)
+      fullContent = fullContent.replace(/^###\s+\*\*(.+?)\*\*\s*$/gmi, '### $1');
+      // Also clean H2 headings with bold (## **Text** -> ## Text)
+      fullContent = fullContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
+
+      console.log('✨ Content post-processing complete (placeholders, spacing, TOC removed)');
     } catch (processError) {
       console.warn('⚠️ Content post-processing failed (continuing anyway):', processError);
     }
@@ -826,6 +888,72 @@ Content explaining this subsection...`;
         extractedContent = extractedContent.replace(/\n*\n?Image suggestions?:[\s\S]*$/gmi, '');
         // Remove any remaining "Internal link" mentions
         extractedContent = extractedContent.replace(/\n*\n?Internal link[^:]*:[\s\S]*$/gmi, '');
+
+        // Remove any SEO Suggestions sections anywhere
+        extractedContent = extractedContent.replace(/\n+SEO Suggestions:?[\s\S]*$/gmi, '');
+        // Remove Key Takeaways sections entirely
+        extractedContent = extractedContent.replace(/\n(?:##\s*)?Key Takeaways:?\s*[\s\S]*?(?=\n##\s|$)/gmi, '\n');
+        // Remove [Call-to-Action]: placeholder lines
+        extractedContent = extractedContent.replace(/^\s*\[Call-to-Action\]:.*$/gmi, '');
+
+        // Remove any Table of Contents blocks
+        extractedContent = extractedContent.replace(/\n##\s*Table of Contents[\s\S]*?(?=\n##\s|$)/gmi, '\n');
+
+        // Remove trailing quoted keyword bullet lists (e.g., – "AI video creation") at the end
+        extractedContent = extractedContent.replace(/\n(?:\s*[–\-]\s*["'“][^"'”]+["'”]\s*\n?)+\s*$/g, '\n');
+
+        // Remove standalone '##' lines
+        extractedContent = extractedContent.replace(/^\s*##\s*$/gmi, '');
+        
+        // Clean up H3 headings with bold markdown (### **Text** -> ### Text)
+        extractedContent = extractedContent.replace(/^###\s+\*\*(.+?)\*\*\s*$/gmi, '### $1');
+        // Also clean H2 headings with bold (## **Text** -> ## Text)
+        extractedContent = extractedContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
+        
+        // Remove repetitive content after conclusion
+        // Find the conclusion heading and keep only the conclusion section (first substantial paragraph)
+        const conclusionRegex = /(?:^|\n)##\s+Conclusion\s*\n/i;
+        const conclusionMatch = extractedContent.match(conclusionRegex);
+        
+        if (conclusionMatch && conclusionMatch.index !== undefined) {
+          const conclusionStart = conclusionMatch.index;
+          const afterConclusionStart = conclusionStart + conclusionMatch[0].length;
+          const afterConclusion = extractedContent.substring(afterConclusionStart);
+          
+          // Find the first substantial paragraph (ending with double newline or end of string)
+          // This is the main conclusion paragraph
+          const firstParagraphMatch = afterConclusion.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
+          
+          if (firstParagraphMatch && firstParagraphMatch.index !== undefined) {
+            const firstParaEnd = afterConclusionStart + firstParagraphMatch.index + firstParagraphMatch[0].length;
+            
+            // Check if there's repetitive content after the first paragraph
+            const afterFirstPara = afterConclusion.substring(firstParagraphMatch[0].length);
+            const repetitivePattern = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gmi;
+            
+            if (afterFirstPara.match(repetitivePattern)) {
+              // Remove everything after the first conclusion paragraph
+              extractedContent = extractedContent.substring(0, firstParaEnd).trim();
+            } else {
+              // Keep first 2 paragraphs if they're substantial and not repetitive
+              const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
+              let conclusionEnd = conclusionStart + conclusionMatch[0].length;
+              for (let i = 0; i < Math.min(2, paragraphMatches.length); i++) {
+                const paraText = paragraphMatches[i];
+                if (paraText && paraText.trim().length > 20) {
+                  const paraIndex = afterConclusion.indexOf(paraText);
+                  if (paraIndex !== -1) {
+                    conclusionEnd = afterConclusionStart + paraIndex + paraText.length;
+                  }
+                }
+              }
+              extractedContent = extractedContent.substring(0, conclusionEnd).trim();
+            }
+          }
+          
+          // Final cleanup: Remove any remaining repetitive bullet-like sentences
+          extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
+        }
         
         // Remove trailing sections
         const stopKeywords = [
@@ -917,6 +1045,15 @@ Content explaining this subsection...`;
         
         extractedContent = spacedLines.join('\n');
         extractedContent = extractedContent.replace(/\n{3,}/g, '\n\n');
+
+        // Remove boilerplate opening like: "Here is a 2,700-word comprehensive ... blog post ..."
+        extractedContent = extractedContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
+        
+        // Remove duplicate H1 lines equal to the extracted title
+        if (extractedTitle) {
+          const esc = extractedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          extractedContent = extractedContent.replace(new RegExp(`^#\\s+${esc}\\s*$`, 'gmi'), '');
+        }
         
         // Convert markdown to HTML
         let htmlContent = marked.parse(extractedContent, { async: false }) as string;

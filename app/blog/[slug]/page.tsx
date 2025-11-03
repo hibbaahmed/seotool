@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import RelatedPosts from '@/components/RelatedPosts';
 import LinkedContent from '@/components/LinkedContent';
-import TableOfContents from '@/components/TableOfContents';
 
 interface Post {
   id: string;
@@ -126,10 +125,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
         <div className="pt-20 px-4 sm:px-6 lg:px-8">
-          {/* Floating Table of Contents (Desktop Only) */}
-          <TableOfContents content={post.content} />
-
-          <div className="max-w-4xl mx-auto lg:mr-80">
+          <div className="max-w-4xl mx-auto">
             {/* Back Button */}
             <Link 
               href="/blog"
@@ -205,7 +201,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <LinkedContent
                   content={post.content}
                   slug={slug}
-                  className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-a:font-medium prose-a:transition-colors"
+                  className="prose prose-lg prose-slate max-w-none 
+                    prose-headings:font-bold prose-headings:tracking-tight
+                    prose-h1:text-4xl prose-h1:mb-4 prose-h1:mt-8
+                    prose-h2:text-3xl prose-h2:mb-4 prose-h2:mt-10 prose-h2:font-bold prose-h2:text-slate-900
+                    prose-h3:text-2xl prose-h3:mb-3 prose-h3:mt-8 prose-h3:font-bold prose-h3:text-slate-900
+                    prose-h4:text-xl prose-h4:mb-3 prose-h4:mt-6 prose-h4:font-semibold
+                    prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-6 prose-p:text-lg
+                    prose-strong:text-slate-900 prose-strong:font-bold
+                    prose-ul:my-6 prose-ul:space-y-2
+                    prose-ol:my-6 prose-ol:space-y-2
+                    prose-li:text-slate-700 prose-li:leading-relaxed
+                    prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-3 prose-blockquote:px-4 prose-blockquote:my-6
+                    prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+                    prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto
+                    prose-table:my-6 prose-table:w-full
+                    prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
+                    prose-hr:my-8 prose-hr:border-slate-200
+                    [&:not(.internal-link)]:prose-a:text-blue-600 [&:not(.internal-link)]:prose-a:no-underline [&:not(.internal-link)]:hover:prose-a:underline [&:not(.internal-link)]:prose-a:font-medium [&:not(.internal-link)]:prose-a:transition-colors"
                 />
 
                 {/* Tags */}
