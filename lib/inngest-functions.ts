@@ -536,6 +536,7 @@ Embed images rules:
 - Place images near relevant headings/paragraphs (e.g., after H2 or the first paragraph of a section)
 - Distribute images across the article rather than grouping all at the end
 - Do NOT write placeholders; use the actual URLs above
+- DO NOT place images directly next to videos - always include at least 2-3 paragraphs of text between them
 
 ${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed these using HTML iframe or Markdown):
 ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id} - URL: ${v.url}`).join('\n')}
@@ -546,7 +547,8 @@ Embed YouTube videos rules:
 - Place videos after relevant H2 sections or key paragraphs where they add value
 - Embed 1-2 videos throughout the article (not all at once)
 - Include a brief context sentence before each video explaining why it's relevant
-- Do NOT write placeholders; use the actual video IDs provided above` : ''}
+- Do NOT write placeholders; use the actual video IDs provided above
+- DO NOT place videos directly next to images - always include at least 2-3 paragraphs of text between them` : ''}
 
 COMPARISON TABLES (REQUIRED - Add 2-3 tables):
 - Create professional comparison tables with descriptive H3 titles

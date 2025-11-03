@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, ArrowRight, Search, Filter, BookOpen, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import BlogSection from '@/components/BlogSection';
 
 interface BlogPost {
@@ -330,13 +331,25 @@ const BlogPage = () => {
                   key={post.id} 
                   className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 group"
                 >
-                  {/* Featured Image Placeholder */}
-                  <div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-                    <div className="text-center">
-                      <BookOpen className="w-12 h-12 text-blue-400 mx-auto mb-2" />
-                      <span className="text-sm text-blue-600 font-medium">Featured Image</span>
+                  {/* Featured Image */}
+                  {post.featuredImage ? (
+                    <div className="h-48 overflow-hidden bg-slate-100 relative">
+                      <Image
+                        src={post.featuredImage}
+                        alt={post.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+                      <div className="text-center">
+                        <BookOpen className="w-12 h-12 text-blue-400 mx-auto mb-2" />
+                        <span className="text-sm text-blue-600 font-medium">No Image</span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="p-6">
                     {/* Category */}
@@ -351,16 +364,11 @@ const BlogPage = () => {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-bold text-slate-900 mb-3 leading-tight group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4 leading-tight group-hover:text-blue-600 transition-colors">
                       <Link href={`/blog/${post.slug}`}>
                         {post.title}
                       </Link>
                     </h3>
-
-                    {/* Excerpt */}
-                    <p className="text-slate-600 mb-4 leading-relaxed line-clamp-3">
-                      {post.excerpt}
-                    </p>
 
                     {/* Meta Info */}
                     <div className="flex items-center justify-between text-sm text-slate-500 mb-4">

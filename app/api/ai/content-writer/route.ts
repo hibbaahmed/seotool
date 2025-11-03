@@ -202,6 +202,14 @@ ${extractedTopic ? `PRIMARY KEYWORD/TOPIC: "${extractedTopic}" - You MUST optimi
 AVAILABLE IMAGES (embed using Markdown):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
+IMAGE AND VIDEO PLACEMENT RULES:
+- DO NOT place images and videos directly next to each other
+- Always include at least 2-3 paragraphs of text between any image and video
+- Distribute images and videos throughout the article, not clustered together
+- Place images after relevant H2 sections or within H3 subsections
+- Place videos after relevant H2 sections or key paragraphs where they add value
+- Ensure substantial content (100+ words) between media elements
+
 ${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
 ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
 

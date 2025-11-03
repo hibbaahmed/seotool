@@ -362,6 +362,14 @@ ${longTailKeywords.slice(0, 15).map(k => `- "${k}"`).join('\n')}
 AVAILABLE IMAGES (embed using Markdown):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
+IMAGE AND VIDEO PLACEMENT RULES:
+- DO NOT place images and videos directly next to each other
+- Always include at least 2-3 paragraphs of text between any image and video
+- Distribute images and videos throughout the article, not clustered together
+- Place images after relevant H2 sections or within H3 subsections
+- Place videos after relevant H2 sections or key paragraphs where they add value
+- Ensure substantial content (100+ words) between media elements
+
 STRUCTURE (CRITICAL - FOLLOW EXACTLY):
 
 1. COMPELLING TITLE

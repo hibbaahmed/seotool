@@ -102,16 +102,96 @@ export function enhanceWithProTips(content: string): string {
 }
 
 /**
+ * Ensure images and videos are not placed next to each other
+ * Adds substantial spacing (at least 2-3 paragraphs) between adjacent media elements
+ */
+export function ensureMediaSpacing(content: string): string {
+  let processed = content;
+
+  // First pass: Find all media elements (images and videos) and their positions
+  const mediaElements: Array<{ start: number; end: number; type: string }> = [];
+  
+  // Find all markdown images: ![alt](url)
+  const imageRegex = /!\[[^\]]*\]\([^)]+\)/g;
+  let imageMatch;
+  while ((imageMatch = imageRegex.exec(processed)) !== null) {
+    mediaElements.push({
+      start: imageMatch.index,
+      end: imageMatch.index + imageMatch[0].length,
+      type: 'image'
+    });
+  }
+
+  // Find all video iframes: <iframe ...></iframe> or <iframe .../>
+  const iframeRegex = /<iframe[^>]*>(?:.*?<\/iframe>|)/gis;
+  let iframeMatch;
+  // Reset lastIndex since we're using the same regex
+  iframeRegex.lastIndex = 0;
+  while ((iframeMatch = iframeRegex.exec(processed)) !== null) {
+    mediaElements.push({
+      start: iframeMatch.index,
+      end: iframeMatch.index + iframeMatch[0].length,
+      type: 'video'
+    });
+  }
+
+  // Sort by position (start index)
+  mediaElements.sort((a, b) => a.start - b.start);
+
+  // Second pass: Process in reverse order to maintain correct positions when inserting
+  for (let i = mediaElements.length - 2; i >= 0; i--) {
+    const current = mediaElements[i];
+    const next = mediaElements[i + 1];
+
+    // Get content between current and next media element
+    const between = processed.substring(current.end, next.start);
+    
+    // Count line breaks and non-whitespace characters
+    const lineBreaks = (between.match(/\n/g) || []).length;
+    const nonWhitespaceLength = between.replace(/[\s\n]/g, '').length;
+    
+    // If there's minimal text content (less than 100 chars) and insufficient spacing (less than 4 line breaks)
+    // Add substantial spacing between media elements
+    if (nonWhitespaceLength < 100 && lineBreaks < 4) {
+      // Insert at least 3 blank lines (representing 2-3 paragraphs) between media elements
+      const insertPosition = current.end;
+      processed = processed.slice(0, insertPosition) + '\n\n\n\n' + processed.slice(insertPosition);
+      
+      // Update positions of all subsequent media elements
+      const offset = 4; // 4 newlines added
+      for (let j = i + 1; j < mediaElements.length; j++) {
+        mediaElements[j].start += offset;
+        mediaElements[j].end += offset;
+      }
+    }
+  }
+
+  return processed;
+}
+
+/**
  * Ensure proper spacing between sections
  */
 export function normalizeContentSpacing(content: string): string {
   let normalized = content;
+
+  // First, ensure images and videos have proper spacing
+  normalized = ensureMediaSpacing(normalized);
 
   // Ensure double line breaks before H2
   normalized = normalized.replace(/([^\n])\n## /g, '$1\n\n## ');
 
   // Ensure double line breaks before H3
   normalized = normalized.replace(/([^\n])\n### /g, '$1\n\n### ');
+
+  // Ensure images and videos have proper spacing from surrounding content
+  // Add spacing before images/videos if there's no sufficient spacing
+  normalized = normalized.replace(/([^\n])\n(!\[[^\]]*\]\([^)]+\))/g, '$1\n\n$2');
+  normalized = normalized.replace(/([^\n])\n(<iframe[^>]*>)/g, '$1\n\n$2');
+  
+  // Add spacing after images/videos if there's no sufficient spacing
+  normalized = normalized.replace(/(!\[[^\]]*\]\([^)]+\))\n([^\n])/g, '$1\n\n$2');
+  normalized = normalized.replace(/(<\/iframe>)\n([^\n])/g, '$1\n\n$2');
 
   // Remove excessive line breaks (more than 3)
   normalized = normalized.replace(/\n{4,}/g, '\n\n\n');
@@ -123,6 +203,13 @@ export function normalizeContentSpacing(content: string): string {
   // Ensure proper spacing around blockquotes
   normalized = normalized.replace(/([^\n])\n(> )/g, '$1\n\n$2');
   normalized = normalized.replace(/(> [^\n]+)\n([^>\n])/g, '$1\n\n$2');
+
+  // Final check: ensure images and videos are not immediately adjacent
+  // Pattern: image or video followed immediately (with minimal spacing) by another image or video
+  normalized = normalized.replace(
+    /(!\[[^\]]*\]\([^)]+\)|<iframe[^>]*>(?:.*?<\/iframe>|))\s*\n{0,2}\s*(!\[[^\]]*\]\([^)]+\)|<iframe[^>]*>(?:.*?<\/iframe>|))/gis,
+    '$1\n\n\n\n$2'
+  );
 
   return normalized;
 }
