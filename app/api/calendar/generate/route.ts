@@ -107,6 +107,91 @@ export async function POST(request: NextRequest) {
         .eq('id', keyword_id);
     }
 
+    // Fetch related keywords from DataForSEO if available
+    let primaryKeywords: string[] = [];
+    let secondaryKeywords: string[] = [];
+    let longTailKeywords: string[] = [];
+    
+    try {
+      // Check if we have keyword_type data
+      if (keywordData && (keywordData as any).keyword_type) {
+        // Fetch related keywords from same group
+        const { data: relatedData } = await supabase
+          .from('discovered_keywords')
+          .select('keyword, keyword_type, search_volume')
+          .or(`parent_keyword_id.eq.${keyword_id},id.eq.${keyword_id}`)
+          .order('search_volume', { ascending: false });
+        
+        if (relatedData && relatedData.length > 0) {
+          relatedData.forEach((kw: any) => {
+            if (kw.keyword_type === 'primary') {
+              primaryKeywords.push(kw.keyword);
+            } else if (kw.keyword_type === 'secondary') {
+              secondaryKeywords.push(kw.keyword);
+            } else if (kw.keyword_type === 'long-tail') {
+              longTailKeywords.push(kw.keyword);
+            }
+          });
+          
+          console.log(`📊 Found keyword group:
+  Primary: ${primaryKeywords.length}
+  Secondary: ${secondaryKeywords.length}
+  Long-tail: ${longTailKeywords.length}`);
+        }
+      }
+      
+      // If no classified keywords, try to fetch from DataForSEO
+      if (primaryKeywords.length === 0 && secondaryKeywords.length === 0 && longTailKeywords.length === 0) {
+        console.log('🔍 No classified keywords found, fetching from DataForSEO...');
+        
+        try {
+          const { fetchKeywordsFromDataForSEO, saveKeywordsToDatabase } = await import('@/lib/dataforseo-keywords');
+          
+          const keywordSet = await fetchKeywordsFromDataForSEO(keywordText, 2840, {
+            includeQuestions: true,
+            includeRelated: true,
+            maxResults: 30
+          });
+          
+          // Extract keywords by type
+          primaryKeywords = keywordSet.primary.map((k: any) => k.keyword);
+          secondaryKeywords = keywordSet.secondary.map((k: any) => k.keyword).slice(0, 10);
+          longTailKeywords = keywordSet.longTail.map((k: any) => k.keyword).slice(0, 15);
+          
+          // Save keywords to database for future use (if we have profile ID)
+          if (keywordData && (keywordData as any).onboarding_profile_id) {
+            await saveKeywordsToDatabase(
+              keywordSet,
+              (keywordData as any).onboarding_profile_id,
+              user.id
+            );
+          }
+          
+          console.log(`✅ Fetched and saved DataForSEO keywords:
+  Primary: ${primaryKeywords.length}
+  Secondary: ${secondaryKeywords.length}
+  Long-tail: ${longTailKeywords.length}`);
+        } catch (dataForSeoError) {
+          console.warn('⚠️ DataForSEO fetch failed, using related_keywords field:', dataForSeoError);
+          // Fallback to related_keywords if available
+          secondaryKeywords = keywordData ? ((keywordData as any).related_keywords || []) : [];
+        }
+      }
+      
+      // Ensure primary keyword is included
+      if (!primaryKeywords.includes(keywordText)) {
+        primaryKeywords.unshift(keywordText);
+      }
+      
+    } catch (relatedError) {
+      console.warn('⚠️ Error fetching related keywords:', relatedError);
+      // Fallback to basic related keywords
+      secondaryKeywords = keywordData ? ((keywordData as any).related_keywords || []) : [];
+      if (!primaryKeywords.includes(keywordText)) {
+        primaryKeywords = [keywordText];
+      }
+    }
+
     // Search for relevant images and upload to Supabase Storage BEFORE content generation
     let uploadedImageUrls: string[] = [];
     
@@ -251,33 +336,172 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Calendar image upload failed:', fallbackErr);
     }
 
-    // Generate content using the content writer API with uploaded image URLs
-    const contentPrompt = `Topic: "${keywordText}"
-Content Type: ${content_type}
-Target Audience: ${target_audience || 'General audience'}
-Tone: ${tone}
-Length: Long-form (1500-2500 words)
+    // Generate content using the content writer API with uploaded image URLs - OUTRANK STYLE
+    const contentPrompt = `Write a comprehensive, SEO-optimized blog post about: "${keywordText}"
 
-AVAILABLE IMAGES (embed these using Markdown throughout the article):
+PRIMARY KEYWORD: "${keywordText}"
+CONTENT TYPE: ${content_type}
+TARGET AUDIENCE: ${target_audience || 'General audience'}
+TONE: ${tone}
+WORD COUNT: 2,500-3,500 words
+
+KEYWORD STRATEGY (from DataForSEO):
+${primaryKeywords.length > 0 ? `
+PRIMARY KEYWORDS (use in title, H1, first paragraph, conclusion):
+${primaryKeywords.slice(0, 3).map(k => `- "${k}"`).join('\n')}
+` : ''}
+${secondaryKeywords.length > 0 ? `
+SECONDARY KEYWORDS (use in H2 headings, throughout body):
+${secondaryKeywords.slice(0, 10).map(k => `- "${k}"`).join('\n')}
+` : ''}
+${longTailKeywords.length > 0 ? `
+LONG-TAIL KEYWORDS (use in H3 subsections, FAQ questions, specific examples):
+${longTailKeywords.slice(0, 15).map(k => `- "${k}"`).join('\n')}
+` : ''}
+
+AVAILABLE IMAGES (embed using Markdown):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
-Please create comprehensive, SEO-optimized content for this topic. Include:
-- An engaging title OPTIMIZED FOR THE KEYWORD "${keywordText}" - the title must include this primary keyword naturally near the beginning for maximum SEO impact
-- A meta description that includes the primary keyword "${keywordText}" for SEO optimization
-- Start directly with 2-4 introductory paragraphs after the main title (NO "Introduction:" heading or label)
-- Embed images using ![alt text](URL) near relevant sections - place images after H2 headings or first paragraphs
-- Embed relevant YouTube videos using HTML iframe format when available - place videos after relevant H2 sections where they add value
-- Distribute images and videos throughout the article (not all at the end)
-- Use actual image URLs and video IDs provided above (DO NOT write placeholders)
-- Well-structured sections using Markdown headings (## for H2, ### for H3)
-- Never write literal labels like "H2:", "H3:", "Introduction:", or "Understanding [Topic]:" in the body
-- Paragraphs should flow directly after the main title and after subheadings
-- Actionable insights and valuable information
-- Natural keyword integration (prioritize "${keywordText}" but also incorporate related keywords naturally)
-- Internal linking opportunities
-- End the article with a single closing call-to-action paragraph, WITHOUT any heading label
+STRUCTURE (CRITICAL - FOLLOW EXACTLY):
 
-${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally incorporate: ${keywordData.related_keywords.join(', ')}` : ''}`;
+1. COMPELLING TITLE
+   - Include primary keyword "${keywordText}" naturally
+   - Make it specific and benefit-driven
+   - Format example: "How to [Action]: A [Adjective] Guide"
+   - Keep it 55-65 characters
+
+2. META DESCRIPTION
+   - 150-160 characters
+   - Include primary keyword "${keywordText}"
+   - Make it compelling and actionable
+
+3. INTRODUCTION (250-300 words)
+   - Start with a hook addressing the reader's pain point
+   - Explain WHY "${keywordText}" matters strategically
+   - Include primary keyword in first 100 words
+   - Preview what they'll learn
+   - Keep paragraphs to 2-3 sentences max
+   - NO "Introduction:" heading - start directly with engaging paragraphs
+
+4. MAIN BODY - Create 5-7 H2 SECTIONS
+   
+   For EACH H2 section, follow this pattern:
+   
+   ## H2: [Use Secondary Keyword Variation]
+   
+   Opening paragraph (150-200 words):
+   - Explain the concept clearly
+   - Why it matters
+   - What the reader will learn in this section
+   
+   ### **H3: First Subsection [Specific Technique]**
+   
+   **[Bold subheading sentence summarizing this subsection]**
+   
+   - Step-by-step explanation
+   - Include specific example with real numbers
+   - Tool names, metrics, actual data
+   - Example: "5,000 searches/month" or "3x increase"
+   
+   ### **H3: Second Subsection [Related Technique]**
+   
+   **[Bold subheading sentence summarizing this subsection]**
+   
+   - Build on previous subsection
+   - More detailed guidance
+   - Pro tip or best practice
+   
+   ### **H3: Third Subsection [Advanced/Alternative]**
+   
+   **[Bold subheading sentence summarizing this subsection]**
+   
+   - Expand the topic further
+   - Include comparison or before/after
+   - Add [Table: Comparison description] placeholder if helpful
+   
+   [Smooth transition paragraph to next H2]
+
+5. COMPARISON TABLES
+   - Add 2-3 markdown tables comparing tools, approaches, or timeframes
+   - Include specific metrics and data
+   - Example: | Feature | Tool A | Tool B |
+
+6. FAQ SECTION
+   - Create 5-7 common questions
+   - Use natural language: "Why do...", "How often...", "Is it better to..."
+   - Answer each in 2-3 sentences, then expand with context
+   - Include keywords naturally in questions
+
+7. CONCLUSION (200 words)
+   - Recap 3-4 key takeaways with bullet points
+   - Provide ONE clear next action
+   - End with encouraging statement
+   - NO "Conclusion:" heading - just write the closing paragraphs
+
+WRITING STYLE REQUIREMENTS:
+- Use "you" and "your" throughout (second person)
+- Conversational but authoritative tone
+- Use contractions (you're, it's, don't)
+- Short paragraphs (3-4 sentences maximum)
+- Active voice, not passive
+- Address pain points directly
+- Avoid corporate jargon
+- Use rhetorical questions occasionally
+
+DATA & EXAMPLES (MUST INCLUDE):
+- At least 7 specific examples with real numbers
+- Real tool names (Google Keyword Planner, Ahrefs, Semrush, etc.)
+- Specific metrics: "5,000 searches/month", "3% CTR", "2.5x increase"
+- Before/after scenarios showing real outcomes
+- Industry-specific use cases for context
+
+KEYWORD INTEGRATION:
+- Primary keyword "${keywordText}": Naturally in title, first paragraph, one H2, conclusion
+- Variations: Use semantic variations in H2/H3 headings
+- LSI keywords: Naturally sprinkle related terms throughout
+- Avoid exact-match repetition (sounds robotic)
+
+INTERNAL LINKING OPPORTUNITIES:
+- Reference related topics naturally
+- Use descriptive anchor text like "our guide on [topic]"
+- Suggest 3-5 related topics that would make good internal links
+
+FORMATTING:
+- Use **bold** for key terms on first mention
+- Use **bold** for the first sentence under each H3 subsection as a subheading
+- Use bullet points for any list with 3+ items
+- Use > blockquotes for pro tips or key insights
+- Embed images using ![descriptive alt](URL) after relevant H2 sections
+- Embed YouTube videos using: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+- Distribute images and videos throughout (not all at end)
+
+CRITICAL REQUIREMENTS:
+- MUST create 5-7 H2 sections (## heading)
+- EVERY H2 MUST have at least 2-3 H3 subsections underneath it (### heading)
+- Structure MUST be: ## H2 → ### H3 → ### H3 → ### H3
+- Each H3 subsection must start with a **bold subheading sentence** that summarizes the subsection
+- Do NOT skip H3s - they are MANDATORY under each H2
+- Include at least one comparison table
+- Add pro tips as blockquotes (>)
+- Use real data and specific examples
+- Make it scannable with clear structure
+- Never use heading labels like "Introduction:" or "H2:" in the body
+
+HEADING HIERARCHY EXAMPLE:
+## Understanding SEO Tools (H2)
+Opening paragraph explaining the concept...
+
+### **What Makes a Good SEO Tool** (H3)
+**Bold subheading:** The best SEO tools share several key characteristics...
+Content explaining this subsection...
+
+### **Essential Features to Look For** (H3)
+**Bold subheading:** When evaluating SEO tools, focus on these must-have features...
+Content explaining this subsection...
+
+### **Free vs Paid Options** (H3)
+**Bold subheading:** The choice between free and paid tools depends on your needs...
+Content explaining this subsection...`;
 
     // Call the content writer API to generate content
     const contentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
@@ -330,6 +554,25 @@ ${keywordData?.related_keywords?.length > 0 ? `Related keywords to naturally inc
 
     // Use the uploaded images as the final image URLs
     const finalImageUrls = uploadedImageUrls.length > 0 ? uploadedImageUrls : streamedImageUrls;
+
+    // Post-process content: Add table of contents and normalize spacing
+    try {
+      const { addTableOfContents } = await import('@/lib/add-table-of-contents');
+      const { processContentPlaceholders, normalizeContentSpacing } = await import('@/lib/process-content-placeholders');
+      
+      // Add TOC for better navigation (if article is long enough)
+      fullContent = addTableOfContents(fullContent);
+      
+      // Process any remaining placeholders
+      fullContent = processContentPlaceholders(fullContent, finalImageUrls);
+      
+      // Normalize spacing for better readability
+      fullContent = normalizeContentSpacing(fullContent);
+      
+      console.log('✨ Content post-processing complete (TOC, placeholders, spacing)');
+    } catch (processError) {
+      console.warn('⚠️ Content post-processing failed (continuing anyway):', processError);
+    }
 
     // Verify images are embedded in the content markdown
     // If not embedded, the content-writer should have done it, but double-check

@@ -194,48 +194,104 @@ export async function POST(request: NextRequest) {
     // Extract topic/keyword for better optimization
     const extractedTopic = topic || (userInput.match(/Topic:\s*"?([^"\n]+)"?/i)?.[1] || '').trim();
     
-    // Simple, direct prompt to avoid word-breaking issues
-    const systemPrompt = `You are an expert SEO content writer creating professional blog articles.
+    // Enhanced system prompt for Outrank-style content
+    const systemPrompt = `You are an expert SEO content writer who creates comprehensive, engaging articles that rank well in search engines.
 
-${extractedTopic ? `PRIMARY KEYWORD/TOPIC FOR THIS ARTICLE: "${extractedTopic}" - You MUST optimize the title and content for this specific keyword.` : ''}
+${extractedTopic ? `PRIMARY KEYWORD/TOPIC: "${extractedTopic}" - You MUST optimize the title and content for this specific keyword.` : ''}
 
-AVAILABLE IMAGES (embed these using Markdown throughout the article):
+AVAILABLE IMAGES (embed using Markdown):
 ${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
-Embed images rules:
-- Use: ![concise descriptive alt text](IMAGE_URL)
-- Place images near relevant headings/paragraphs (e.g., after H2 or the first paragraph of a section)
-- Distribute images across the article rather than grouping all at the end
-- Do NOT write placeholders; use the actual URLs above
+${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
+${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
 
-${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed these using HTML iframe or Markdown):
-${youtubeVideos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id} - URL: ${v.url}`).join('\n')}
+Your articles follow this proven structure:
 
-Embed YouTube videos rules:
-- Use HTML iframe format: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-- Replace VIDEO_ID with the actual video ID from the list above
-- Place videos after relevant H2 sections or key paragraphs where they add value
-- Embed 1-2 videos throughout the article (not all at once)
-- Include a brief context sentence before each video explaining why it's relevant
-- Do NOT write placeholders; use the actual video IDs provided above` : ''}
+1. **Engaging Title**: Include the main keyword naturally, make it benefit-driven
+2. **Hook Introduction**: Start with a pain point or surprising fact
+3. **Hierarchical Content**: H2 sections with 2-3 H3 subsections each
+4. **Data-Driven Examples**: Include specific numbers, tool names, real scenarios
+5. **Visual Content**: Embed images after H2 sections, videos where relevant
+6. **Pro Tips**: Use blockquotes (>) for insider advice
+7. **FAQ Section**: Answer 5-7 common questions directly
+8. **Actionable Conclusion**: Clear next steps
 
-STRICT OUTPUT FORMAT (use EXACTLY this structure):
+Writing style:
+- Conversational and authoritative
+- Second person ("you", "your")
+- Short paragraphs (3-4 sentences)
+- Active voice
+- Include contractions
+- Address reader pain points directly
+
+CRITICAL STRUCTURE REQUIREMENTS:
+- 5-7 H2 sections (major topics)
+- Each H2 MUST contain 2-3 H3 subsections (specific techniques/tools/strategies)
+- Include at least 7 specific examples with real numbers
+- Add 2-3 comparison tables using markdown
+- Create FAQ section with 5-7 questions
+- Use > blockquotes for pro tips
+- Word count: 2,500-3,500 words
+
+FORMATTING:
+- Use **bold** for key terms on first mention
+- Use bullet points for lists with 3+ items
+- Embed images: ![descriptive alt](URL)
+- Embed videos: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+STRICT OUTPUT FORMAT:
 1. **Title**
-[Write a compelling SEO title (~55-60 chars) on ONE line. CRITICAL: The title MUST be optimized for the primary keyword/topic from the user's input${extractedTopic ? ` ("${extractedTopic}")` : ''}. Include the main keyword naturally near the beginning of the title for maximum SEO impact. If related keywords are provided, consider incorporating them as well, but prioritize the primary keyword/topic. Make it engaging and click-worthy while ensuring strong keyword relevance.]
+[SEO-optimized title with primary keyword, 55-65 characters]
 
 2. **Meta Description**
-[Write 150-160 characters on ONE line. Include the primary keyword${extractedTopic ? ` "${extractedTopic}"` : ''} naturally in the meta description for SEO optimization.]
+[150-160 characters with primary keyword]
 
 3. **Content**
-# [Same title as above]
+# [Same title]
 
-[Start directly with 2-4 engaging introductory paragraphs. NO "Introduction:" heading or label. Just write compelling paragraphs that hook the reader and provide context. Each paragraph should be 1-3 sentences. Use blank lines to separate paragraphs.]
+[Hook paragraph addressing pain point - 2-3 sentences]
 
-[Then continue with H2 sections (## Section Title) followed by their paragraphs directly - no labels like "Understanding..." or "Introduction:" before paragraphs. Subheadings should be clear and descriptive, followed immediately by relevant paragraphs.]
+[Why this matters - 2-3 sentences]
 
-[Continue with more H2/H3 sections as needed, each with their paragraphs flowing naturally below the subheading.]
+[What they'll learn - 2-3 sentences]
 
-[End the Content section with a single closing call-to-action paragraph. Do NOT add any heading like "Call-to-Action:"—just write the CTA as a normal paragraph.]
+## H2: [Secondary Keyword Variation]
+
+[Opening paragraph explaining the concept - 3-4 sentences]
+
+### H3: Specific Technique or Tool
+
+[Detailed explanation with example and real numbers - include metrics like "5,000/month" or "3x increase"]
+
+### H3: Related Approach
+
+[Build on previous subsection - include pro tip or best practice]
+
+> **Pro Tip:** [Insider advice in blockquote]
+
+### H3: Advanced Strategy
+
+[Further depth with before/after comparison or data table]
+
+[Transition paragraph to next section]
+
+## H2: [Next Major Topic]
+
+[Continue pattern with 2-3 H3 subsections each]
+
+## FAQ
+
+**Q: [Natural language question]**
+[Direct answer in 2-3 sentences, then expand with context]
+
+**Q: [Another question]**
+[Answer with specific details and keywords]
+
+[Continue with 5-7 total questions]
+
+[Closing paragraph with 3-4 key takeaways in bullets]
+
+[Final call-to-action paragraph - encouraging and actionable]
 
 4. **SEO Suggestions**
 - [3-5 internal link anchor ideas]

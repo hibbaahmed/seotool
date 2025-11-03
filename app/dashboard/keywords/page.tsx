@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Search, 
   Star, 
@@ -33,6 +33,7 @@ interface Keyword {
   starred: boolean;
   queued: boolean;
   generated: boolean;
+  keywordType?: 'primary' | 'secondary' | 'long-tail';
 }
 
 interface KeywordStats {
@@ -44,6 +45,7 @@ interface KeywordStats {
 }
 
 export default function KeywordsDashboard() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const onboardingId = searchParams.get('onboarding');
   
@@ -96,6 +98,7 @@ export default function KeywordsDashboard() {
             starred: !!kw.starred,
             queued: !!kw.scheduled_for_generation,
             generated: kw.generation_status === 'generated',
+            keywordType: kw.keyword_type,
             onboardingProfile: profile.profile
           }))
         );
@@ -154,7 +157,8 @@ export default function KeywordsDashboard() {
         relatedKeywords: item.related_keywords || [],
         starred: !!item.starred,
         queued: !!item.scheduled_for_generation,
-        generated: item.generation_status === 'generated'
+        generated: item.generation_status === 'generated',
+        keywordType: item.keyword_type
       }));
 
       setKeywords(transformedKeywords);
@@ -553,6 +557,9 @@ export default function KeywordsDashboard() {
                       Keyword
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Opportunity
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -586,6 +593,21 @@ export default function KeywordsDashboard() {
                             {keyword.keyword}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {keyword.keywordType ? (
+                          <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
+                            keyword.keywordType === 'primary' ? 'bg-blue-100 text-blue-700' :
+                            keyword.keywordType === 'secondary' ? 'bg-purple-100 text-purple-700' :
+                            'bg-orange-100 text-orange-700'
+                          }`}>
+                            {keyword.keywordType === 'primary' ? 'Primary' :
+                             keyword.keywordType === 'secondary' ? 'Secondary' :
+                             'Long-tail'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${getOpportunityColor(keyword.opportunityLevel)}`}>

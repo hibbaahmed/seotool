@@ -276,8 +276,9 @@ export async function addInternalLinksToContent(
             // Blog posts are at /blog/slug/ not /slug/
             const linkUrl = `/blog/${post.slug}/`;
             
-            // Insert link with WordPress-friendly attributes
-            const linkedPhrase = `<a href="${linkUrl}" class="internal-link" data-link-type="auto-generated">${linkText}</a>`;
+            // Insert link with enhanced visibility styling (inline for WordPress compatibility)
+            // Bold, bright blue color, thick underline, visible background with border
+            const linkedPhrase = `<a href="${linkUrl}" class="internal-link" data-link-type="auto-generated" style="font-weight: 700; color: #1d4ed8; text-decoration: underline; text-decoration-thickness: 2.5px; text-underline-offset: 3px; background-color: rgba(37, 99, 235, 0.12); padding: 3px 7px; border-radius: 5px; transition: all 0.2s ease; border: 1.5px solid rgba(37, 99, 235, 0.3); box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);" onmouseover="this.style.backgroundColor='rgba(37, 99, 235, 0.25)'; this.style.color='#1e3a8a'; this.style.borderColor='rgba(37, 99, 235, 0.5)'; this.style.boxShadow='0 2px 5px rgba(37, 99, 235, 0.2)';" onmouseout="this.style.backgroundColor='rgba(37, 99, 235, 0.12)'; this.style.color='#1d4ed8'; this.style.borderColor='rgba(37, 99, 235, 0.3)'; this.style.boxShadow='0 1px 3px rgba(37, 99, 235, 0.1)';">${linkText}</a>`;
             linkedContent = before + linkedPhrase + after;
             
             linksAdded++;

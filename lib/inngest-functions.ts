@@ -591,37 +591,75 @@ CRITICAL RULES:
         let lastErrorText = '';
         let lastStatus = 0;
 
+        // Retry logic for rate limits and temporary errors
+        const maxRetries = 3;
+        let attempt = 0;
+
         for (const model of modelsToTry) {
-          const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': process.env.ANTHROPIC_API_KEY!,
-              'Content-Type': 'application/json',
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model,
-              max_tokens: 4000,
-              system: systemPrompt,
-              messages: [{ role: 'user', content: contentPrompt }]
-            })
-          });
+          while (attempt < maxRetries) {
+            try {
+              const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'x-api-key': process.env.ANTHROPIC_API_KEY!,
+                  'Content-Type': 'application/json',
+                  'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                  model,
+                  max_tokens: 4000,
+                  system: systemPrompt,
+                  messages: [{ role: 'user', content: contentPrompt }]
+                })
+              });
 
-          if (response.ok) {
-            const data = await response.json();
-            content = data.content?.[0]?.text || '';
-            break;
+              if (response.ok) {
+                const data = await response.json();
+                content = data.content?.[0]?.text || '';
+                break; // Success, exit retry loop
+              }
+
+              // Capture error and decide whether to retry
+              lastStatus = response.status;
+              lastErrorText = await response.text();
+              console.error(`Claude API error for model ${model} (attempt ${attempt + 1}):`, lastErrorText);
+
+              // Check if it's a retryable error
+              const isRetryable = response.status === 529 || // Overloaded/rate limit
+                                  response.status === 503 || // Service unavailable
+                                  response.status === 429 || // Rate limit
+                                  (response.status >= 500 && response.status < 600); // Server errors
+
+              if (isRetryable && attempt < maxRetries - 1) {
+                const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
+                continue;
+              }
+
+              // If the error is model-not-found, try the next model; otherwise, abort early
+              if (!(response.status === 404 && /model/i.test(lastErrorText))) {
+                throw new Error(`Claude API error: ${response.status} - ${lastErrorText}`);
+              }
+
+              break; // Try next model
+            } catch (error: any) {
+              if (error.message && error.message.includes('529') && attempt < maxRetries - 1) {
+                const delay = Math.pow(2, attempt) * 1000;
+                console.log(`Retrying after error in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
+                continue;
+              }
+              throw error;
+            }
           }
-
-          // Capture error and decide whether to try next model
-          lastStatus = response.status;
-          lastErrorText = await response.text();
-          console.error(`Claude API error for model ${model}:`, lastErrorText);
-
-          // If the error is model-not-found, try the next model; otherwise, abort early
-          if (!(response.status === 404 && /model/i.test(lastErrorText))) {
-            throw new Error(`Claude API error: ${response.status} - ${lastErrorText}`);
-          }
+          
+          // If we got content successfully, break out of model loop
+          if (content) break;
+          
+          attempt = 0; // Reset for next model
         }
 
         if (!content) {
@@ -634,6 +672,7 @@ CRITICAL RULES:
           content,
           imageUrls: uploadedImageUrlsLocal,
         };
+
       } catch (error) {
         console.error('Error generating content:', error);
         throw error;
@@ -753,8 +792,8 @@ CRITICAL RULES:
         // Priority 3: Try to find any H1 in the content
         if (!extractedTitle) {
           const h1Patterns = [
-            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
-            /#\s+([^\n]+?)(?:\n|$)/m
+            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/gm,
+            /#\s+([^\n]+?)(?:\n|$)/gm
           ];
           for (const pattern of h1Patterns) {
             const matches = [...contentOutput.matchAll(pattern)];

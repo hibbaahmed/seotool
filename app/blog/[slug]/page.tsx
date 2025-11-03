@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import RelatedPosts from '@/components/RelatedPosts';
 import LinkedContent from '@/components/LinkedContent';
+import TableOfContents from '@/components/TableOfContents';
 
 interface Post {
   id: string;
@@ -125,7 +126,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
         <div className="pt-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
+          {/* Floating Table of Contents (Desktop Only) */}
+          <TableOfContents content={post.content} />
+
+          <div className="max-w-4xl mx-auto lg:mr-80">
             {/* Back Button */}
             <Link 
               href="/blog"
@@ -136,7 +140,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </Link>
 
             {/* Article Header */}
-            <article className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <article id="blog-article" className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
               {/* Featured Image */}
               {post.featuredImage && (
                 <div className="aspect-video overflow-hidden">
