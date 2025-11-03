@@ -7,6 +7,13 @@ function cleanBlogContent(html: string): string {
   
   let cleaned = html;
   
+  // Remove plain text "Title:" and "Meta Description:" patterns (most common issue)
+  // Handle: "Title: Unlock the Power..." and "Meta Description: Discover..."
+  cleaned = cleaned.replace(/<p>\s*Title:\s*[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/<p>\s*Meta Description:\s*[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n<]+/gim, '');
+  cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n<]+/gim, '');
+  
   // Remove numbered sections at the start of content (most common case)
   // Handle: "1. **Title** [title text] 2. **Meta Description** [description text]"
   // This pattern handles both sections appearing together at the start
@@ -43,6 +50,10 @@ function cleanBlogContent(html: string): string {
   // Handle patterns that might span multiple lines or be in plain text
   cleaned = cleaned.replace(/\d+\.\s*\*\*Title\*\*\s+[^\n<]{0,500}/gi, '');
   cleaned = cleaned.replace(/\d+\.\s*\*\*Meta\s+Description\*\*\s+[^\n<]{0,500}/gi, '');
+  
+  // Remove any remaining "Title:" or "Meta Description:" with or without HTML tags
+  cleaned = cleaned.replace(/(?:<p[^>]*>)?\s*Title:\s*[^<\n]+(?:<\/p>)?/gi, '');
+  cleaned = cleaned.replace(/(?:<p[^>]*>)?\s*Meta Description:\s*[^<\n]+(?:<\/p>)?/gi, '');
   
   // Clean up extra empty paragraphs or whitespace
   cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
