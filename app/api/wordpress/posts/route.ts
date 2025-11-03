@@ -3,28 +3,68 @@ import { decodeHtmlEntitiesServer } from '@/lib/decode-html-entities';
 
 /**
  * Extract the first image URL from HTML content
+ * Handles both HTML and markdown formats, and WordPress-specific structures
  */
 function extractFirstImageFromContent(content: string): string | null {
   if (!content) return null;
   
-  // Try to find markdown images first: ![alt](url)
-  const markdownImageMatch = content.match(/!\[[^\]]*\]\(([^)]+)\)/);
+  console.log('🔍 Extracting image from content (length:', content.length, ')');
+  
+  // Decode HTML entities first (WordPress often encodes URLs)
+  const decodedContent = content
+    .replace(/&amp;/g, '&')
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8230;/g, '...')
+    .replace(/&quot;/g, '"');
+  
+  // Try to find HTML img tags first (most common in WordPress): <img src="url" ...>
+  // Handle both single and double quotes, and HTML-encoded URLs
+  const htmlImagePatterns = [
+    /<img[^>]+src=["']([^"']+)["'][^>]*>/i,  // Standard format
+    /<img[^>]+src=([^\s>]+)/i,                // Without quotes
+  ];
+  
+  for (const pattern of htmlImagePatterns) {
+    const match = decodedContent.match(pattern);
+    if (match && match[1]) {
+      let imageUrl = match[1].trim();
+      // Clean up the URL (remove trailing quotes, etc.)
+      imageUrl = imageUrl.replace(/["']/g, '').replace(/&amp;/g, '&');
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        console.log('✅ Found HTML img tag:', imageUrl);
+        return imageUrl;
+      }
+    }
+  }
+  
+  // Try to find markdown images: ![alt](url)
+  const markdownImageMatch = decodedContent.match(/!\[[^\]]*\]\(([^)]+)\)/);
   if (markdownImageMatch && markdownImageMatch[1]) {
-    return markdownImageMatch[1];
+    let imageUrl = markdownImageMatch[1].trim();
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      console.log('✅ Found markdown image:', imageUrl);
+      return imageUrl;
+    }
   }
   
-  // Try to find HTML img tags: <img src="url" ...>
-  const htmlImageMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (htmlImageMatch && htmlImageMatch[1]) {
-    return htmlImageMatch[1];
+  // Try to find Supabase storage URLs or other image URLs in content
+  // Match URLs that contain common image file extensions
+  const urlPatterns = [
+    /(https?:\/\/[^\s<>"'&]+\.(?:jpg|jpeg|png|gif|webp|svg))(?:\?[^\s<>"']*)?/gi,
+    /(https:\/\/[^\.]+\.supabase\.co\/storage\/v1\/object\/public\/photos\/[^\s<>"'&]+)/gi,
+  ];
+  
+  for (const pattern of urlPatterns) {
+    const matches = decodedContent.match(pattern);
+    if (matches && matches.length > 0) {
+      // Clean up the URL
+      let imageUrl = matches[0].replace(/&amp;/g, '&').trim();
+      console.log('✅ Found image URL in content:', imageUrl);
+      return imageUrl;
+    }
   }
   
-  // Try to find image URLs in content (Supabase storage URLs or other image URLs)
-  const urlImageMatch = content.match(/(https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|gif|webp))/i);
-  if (urlImageMatch && urlImageMatch[1]) {
-    return urlImageMatch[1];
-  }
-  
+  console.log('⚠️ No image found in content');
   return null;
 }
 
@@ -66,9 +106,15 @@ export async function GET(request: NextRequest) {
         // Transform GraphQL response to match our existing format
         const transformedPosts = (data as any).posts.nodes.map((post: any) => {
           // Extract first image from content if no featured image is set
-          const contentImage = !post.featuredImage?.node?.sourceUrl 
-            ? extractFirstImageFromContent(post.content || '') 
-            : null;
+          let contentImage: string | null = null;
+          if (!post.featuredImage?.node?.sourceUrl) {
+            // GraphQL returns HTML content, extract from that
+            contentImage = extractFirstImageFromContent(post.content || '');
+            console.log('📸 Extracted image for post:', post.slug, 'Image:', contentImage);
+          }
+          
+          const featuredImage = post.featuredImage?.node?.sourceUrl || contentImage;
+          console.log('🖼️ Final featured image for post:', post.slug, ':', featuredImage);
           
           return {
             id: post.id,
@@ -81,7 +127,7 @@ export async function GET(request: NextRequest) {
             author_name: post.author?.node?.name || 'Bridgely Team',
             category_name: post.categories?.nodes?.[0]?.name || 'General',
             tags: post.tags?.nodes?.map((tag: any) => tag.name) || [],
-            featured_media_url: post.featuredImage?.node?.sourceUrl || contentImage,
+            featured_media_url: featuredImage,
             seo: post.seo
           };
         });
@@ -123,7 +169,14 @@ export async function GET(request: NextRequest) {
       const featuredMedia = isWPCom ? post.featured_image : post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
       
       // Extract first image from content if no featured image is set
-      const contentImage = !featuredMedia ? extractFirstImageFromContent(content || '') : null;
+      let contentImage: string | null = null;
+      if (!featuredMedia) {
+        contentImage = extractFirstImageFromContent(content || '');
+        console.log('📸 Extracted image for post:', post.slug, 'Image:', contentImage);
+      }
+      
+      const finalFeaturedImage = featuredMedia || contentImage;
+      console.log('🖼️ Final featured image for post:', post.slug, ':', finalFeaturedImage);
       
       return {
         id: isWPCom ? post.ID : post.id,
@@ -136,7 +189,7 @@ export async function GET(request: NextRequest) {
         author_name: isWPCom ? post.author?.name : post._embedded?.author?.[0]?.name || 'Bridgely Team',
         category_name: isWPCom ? Object.keys(post.categories || {})[0] || 'General' : post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
         tags: isWPCom ? Object.keys(post.tags || {}) : (post._embedded?.['wp:term']?.[1]?.map((t: any) => t.name) || []),
-        featured_media_url: featuredMedia || contentImage,
+        featured_media_url: finalFeaturedImage,
         seo: null
       };
     });

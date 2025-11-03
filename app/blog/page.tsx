@@ -334,12 +334,15 @@ const BlogPage = () => {
                   {/* Featured Image */}
                   {post.featuredImage ? (
                     <div className="h-48 overflow-hidden bg-slate-100 relative">
-                      <Image
+                      {/* Use regular img tag for external images to avoid Next.js Image domain restrictions */}
+                      <img
                         src={post.featuredImage}
                         alt={post.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          // Hide image if it fails to load
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     </div>
                   ) : (
