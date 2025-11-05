@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { getAdapter } from '@/lib/integrations/getAdapter';
 import { marked } from 'marked';
+import { generateKeywordContentPrompt, generateExpansionPrompt } from '@/lib/content-generation-prompts';
 
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
@@ -337,196 +338,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate content using the content writer API with uploaded image URLs - OUTRANK STYLE
-    const contentPrompt = `Write a comprehensive, SEO-optimized blog post about: "${keywordText}"
+    // Use shared prompt function to avoid duplication
+    const contentPrompt = generateKeywordContentPrompt({
+      keyword: keywordText,
+      primaryKeywords,
+      secondaryKeywords,
+      longTailKeywords,
+      contentType: content_type,
+      targetAudience: target_audience || 'General audience',
+      tone,
+      imageUrls: uploadedImageUrls
+    });
 
-PRIMARY KEYWORD: "${keywordText}"
-CONTENT TYPE: ${content_type}
-TARGET AUDIENCE: ${target_audience || 'General audience'}
-TONE: ${tone}
-WORD COUNT: 2,500-3,500 words
-
-KEYWORD STRATEGY (from DataForSEO):
-${primaryKeywords.length > 0 ? `
-PRIMARY KEYWORDS (use in title, H1, first paragraph, conclusion):
-${primaryKeywords.slice(0, 3).map(k => `- "${k}"`).join('\n')}
-` : ''}
-${secondaryKeywords.length > 0 ? `
-SECONDARY KEYWORDS (use in H2 headings, throughout body):
-${secondaryKeywords.slice(0, 10).map(k => `- "${k}"`).join('\n')}
-` : ''}
-${longTailKeywords.length > 0 ? `
-LONG-TAIL KEYWORDS (use in H3 subsections, FAQ questions, specific examples):
-${longTailKeywords.slice(0, 15).map(k => `- "${k}"`).join('\n')}
-` : ''}
-
-AVAILABLE IMAGES (embed using Markdown):
-${uploadedImageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
-
-IMAGE AND VIDEO PLACEMENT RULES:
-- DO NOT place images and videos directly next to each other
-- Always include at least 2-3 paragraphs of text between any image and video
-- Distribute images and videos throughout the article, not clustered together
-- Place images after relevant H2 sections or within H3 subsections
-- Place videos after relevant H2 sections or key paragraphs where they add value
-- Ensure substantial content (100+ words) between media elements
-
-STRUCTURE (CRITICAL - FOLLOW EXACTLY):
-
-1. COMPELLING TITLE
-   - Include primary keyword "${keywordText}" naturally
-   - Make it specific and benefit-driven
-   - Format example: "How to [Action]: A [Adjective] Guide"
-   - Keep it 55-65 characters
-
-2. META DESCRIPTION
-   - 150-160 characters
-   - Include primary keyword "${keywordText}"
-   - Make it compelling and actionable
-
-3. INTRODUCTION (250-300 words)
-   - Start with a hook addressing the reader's pain point
-   - Explain WHY "${keywordText}" matters strategically
-   - Include primary keyword in first 100 words
-   - Preview what they'll learn
-   - Keep paragraphs to 2-3 sentences max
-   - NO "Introduction:" heading - start directly with engaging paragraphs
-
-4. MAIN BODY - Create 5-7 H2 SECTIONS
-   
-   For EACH H2 section, follow this pattern:
-   
-   ## H2: [Use Secondary Keyword Variation]
-   
-   Opening paragraph (150-200 words):
-   - Explain the concept clearly
-   - Why it matters
-   - What the reader will learn in this section
-   
-   ### **H3: First Subsection [Specific Technique]**
-   
-   **[Bold subheading sentence summarizing this subsection]**
-   
-   - Step-by-step explanation
-   - Include specific example with real numbers
-   - Tool names, metrics, actual data
-   - Example: "5,000 searches/month" or "3x increase"
-   
-   ### **H3: Second Subsection [Related Technique]**
-   
-   **[Bold subheading sentence summarizing this subsection]**
-   
-   - Build on previous subsection
-   - More detailed guidance
-   - Pro tip or best practice
-   
-   ### **H3: Third Subsection [Advanced/Alternative]**
-   
-   **[Bold subheading sentence summarizing this subsection]**
-   
-   - Expand the topic further
-   - Include comparison or before/after
-   - Add [Table: Comparison description] placeholder if helpful
-   
-   [Smooth transition paragraph to next H2]
-
-5. COMPARISON TABLES (REQUIRED - Add 2-3 tables)
-   - Create professional comparison tables with descriptive titles
-   - Format: Start with a title like "10-Point Comparison: [Topic]" or "[Number]-Point Comparison: [Topic]"
-   - Include 5-7 comparison points with multiple columns
-   - Common columns: Feature/Approach, Complexity, Resources Needed, Outcomes, Use Cases, Advantages/Benefits, Time Required, Cost
-   - Use markdown table format:
-     
-     Example format:
-     ### [Title]: [Topic Comparison]
-     
-     | [Row Header] | Column 1 | Column 2 | Column 3 | Column 4 |
-     | --- | --- | --- | --- | --- |
-     | Option/Approach 1 | Details | Details | Details | Details |
-     | Option/Approach 2 | Details | Details | Details | Details |
-     | Option/Approach 3 | Details | Details | Details | Details |
-     
-   - Place tables strategically: After relevant H2 sections or within H3 subsections
-   - Include real data, metrics, and specific comparisons
-   - Make comparisons actionable and useful for decision-making
-
-6. FAQ SECTION
-   - Create 5-7 common questions
-   - Use natural language: "Why do...", "How often...", "Is it better to..."
-   - Answer each in 2-3 sentences, then expand with context
-   - Include keywords naturally in questions
-
-7. CONCLUSION (200 words)
-   - Recap 3-4 key takeaways with bullet points
-   - Provide ONE clear next action
-   - End with encouraging statement
-   - NO "Conclusion:" heading - just write the closing paragraphs
-
-WRITING STYLE REQUIREMENTS:
-- Use "you" and "your" throughout (second person)
-- Conversational but authoritative tone
-- Use contractions (you're, it's, don't)
-- Short paragraphs (3-4 sentences maximum)
-- Active voice, not passive
-- Address pain points directly
-- Avoid corporate jargon
-- Use rhetorical questions occasionally
-
-DATA & EXAMPLES (MUST INCLUDE):
-- At least 7 specific examples with real numbers
-- Real tool names (Google Keyword Planner, Ahrefs, Semrush, etc.)
-- Specific metrics: "5,000 searches/month", "3% CTR", "2.5x increase"
-- Before/after scenarios showing real outcomes
-- Industry-specific use cases for context
-
-KEYWORD INTEGRATION:
-- Primary keyword "${keywordText}": Naturally in title, first paragraph, one H2, conclusion
-- Variations: Use semantic variations in H2/H3 headings
-- LSI keywords: Naturally sprinkle related terms throughout
-- Avoid exact-match repetition (sounds robotic)
-
-INTERNAL LINKING OPPORTUNITIES:
-- Reference related topics naturally
-- Use descriptive anchor text like "our guide on [topic]"
-- Suggest 3-5 related topics that would make good internal links
-
-FORMATTING:
-- Use **bold** for key terms on first mention
-- Use **bold** for the first sentence under each H3 subsection as a subheading
-- Use bullet points for any list with 3+ items
-- Use > blockquotes for pro tips or key insights
-- Embed images using ![descriptive alt](URL) after relevant H2 sections
-- Embed YouTube videos using: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-- Distribute images and videos throughout (not all at end)
-
-CRITICAL REQUIREMENTS:
-- MUST create 5-7 H2 sections (## heading)
-- EVERY H2 MUST have at least 2-3 H3 subsections underneath it (### heading)
-- Structure MUST be: ## H2 → ### H3 → ### H3 → ### H3
-- Each H3 subsection must start with a **bold subheading sentence** that summarizes the subsection
-- Do NOT skip H3s - they are MANDATORY under each H2
-- Include at least one comparison table
-- Add pro tips as blockquotes (>)
-- Use real data and specific examples
-- Make it scannable with clear structure
-- Never use heading labels like "Introduction:" or "H2:" in the body
-
-HEADING HIERARCHY EXAMPLE:
-## Understanding SEO Tools (H2)
-Opening paragraph explaining the concept...
-
-### **What Makes a Good SEO Tool** (H3)
-**Bold subheading:** The best SEO tools share several key characteristics...
-Content explaining this subsection...
-
-### **Essential Features to Look For** (H3)
-**Bold subheading:** When evaluating SEO tools, focus on these must-have features...
-Content explaining this subsection...
-
-### **Free vs Paid Options** (H3)
-**Bold subheading:** The choice between free and paid tools depends on your needs...
-Content explaining this subsection...`;
-
-    // Call the content writer API to generate content
+    // Call the content writer API to generate content with multi-phase enabled
     const contentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
       method: 'POST',
       headers: {
@@ -535,6 +359,7 @@ Content explaining this subsection...`;
       body: JSON.stringify({
         messages: [{ role: 'user', content: contentPrompt }],
         userId: user.id,
+        enableMultiPhase: true, // Enable multi-phase for longer, better structured content
       }),
     });
 
@@ -584,6 +409,54 @@ Content explaining this subsection...`;
 
     // Remove boilerplate opening line like: "Here is a 2,700-word comprehensive ... blog post ..."
     fullContent = fullContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
+
+    // Expansion pass: if word count is too low, ask the writer to expand
+    const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;
+    if (plainWordCount < 6000) {
+      try {
+        console.log(`✏️ Draft length ${plainWordCount} words < 6000. Requesting expansion to 6,000-8,500 words...`);
+        // Use shared expansion prompt function
+        const expansionPrompt = generateExpansionPrompt(fullContent);
+
+        const expandRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messages: [{ role: 'user', content: expansionPrompt }], 
+            userId: user.id,
+            enableMultiPhase: false // Use single-phase for expansion to avoid duplicate phases
+          })
+        });
+
+        if (expandRes.ok && expandRes.body) {
+          const reader2 = expandRes.body.getReader();
+          const decoder2 = new TextDecoder();
+          let expanded = '';
+          while (true) {
+            const { done, value } = await reader2.read();
+            if (done) break;
+            const chunk = decoder2.decode(value);
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.type === 'token' && data.value) expanded += data.value;
+                } catch {}
+              }
+            }
+          }
+          if (expanded && expanded.length > fullContent.length) {
+            fullContent = expanded;
+            console.log('✅ Expansion applied');
+          }
+        } else {
+          console.warn('⚠️ Expansion request failed');
+        }
+      } catch (expErr) {
+        console.warn('⚠️ Expansion pass error:', expErr);
+      }
+    }
 
     // Ensure at least one YouTube video embed if available and none present
     try {
@@ -846,6 +719,14 @@ Content explaining this subsection...`;
         cleaned = cleaned.replace(/^\*\*Meta Description\*\*[:\s]*.*$/gmi, '');
         cleaned = cleaned.replace(/^Meta Description:\s*.*$/gmi, '');
         
+        // Remove "Title:" and "Meta Description:" when they appear together on same line
+        cleaned = cleaned.replace(/Title:\s*[^M]+Meta Description:\s*[^\n]+/gi, '');
+        cleaned = cleaned.replace(/Title:\s*[^M]+Meta Description:\s*[^\n]+/gi, '');
+        
+        // Remove any remaining "Title:" or "Meta Description:" anywhere in content (not just start of line)
+        cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n]+/gim, '');
+        cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n]+/gim, '');
+        
         // Extract Content section
         const contentPatterns = [
           /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
@@ -866,22 +747,65 @@ Content explaining this subsection...`;
           extractedContent = cleaned;
         }
         
-        // Remove duplicate H1 title at the start
+        // Remove duplicate titles at the start (H1 format, plain text, or multiple occurrences)
         const lines = extractedContent.split('\n');
         let startIndex = 0;
-        for (let i = 0; i < Math.min(5, lines.length); i++) {
+        let foundFirstTitle = false;
+        const foundTitles: string[] = [];
+        
+        // First pass: identify all title-like patterns at the start
+        for (let i = 0; i < Math.min(10, lines.length); i++) {
           const line = lines[i].trim();
+          
+          // Check for H1 format: # Title
           if (line.match(/^#\s+.+$/)) {
-            startIndex = i + 1;
-            while (startIndex < lines.length && lines[startIndex].trim() === '') {
-              startIndex++;
+            const titleText = line.replace(/^#\s+/, '').trim();
+            if (!foundFirstTitle) {
+              foundFirstTitle = true;
+              foundTitles.push(titleText);
+              startIndex = i + 1;
+            } else {
+              // Check if this is a duplicate of the first title
+              if (foundTitles.length > 0 && (titleText === foundTitles[0] || titleText.toLowerCase() === foundTitles[0].toLowerCase())) {
+                startIndex = i + 1;
+                continue;
+              }
+              // If it's a different title but still looks like a title, skip it too
+              if (titleText.length > 10 && titleText.length < 100) {
+                startIndex = i + 1;
+                continue;
+              }
             }
-            break;
-          } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
-            startIndex = i;
-            break;
+          }
+          // Check for plain text titles (standalone lines that look like titles)
+          else if (line && !line.startsWith('#') && !line.match(/^\d+\./) && !line.startsWith('*')) {
+            // If it's a short line that looks like a title (not a paragraph)
+            if (line.length > 10 && line.length < 150 && !line.includes('. ') && !line.match(/^[a-z]/)) {
+              // Check if it's a duplicate
+              if (foundTitles.length > 0 && (line === foundTitles[0] || line.toLowerCase() === foundTitles[0].toLowerCase())) {
+                startIndex = i + 1;
+                continue;
+              }
+              // If we haven't found first title yet and this looks like one, mark it
+              if (!foundFirstTitle && line.length < 100) {
+                foundTitles.push(line);
+                foundFirstTitle = true;
+                startIndex = i + 1;
+                continue;
+              }
+            }
+            // If we hit actual paragraph content (starts with lowercase or has sentence structure), stop
+            if (line.length > 50 || line.match(/^[a-z]/) || line.includes('. ')) {
+              break;
+            }
           }
         }
+        
+        // Skip blank lines after titles
+        while (startIndex < lines.length && lines[startIndex].trim() === '') {
+          startIndex++;
+        }
+        
         extractedContent = lines.slice(startIndex).join('\n');
         
         // Remove remaining numbered sections
@@ -889,6 +813,11 @@ Content explaining this subsection...`;
         extractedContent = extractedContent.replace(/^\d+\.?\s*[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*:.*$/gmi, '');
         extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
         extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
+        
+        // Remove "Title:" and "Meta Description:" when they appear together or separately
+        extractedContent = extractedContent.replace(/Title:\s*[^M]+Meta Description:\s*[^\n]+/gi, '');
+        extractedContent = extractedContent.replace(/(?:^|\n)\s*Title:\s*[^\n]+/gim, '');
+        extractedContent = extractedContent.replace(/(?:^|\n)\s*Meta Description:\s*[^\n]+/gim, '');
         
         // Remove "Internal link anchor ideas" section and image suggestions at the end
         // Match from "Internal link anchor ideas:" to the end, or from any "Internal link" mention

@@ -9,10 +9,29 @@ function cleanBlogContent(html: string): string {
   
   // Remove plain text "Title:" and "Meta Description:" patterns (most common issue)
   // Handle: "Title: Unlock the Power..." and "Meta Description: Discover..."
+  // Also handle when they appear together on the same line: "Title: ... Meta Description: ..."
   cleaned = cleaned.replace(/<p>\s*Title:\s*[^<]+(<\/p>|$)/gi, '');
   cleaned = cleaned.replace(/<p>\s*Meta Description:\s*[^<]+(<\/p>|$)/gi, '');
   cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n<]+/gim, '');
   cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n<]+/gim, '');
+  
+  // Handle when Title and Meta Description appear together on same line (common pattern)
+  // Pattern: "Title: ... Meta Description: ..." (can span across text without HTML)
+  cleaned = cleaned.replace(/Title:\s*[^M]+Meta Description:\s*[^\n<]+/gi, '');
+  cleaned = cleaned.replace(/<p>\s*Title:\s*[^M]+Meta Description:\s*[^<]+(<\/p>|$)/gi, '');
+  cleaned = cleaned.replace(/<p[^>]*>\s*Title:\s*[^M]+Meta Description:\s*[^<]+<\/p>/gi, '');
+  
+  // Remove any remaining "Title:" or "Meta Description:" at the very start of content
+  // Handle both HTML and plain text formats
+  cleaned = cleaned.replace(/^(<p[^>]*>)?\s*Title:\s*[^\n<]+/im, '');
+  cleaned = cleaned.replace(/^(<p[^>]*>)?\s*Meta Description:\s*[^\n<]+/im, '');
+  
+  // Also handle cases where they might be in the first paragraph tag
+  cleaned = cleaned.replace(/^<p[^>]*>\s*Title:\s*[^<]+<\/p>/im, '');
+  cleaned = cleaned.replace(/^<p[^>]*>\s*Meta Description:\s*[^<]+<\/p>/im, '');
+  
+  // Handle when they appear consecutively but in separate elements
+  cleaned = cleaned.replace(/(<p[^>]*>\s*Title:\s*[^<]+<\/p>\s*)+<p[^>]*>\s*Meta Description:\s*[^<]+<\/p>/gi, '');
   
   // Remove numbered sections at the start of content (most common case)
   // Handle: "1. **Title** [title text] 2. **Meta Description** [description text]"

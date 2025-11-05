@@ -85,6 +85,13 @@ function extractContentFromAIOutput(fullOutput: string): string {
   // Also handle escaped versions
   cleaned = cleaned.replace(/^\d+\\.\s*\\\*\\\*Meta Description\\\*\\\*.*$/gmi, '');
   
+  // Remove "Title:" and "Meta Description:" when they appear together on same line
+  cleaned = cleaned.replace(/Title:\s*[^M]+Meta Description:\s*[^\n]+/gi, '');
+  
+  // Remove any remaining "Title:" or "Meta Description:" anywhere in content (not just start of line)
+  cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n]+/gim, '');
+  cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n]+/gim, '');
+  
   // Step 3: Find and extract the Content section (handle escaped and non-escaped markdown)
   // Look for "3. **Content**" or "**Content**" followed by actual content
   const contentPatterns = [
@@ -107,25 +114,63 @@ function extractContentFromAIOutput(fullOutput: string): string {
     extractedContent = cleaned;
   }
   
-  // Step 4: Remove the duplicate H1 title (if present after Content marker)
+  // Step 4: Remove duplicate titles at the start (H1 format, plain text, or multiple occurrences)
   const lines = extractedContent.split('\n');
   let startIndex = 0;
+  let foundFirstTitle = false;
+  const foundTitles: string[] = [];
   
-  // Skip duplicate H1 at the start
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
+  // First pass: identify all title-like patterns at the start
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
     const line = lines[i].trim();
+    
+    // Check for H1 format: # Title
     if (line.match(/^#\s+.+$/)) {
-      // Found H1, skip it and any blank lines after it
-      startIndex = i + 1;
-      while (startIndex < lines.length && lines[startIndex].trim() === '') {
-        startIndex++;
+      const titleText = line.replace(/^#\s+/, '').trim();
+      if (!foundFirstTitle) {
+        foundFirstTitle = true;
+        foundTitles.push(titleText);
+        startIndex = i + 1;
+      } else {
+        // Check if this is a duplicate of the first title
+        if (foundTitles.length > 0 && (titleText === foundTitles[0] || titleText.toLowerCase() === foundTitles[0].toLowerCase())) {
+          startIndex = i + 1;
+          continue;
+        }
+        // If it's a different title but still looks like a title, skip it too
+        if (titleText.length > 10 && titleText.length < 100) {
+          startIndex = i + 1;
+          continue;
+        }
       }
-      break;
-    } else if (line && !line.startsWith('#') && !line.match(/^\d+\./)) {
-      // Found actual content (not a heading or numbered item)
-      startIndex = i;
-      break;
     }
+    // Check for plain text titles (standalone lines that look like titles)
+    else if (line && !line.startsWith('#') && !line.match(/^\d+\./) && !line.startsWith('*')) {
+      // If it's a short line that looks like a title (not a paragraph)
+      if (line.length > 10 && line.length < 150 && !line.includes('. ') && !line.match(/^[a-z]/)) {
+        // Check if it's a duplicate
+        if (foundTitles.length > 0 && (line === foundTitles[0] || line.toLowerCase() === foundTitles[0].toLowerCase())) {
+          startIndex = i + 1;
+          continue;
+        }
+        // If we haven't found first title yet and this looks like one, mark it
+        if (!foundFirstTitle && line.length < 100) {
+          foundTitles.push(line);
+          foundFirstTitle = true;
+          startIndex = i + 1;
+          continue;
+        }
+      }
+      // If we hit actual paragraph content (starts with lowercase or has sentence structure), stop
+      if (line.length > 50 || line.match(/^[a-z]/) || line.includes('. ')) {
+        break;
+      }
+    }
+  }
+  
+  // Skip blank lines after titles
+  while (startIndex < lines.length && lines[startIndex].trim() === '') {
+    startIndex++;
   }
   
   extractedContent = lines.slice(startIndex).join('\n');
