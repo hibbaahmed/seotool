@@ -70,9 +70,46 @@ function cleanBlogContent(html: string): string {
   cleaned = cleaned.replace(/\d+\.\s*\*\*Title\*\*\s+[^\n<]{0,500}/gi, '');
   cleaned = cleaned.replace(/\d+\.\s*\*\*Meta\s+Description\*\*\s+[^\n<]{0,500}/gi, '');
   
-  // Remove any remaining "Title:" or "Meta Description:" with or without HTML tags
+  // Remove any remaining "Title:" or "Meta Description:" with or without HTML tags - ANYWHERE
   cleaned = cleaned.replace(/(?:<p[^>]*>)?\s*Title:\s*[^<\n]+(?:<\/p>)?/gi, '');
   cleaned = cleaned.replace(/(?:<p[^>]*>)?\s*Meta Description:\s*[^<\n]+(?:<\/p>)?/gi, '');
+  cleaned = cleaned.replace(/Title:\s*[^\n<]+/gi, '');
+  cleaned = cleaned.replace(/Meta Description:\s*[^\n<]+/gi, '');
+  
+  // Remove H1 tags containing "Meta Description"
+  cleaned = cleaned.replace(/<h1[^>]*>[^<]*Meta Description[^<]*<\/h1>/gi, '');
+  
+  // Remove broken/incomplete image tags
+  cleaned = cleaned.replace(/<img\s+src="[^"]*#[^"]*"[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<img\s+src="[^"]*"(?!\s*\/?>)[^>]*/gi, '');
+  
+  // Remove "Post-Processing and Enhancement" and similar markers
+  cleaned = cleaned.replace(/<p>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<h[2-6][^>]*>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/h[2-6]>/gi, '');
+  cleaned = cleaned.replace(/(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)/gi, '');
+  
+  // Remove instruction markers that shouldn't be in content
+  cleaned = cleaned.replace(/<h1[^>]*>\s*Remaining H2 Sections?\s*<\/h1>/gi, '');
+  cleaned = cleaned.replace(/<h[1-6][^>]*>\s*(?:Write|Add|Include)\s+[^<]+<\/h[1-6]>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\[(?:Write|Add|Include|Insert|Place)[^\]]*\]\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/\[(?:Write|Add|Include|Insert|Place)[^\]]*\]/gi, '');
+  
+  // Remove orphaned table elements (tables with only headers, no data)
+  cleaned = cleaned.replace(/<table[^>]*>\s*<thead[^>]*>[\s\S]*?<\/thead>\s*<tbody[^>]*>\s*<\/tbody>\s*<\/table>/gi, '');
+  cleaned = cleaned.replace(/<table[^>]*>\s*<thead[^>]*>[\s\S]*?<\/thead>\s*<\/table>/gi, '');
+  
+  // Fix tables with paragraph text in table rows - extract and place after table
+  // Look for table rows with cells containing long paragraph text
+  cleaned = cleaned.replace(/(<table[^>]*>[\s\S]*?)(<tr[^>]*>\s*<td[^>]*>([^<]{50,}(?:[.!]\s+[A-Z][^<]+[.!])+[^<]*)<\/td>\s*<\/tr>)([\s\S]*?<\/table>)/gi,
+    (match, tableStart, rowWithText, textContent, tableEnd) => {
+      const cleanText = textContent.trim().replace(/<[^>]+>/g, '');
+      return `${tableStart}${tableEnd}<p>${cleanText}</p>`;
+    }
+  );
+  
+  // Remove instruction placeholders
+  cleaned = cleaned.replace(/\[(?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\]]*\]/gi, '');
+  cleaned = cleaned.replace(/\((?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\)]*\)/gi, '');
   
   // Clean up extra empty paragraphs or whitespace
   cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
@@ -80,6 +117,7 @@ function cleanBlogContent(html: string): string {
   cleaned = cleaned.replace(/\n\s*\n\s*\n+/g, '\n\n');
   cleaned = cleaned.replace(/^\s+|\s+$/gm, ''); // Trim each line
   cleaned = cleaned.replace(/^(\s*<p>\s*<\/p>\s*)+/gi, ''); // Remove leading empty paragraphs
+  cleaned = cleaned.replace(/(<br\s*\/?>){3,}/gi, '<br><br>'); // Clean up multiple line breaks
   
   return cleaned.trim();
 }

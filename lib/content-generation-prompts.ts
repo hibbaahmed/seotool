@@ -128,6 +128,11 @@ COMPARISON TABLES FORMAT (MANDATORY - Add 4-6 tables):
   | Option/Method 2 | Value/details | Value/details | Value/details | Value/details | Value/details |
   | Option/Method 3 | Value/details | Value/details | Value/details | Value/details | Value/details |
   
+- CRITICAL: Each table cell should contain SHORT data values ONLY (1-10 words maximum per cell)
+- NEVER put paragraph descriptions or explanatory text inside table rows
+- If you have explanatory text about the table, place it AFTER the table as a regular paragraph
+- Example BAD: | The transition from ad-hoc video creation... | (too long, paragraph text)
+- Example GOOD: | Automated Pipeline | then after table: "The transition from ad-hoc video creation..."
 - Place tables strategically after relevant H2 sections or within H3 subsections
 - Include real metrics, comparisons, and actionable data
 - Make tables useful for reader decision-making

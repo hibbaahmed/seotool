@@ -409,6 +409,52 @@ export async function POST(request: NextRequest) {
 
     // Remove boilerplate opening line like: "Here is a 2,700-word comprehensive ... blog post ..."
     fullContent = fullContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
+    
+    // Remove "Meta Description:" label ANYWHERE in content (not just at start)
+    // This catches cases where it appears in the middle or at the start
+    fullContent = fullContent.replace(/Meta Description:\s*[^\n]+/gi, '');
+    fullContent = fullContent.replace(/\*\*Meta Description\*\*:?\s*[^\n]+/gi, '');
+    fullContent = fullContent.replace(/\d+\.\s*\*\*Meta Description\*\*:?\s*[^\n]+/gi, '');
+    
+    // Remove "Title:" label ANYWHERE in content
+    fullContent = fullContent.replace(/(?:^|\n)#\s+[^\n]*Meta Description[^\n]*/gi, '\n');
+    fullContent = fullContent.replace(/(?:^|\n)Title:\s*[^\n]+/gi, '\n');
+    fullContent = fullContent.replace(/\*\*Title\*\*:?\s*[^\n]+/gi, '');
+    fullContent = fullContent.replace(/\d+\.\s*\*\*Title\*\*:?\s*[^\n]+/gi, '');
+    
+    // Remove when both appear together ANYWHERE
+    fullContent = fullContent.replace(/Title:\s*[^M\n]+Meta Description:\s*[^\n]+/gi, '');
+    
+    // Remove broken/incomplete image tags
+    fullContent = fullContent.replace(/<img\s+src="[^"]*(?:user_uploads\/\d+)?#[^"]*"[^>]*>/gi, '');
+    fullContent = fullContent.replace(/<img\s+src="[^"]*"(?!\s*\/>|\s*>)[^>]*/gi, '');
+    
+    // Remove "Post-Processing and Enhancement" and similar section markers
+    fullContent = fullContent.replace(/\n*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\n*/gi, '\n');
+    
+    // Remove instruction markers that shouldn't be in content
+    fullContent = fullContent.replace(/\n*#\s*Remaining H2 Sections?\n*/gi, '\n');
+    fullContent = fullContent.replace(/\n*#\s*(?:Write|Add|Include)\s+[^\n]+\n*/gi, '\n');
+    fullContent = fullContent.replace(/\n*\[(?:Write|Add|Include|Insert|Place)[^\]]*\]\n*/gi, '\n');
+    
+    // Remove orphaned table headers (tables with only header row, no data)
+    // Pattern: | Header | Header | followed by |---|---| but no data rows
+    fullContent = fullContent.replace(/\|[^|\n]+\|[^|\n]+\|[^\n]*\n\s*\|[-\s]+\|[-\s]+\|[^\n]*\n(?!\s*\|[^-\n])/gm, '');
+    
+    // Remove standalone table separator lines that got orphaned
+    fullContent = fullContent.replace(/^\s*\|[-\s]+\|[-\s]+\|[^\n]*\n/gm, '');
+    
+    // Fix tables with paragraph text in table rows - extract and place after table
+    // Pattern: table rows with single cells containing paragraph text (50+ chars, multiple sentences)
+    fullContent = fullContent.replace(/(\n(?:\|[^\n]+\|\n)+)(\|\s*([A-Z][^|]{50,}[.!](?:\s+[A-Z][^|]+[.!])+[^|]*)\s*\|)\n/gm, (match, tableRows, rowWithText, textContent) => {
+      // Extract the paragraph text and place it after the table
+      const cleanText = textContent.trim();
+      return `${tableRows}\n\n${cleanText}\n\n`;
+    });
+    
+    // Remove instruction comments in brackets or parentheses
+    fullContent = fullContent.replace(/\[(?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\]]*\]/gi, '');
+    fullContent = fullContent.replace(/\((?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\)]*\)/gi, '');
 
     // Expansion pass: if word count is too low, ask the writer to expand
     const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;

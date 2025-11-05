@@ -408,9 +408,11 @@ Generate a detailed outline with:
 
 1. **Title**
 SEO-optimized title (55-65 characters with primary keyword "${topic}")
+DO NOT write "Title:" as a label in the output - just write the title text itself.
 
 2. **Meta Description**
 150-160 characters with primary keyword
+DO NOT write "Meta Description:" as a label in the output - just write the description text itself.
 
 3. **Introduction Structure** (target: 400-600 words)
 - Hook paragraph
@@ -557,9 +559,12 @@ CRITICAL REQUIREMENTS:
 - Each H2 MUST be 600-800 words minimum
 - Each H3 MUST be 150-200 words minimum
 - Include specific numbers, metrics, and examples in every subsection
-- Do NOT include labels like "Introduction:" or "Section 1:"
-- Start directly with ## headings from the outline
+- Do NOT include labels like "Title:", "Meta Description:", "Introduction:", "Section 1:", "Content:", etc.
+- Start directly with ## headings from the outline or paragraph text
 - Do NOT skip sections - write every H2 and H3 from the outline
+- Do NOT include instruction markers like "[Write...]", "[Add...]", "[Insert...]", etc.
+- Do NOT include orphaned table headers without data rows - every table must be complete
+- Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
 
 WORD COUNT TARGET: 2,000-2,500 words for this phase. If you write less, you are failing the requirement.`;
 }
@@ -659,7 +664,7 @@ FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
 - Keep paragraphs 3-4 sentences max
 - Second-person tone ("you", "your")
-- No section labels - start with ## headings
+- No section labels like "Title:", "Meta Description:", "Introduction:", "Section 1:" - start with ## headings or paragraph text directly
 - Include specific data and examples in FAQ answers
 
 CRITICAL REQUIREMENTS:
@@ -669,6 +674,9 @@ CRITICAL REQUIREMENTS:
 - Conclusion must be 400-500 words (not just 200-300)
 - Do NOT include "SEO Suggestions" or "Image suggestions" sections
 - Do NOT end with internal linking suggestions
+- Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.
+- Do NOT include orphaned table headers without data rows
+- Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
 
 WORD COUNT TARGET: 2,000-2,500 words for this phase minimum. Count carefully and ensure you meet this target.`;
 }

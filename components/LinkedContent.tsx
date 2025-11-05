@@ -11,26 +11,60 @@ interface LinkedContentProps {
 // Helper function to remove "Title:" and "Meta Description:" labels
 function removeTitleAndMetaLabels(html: string): string {
   let cleaned = html;
-  
+
   // Remove "Title:" and "Meta Description:" patterns (handle various formats)
   // When they appear together on same line
   cleaned = cleaned.replace(/Title:\s*[^M]+Meta Description:\s*[^\n<]+/gi, '');
   cleaned = cleaned.replace(/<p>\s*Title:\s*[^M]+Meta Description:\s*[^<]+(<\/p>|$)/gi, '');
-  
-  // Remove individually
+
+  // Remove individually - ANYWHERE in content (not just at start)
   cleaned = cleaned.replace(/<p>\s*Title:\s*[^<]+(<\/p>|$)/gi, '');
   cleaned = cleaned.replace(/<p>\s*Meta Description:\s*[^<]+(<\/p>|$)/gi, '');
-  cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n<]+/gim, '');
-  cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n<]+/gim, '');
+  cleaned = cleaned.replace(/Title:\s*[^\n<]+/gi, '');
+  cleaned = cleaned.replace(/Meta Description:\s*[^\n<]+/gi, '');
+
+  // Remove H1 tags containing "Meta Description"
+  cleaned = cleaned.replace(/<h1[^>]*>[^<]*Meta Description[^<]*<\/h1>/gi, '');
+
+  // Remove broken/incomplete image tags
+  cleaned = cleaned.replace(/<img\s+src="[^"]*#[^"]*"[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<img\s+src="[^"]*"(?!\s*\/?>)[^>]*/gi, '');
   
-  // Remove at the very start of content
-  cleaned = cleaned.replace(/^(<p>)?\s*Title:\s*[^\n<]+/im, '');
-  cleaned = cleaned.replace(/^(<p>)?\s*Meta Description:\s*[^\n<]+/im, '');
+  // Remove "Post-Processing and Enhancement" and similar markers
+  cleaned = cleaned.replace(/<p>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<h[2-6][^>]*>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/h[2-6]>/gi, '');
   
+  // Remove instruction markers that shouldn't be in content
+  cleaned = cleaned.replace(/<h1[^>]*>\s*Remaining H2 Sections?\s*<\/h1>/gi, '');
+  cleaned = cleaned.replace(/<h[1-6][^>]*>\s*(?:Write|Add|Include)\s+[^<]+<\/h[1-6]>/gi, '');
+  cleaned = cleaned.replace(/<p>\s*\[(?:Write|Add|Include|Insert|Place)[^\]]*\]\s*<\/p>/gi, '');
+  
+  // Remove orphaned table elements (tables with only headers, no data)
+  cleaned = cleaned.replace(/<table[^>]*>\s*<thead[^>]*>[\s\S]*?<\/thead>\s*<tbody[^>]*>\s*<\/tbody>\s*<\/table>/gi, '');
+  cleaned = cleaned.replace(/<table[^>]*>\s*<thead[^>]*>[\s\S]*?<\/thead>\s*<\/table>/gi, '');
+  
+  // Fix tables with paragraph text in table rows - extract and place after table
+  // Look for table rows (<tr>) with cells (<td>) containing long paragraph text (50+ chars)
+  cleaned = cleaned.replace(/(<\/table>)\s*(<table[^>]*>[\s\S]*?<tbody[^>]*>[\s\S]*?)(<tr[^>]*>\s*<td[^>]*>([^<]{50,}(?:[.!]\s+[A-Z][^<]+[.!])+[^<]*)<\/td>\s*<\/tr>)\s*([\s\S]*?<\/tbody>\s*<\/table>)/gi, 
+    (match, prevTableEnd, tableStart, rowWithText, textContent, tableEnd) => {
+      // Extract the paragraph text
+      const cleanText = textContent.trim().replace(/<[^>]+>/g, '');
+      // Return table without that row, plus the text as a paragraph after
+      return `${prevTableEnd}${tableStart}${tableEnd}<p>${cleanText}</p>`;
+    }
+  );
+  
+  // Remove instruction placeholders in brackets or parentheses
+  cleaned = cleaned.replace(/\[(?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\]]*\]/gi, '');
+  cleaned = cleaned.replace(/\((?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\)]*\)/gi, '');
+
   // Clean up empty paragraphs
   cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
   cleaned = cleaned.replace(/^(\s*<p>\s*<\/p>\s*)+/gi, '');
   
+  // Clean up multiple consecutive line breaks in HTML
+  cleaned = cleaned.replace(/(<br\s*\/?>){3,}/gi, '<br><br>');
+
   return cleaned.trim();
 }
 
