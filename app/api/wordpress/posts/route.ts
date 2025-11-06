@@ -78,7 +78,16 @@ export async function GET(request: NextRequest) {
     // Resolve WordPress base URL from env and derive hostname
     const wordpressBase = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
     if (!wordpressBase) {
-      return NextResponse.json({ error: 'WordPress URL not configured' }, { status: 500 });
+      console.log('⚠️ WordPress URL not configured - returning empty posts array');
+      // Return empty array instead of error so component can gracefully fall back
+      return NextResponse.json({ 
+        posts: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          endCursor: null
+        }
+      });
     }
 
     const wordpressHostname = new URL(wordpressBase).hostname;
@@ -154,7 +163,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (!response.ok) {
-      throw new Error(`WordPress API error: ${response.status}`);
+      console.error(`WordPress API error: ${response.status} ${response.statusText}`);
+      // Return empty array instead of throwing error
+      return NextResponse.json({ 
+        posts: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          endCursor: null
+        }
+      });
     }
 
     const raw = await response.json();
@@ -205,6 +223,15 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('WordPress posts API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Return empty array instead of error so component can gracefully fall back
+    // This prevents crashes when WordPress is not configured or unavailable
+    return NextResponse.json({ 
+      posts: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        endCursor: null
+      }
+    });
   }
 }

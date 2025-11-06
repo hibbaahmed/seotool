@@ -78,7 +78,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-15',
       readTime: 8,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'SEO',
       tags: ['AI', 'SEO', 'Content Creation', 'Automation'],
       slug: 'ai-powered-seo-content-creation-guide-2024'
@@ -90,7 +90,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-12',
       readTime: 6,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'WordPress',
       tags: ['WordPress', 'Automation', 'Blog', 'Integration'],
       slug: 'wordpress-automation-blog-publishing-workflow'
@@ -102,7 +102,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-10',
       readTime: 7,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'Strategy',
       tags: ['Competitive Analysis', 'SEO Strategy', 'Research'],
       slug: 'competitive-analysis-seo-success-secret'
@@ -114,7 +114,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-08',
       readTime: 9,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'Content Strategy',
       tags: ['Authority', 'Content Strategy', 'Ranking'],
       slug: 'building-authority-content-that-ranks'
@@ -126,7 +126,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-05',
       readTime: 5,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'AI & Technology',
       tags: ['AI', 'Future of SEO', 'Technology', 'Innovation'],
       slug: 'future-of-seo-ai-changing-game'
@@ -138,7 +138,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-03',
       readTime: 10,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'WordPress',
       tags: ['WordPress SEO', 'Optimization', 'Checklist', 'Technical SEO'],
       slug: 'wordpress-seo-optimization-checklist-2024'
@@ -150,7 +150,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2024-01-01',
       readTime: 7,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'Content Strategy',
       tags: ['Content Marketing', 'Automation', 'AI', 'Strategy'],
       slug: 'content-marketing-automation-ai-strategy'
@@ -162,7 +162,7 @@ const BlogPage = () => {
       content: '',
       publishedAt: '2023-12-28',
       readTime: 8,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'SEO',
       tags: ['Technical SEO', 'Foundation', 'Digital Marketing'],
       slug: 'technical-seo-foundation-digital-success'
@@ -235,11 +235,11 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 py-16 px-4 sm:px-6 lg:px-8">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 rounded-full px-4 py-2 mb-6">
             <BookOpen className="w-4 h-4 text-blue-600" />
-            <span className="text-blue-700 text-sm font-medium">SEOFlow Blog</span>
+            <span className="text-blue-700 text-sm font-medium">Bridgely Blog</span>
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">

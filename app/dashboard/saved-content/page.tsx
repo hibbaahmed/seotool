@@ -5,6 +5,7 @@ import { Search, Calendar, Download, Trash2, Eye, Edit, Upload } from 'lucide-re
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import ContentEditor from '@/components/ContentEditor';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
+import { marked } from 'marked';
 
 interface ContentWriterRecord {
   id: string;
@@ -110,6 +111,22 @@ export default function SavedContentPage() {
   useEffect(() => {
     loadContent();
   }, []);
+
+  // Check for id query parameter and auto-open content
+  useEffect(() => {
+    if (content.length === 0) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const contentId = params.get('id');
+    
+    if (contentId) {
+      const contentItem = content.find(c => c.id === contentId);
+      if (contentItem) {
+        setSelectedContent(contentItem);
+        setIsEditing(false);
+      }
+    }
+  }, [content]);
 
   const loadContent = async () => {
     try {
@@ -302,24 +319,23 @@ export default function SavedContentPage() {
         </div>
       </div>
 
-      {/* Content Detail Modal */}
+      {/* Content Detail Modal - Full Screen */}
       {selectedContent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h3 className="text-2xl font-bold text-slate-900">
-                {extractTitle(selectedContent.content_output, selectedContent.topic)}
-              </h3>
-              <button
-                onClick={() => setSelectedContent(null)}
-                className="text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1">
+        <div className="fixed inset-0 bg-white z-50 flex flex-col">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
+            <h3 className="text-3xl font-bold text-slate-900">
+              {extractTitle(selectedContent.content_output, selectedContent.topic)}
+            </h3>
+            <button
+              onClick={() => setSelectedContent(null)}
+              className="text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-8 overflow-y-auto flex-1 max-w-5xl mx-auto w-full">
               <div className="mb-4 text-sm text-slate-600">
                 <p><strong>Topic:</strong> {selectedContent.topic}</p>
                 <p><strong>Type:</strong> {selectedContent.content_type}</p>
@@ -329,11 +345,14 @@ export default function SavedContentPage() {
                 {selectedContent.additional_context && <p><strong>Context:</strong> {selectedContent.additional_context}</p>}
                 <p><strong>Created:</strong> {new Date(selectedContent.created_at).toLocaleString()}</p>
               </div>
-              <div className="prose prose-slate max-w-none">
+              <div className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900">
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-                  <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
-                    {cleanContent(selectedContent.content_output, extractTitle(selectedContent.content_output, selectedContent.topic))}
-                  </pre>
+                  <div
+                    className="prose max-w-none content-writer-prose"
+                    dangerouslySetInnerHTML={{ 
+                      __html: marked.parse(cleanContent(selectedContent.content_output, extractTitle(selectedContent.content_output, selectedContent.topic))) as string 
+                    }}
+                  />
                 </div>
               </div>
 
@@ -391,42 +410,40 @@ export default function SavedContentPage() {
                   </div>
                 </div>
               )}
+          </div>
+          <div className="flex justify-between items-center px-6 py-3 border-t border-slate-200 bg-white max-w-5xl mx-auto w-full">
+            <div className="flex items-center gap-2">
+              <QuickWordPressPublishButton
+                contentId={selectedContent.id}
+                contentType="content"
+                contentTitle={extractTitle(selectedContent.content_output, selectedContent.topic)}
+                contentBody={selectedContent.content_output}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200"
+                onSuccess={(result) => {
+                  // You could add a success message here
+                }}
+                onError={(error) => {
+                  // You could add an error message here
+                }}
+              />
             </div>
-            <div className="flex justify-between p-6 border-t border-slate-200">
-              <div className="flex items-center gap-3">
-                <QuickWordPressPublishButton
-                  contentId={selectedContent.id}
-                  contentType="content"
-                  contentTitle={extractTitle(selectedContent.content_output, selectedContent.topic)}
-                  contentBody={selectedContent.content_output}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                  onSuccess={(result) => {
-                    // You could add a success message here
-                  }}
-                  onError={(error) => {
-                    // You could add an error message here
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setIsEditing(true);
-                    setSelectedContent(null);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <Edit className="w-5 h-5" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDownload(selectedContent)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <Download className="w-5 h-5" />
-                  Download
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                onClick={() => handleDownload(selectedContent)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
             </div>
           </div>
         </div>
@@ -434,18 +451,18 @@ export default function SavedContentPage() {
 
       {/* Content Editor Modal */}
       {isEditing && selectedContent && (
-        <ContentEditor
-          content={selectedContent}
-          onClose={() => {
-            setSelectedContent(null);
-            setIsEditing(false);
-          }}
-          onSave={(updatedContent) => {
-            handleContentUpdate(updatedContent);
-            setSelectedContent(null);
-            setIsEditing(false);
-          }}
-        />
+        <div className="fixed inset-0 bg-white z-[60]">
+          <ContentEditor
+            content={selectedContent}
+            onClose={() => {
+              setIsEditing(false);
+            }}
+            onSave={(updatedContent) => {
+              handleContentUpdate(updatedContent);
+              setIsEditing(false);
+            }}
+          />
+        </div>
       )}
     </div>
   );

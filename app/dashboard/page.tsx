@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
           {/* Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Link 
+            {/* <Link 
               href="/competitive-analysis"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -36,9 +36,9 @@ export default function DashboardPage() {
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
-            <Link 
+            {/* <Link 
               href="/saved-content"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -55,9 +55,9 @@ export default function DashboardPage() {
                 <span>View Saved Content</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
-            <Link 
+            {/* <Link 
               href="/content-writer"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -74,9 +74,9 @@ export default function DashboardPage() {
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
-            <Link 
+            {/* <Link 
               href="/seo-research"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -93,9 +93,9 @@ export default function DashboardPage() {
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
-            <Link 
+            {/* <Link 
               href="/dashboard/editor"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -112,9 +112,9 @@ export default function DashboardPage() {
                 <span>Open Editor</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
-            <Link 
+            {/* <Link 
               href="/saved"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                 <span>View All Saved</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
             <Link 
               href="/dashboard/wordpress-sites"
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 <Globe className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">
-                WordPress Sites
+                Connect Your Site
               </h3>
               <p className="text-slate-600 mb-4">
                 Connect and manage your WordPress sites for direct publishing
@@ -190,7 +190,7 @@ export default function DashboardPage() {
               </div>
             </Link>
 
-            <Link 
+            {/* <Link 
               href="/integrations"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -207,19 +207,19 @@ export default function DashboardPage() {
                 <span>Manage Integrations</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link>
+            </Link> */}
 
           </div>
 
           {/* Recent Activity */}
-          <div className="mt-16 bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+          {/* <div className="mt-16 bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">
               Recent Activity
             </h2>
             <div className="text-slate-600">
               <p>No recent activity yet. Start by exploring one of the tools above!</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

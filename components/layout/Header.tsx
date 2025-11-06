@@ -31,7 +31,7 @@ export function Header({}: HeaderProps) {
           <Link href="/" className="-m-1.5 p-1.5 flex items-center">
             <RocketLaunchIcon className="h-8 w-8 text-blue-600" />
             <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
-              SEOFlow
+              Bridgely
             </span>
           </Link>
         </div>
@@ -82,7 +82,7 @@ export function Header({}: HeaderProps) {
               <Link href="/" className="-m-1.5 p-1.5 flex items-center">
                 <RocketLaunchIcon className="h-8 w-8 text-blue-600" />
                 <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
-                  SEOFlow
+                  Bridgely
                 </span>
               </Link>
               <button

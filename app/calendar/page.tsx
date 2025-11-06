@@ -1,9 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, Plus, Edit, Trash2, Eye, Clock, Globe, FileText } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Eye, Clock, Globe, FileText, BarChart3, Target, Star } from 'lucide-react';
 import BlogCalendar from '@/components/BlogCalendar';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+
+interface KeywordStats {
+  totalKeywords: number;
+  recommended: number;
+  starred: number;
+  queued: number;
+  generated: number;
+}
 
 interface ScheduledPost {
   id: string;
@@ -33,6 +41,11 @@ interface ScheduledKeyword {
     topic: string;
     content_output: string;
   };
+  publishing_info?: {
+    siteName?: string;
+    siteUrl?: string;
+    publishUrl?: string;
+  };
 }
 
 export default function CalendarPage() {
@@ -50,6 +63,18 @@ export default function CalendarPage() {
   const [timeHour, setTimeHour] = useState<string>('09');
   const [timeMinute, setTimeMinute] = useState<string>('00');
   const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
+  const [distributeEnabled, setDistributeEnabled] = useState(false);
+  const [distributeDays, setDistributeDays] = useState<number>(7);
+  const [itemsPerDay, setItemsPerDay] = useState<number>(1);
+  const [overrideStartDate, setOverrideStartDate] = useState<string | null>(null);
+  const [keywordStats, setKeywordStats] = useState<KeywordStats>({
+    totalKeywords: 0,
+    recommended: 0,
+    starred: 0,
+    queued: 0,
+    generated: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const to24Hour = (h12: string, period: 'AM' | 'PM') => {
     let h = parseInt(h12, 10) % 12;
@@ -57,14 +82,77 @@ export default function CalendarPage() {
     return String(h).padStart(2, '0');
   };
 
+  // Load keyword stats
+  useEffect(() => {
+    const loadKeywordStats = async () => {
+      try {
+        setLoadingStats(true);
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setKeywordStats({
+            totalKeywords: 0,
+            recommended: 0,
+            starred: 0,
+            queued: 0,
+            generated: 0
+          });
+          return;
+        }
+
+        const { data: keywords, error } = await supabase
+          .from('discovered_keywords')
+          .select('opportunity_level, starred, scheduled_for_generation, generation_status')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error loading keyword stats:', error);
+          return;
+        }
+
+        if (keywords && Array.isArray(keywords)) {
+          const stats: KeywordStats = {
+            totalKeywords: keywords.length,
+            recommended: keywords.filter((k: any) => k.opportunity_level === 'high').length,
+            starred: keywords.filter((k: any) => k.starred).length,
+            queued: keywords.filter((k: any) => k.scheduled_for_generation).length,
+            generated: keywords.filter((k: any) => k.generation_status === 'generated').length
+          };
+          setKeywordStats(stats);
+        }
+      } catch (error) {
+        console.error('Error loading keyword stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadKeywordStats();
+  }, []);
+
+  const [showPublicationModal, setShowPublicationModal] = useState(false);
+  const [publicationInfo, setPublicationInfo] = useState<{
+    siteName?: string;
+    siteUrl?: string;
+    publishUrl?: string;
+    platform?: string;
+  } | null>(null);
+
   const handlePostClick = (post: ScheduledPost) => {
-    setSelectedPost(post);
-    setSelectedKeyword(null);
+    // Only show details if not published (published posts open directly in calendar)
+    if (post.status !== 'published' || !post.publish_url) {
+      setSelectedPost(post);
+      setSelectedKeyword(null);
+    }
   };
 
   const handleKeywordClick = (keyword: ScheduledKeyword) => {
-    setSelectedKeyword(keyword);
-    setSelectedPost(null);
+    // Only show details if not published (published keywords open directly in calendar)
+    if (keyword.generation_status !== 'generated' || !(keyword as any).publishing_info?.publishUrl) {
+      setSelectedKeyword(keyword);
+      setSelectedPost(null);
+    }
   };
 
   const handleAddPost = (date: string) => {
@@ -203,6 +291,86 @@ export default function CalendarPage() {
             </p>
           </div>
 
+          {/* Keyword Stats Cards */}
+          <div className="mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {/* All Keywords */}
+              <div className="text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50 ring-1 ring-inset ring-indigo-200">
+                    <BarChart3 className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-slate-900">
+                      {loadingStats ? '...' : keywordStats.totalKeywords}
+                    </div>
+                    <div className="text-sm text-slate-600">All Keywords</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommended */}
+              <div className="text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 ring-1 ring-inset ring-emerald-200">
+                    <Target className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-slate-900">
+                      {loadingStats ? '...' : keywordStats.recommended}
+                    </div>
+                    <div className="text-sm text-slate-600">Recommended</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Starred */}
+              <div className="text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 ring-1 ring-inset ring-amber-200">
+                    <Star className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-slate-900">
+                      {loadingStats ? '...' : keywordStats.starred}
+                    </div>
+                    <div className="text-sm text-slate-600">Starred</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Queued */}
+              <div className="text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 ring-1 ring-inset ring-violet-200">
+                    <Clock className="h-5 w-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-slate-900">
+                      {loadingStats ? '...' : keywordStats.queued}
+                    </div>
+                    <div className="text-sm text-slate-600">Queued</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Generated */}
+              <div className="text-left bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-sky-50 to-indigo-50 ring-1 ring-inset ring-sky-200">
+                    <Calendar className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-slate-900">
+                      {loadingStats ? '...' : keywordStats.generated}
+                    </div>
+                    <div className="text-sm text-slate-600">Generated</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-8">
             {/* Calendar - full width */}
             <div className="col-span-1">
@@ -213,6 +381,94 @@ export default function CalendarPage() {
                 onGenerateKeyword={handleGenerateNow}
               />
             </div>
+
+            {/* Publication Info Modal */}
+            {showPublicationModal && publicationInfo && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowPublicationModal(false)}>
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-slate-900">Publication Info</h3>
+                    <button
+                      onClick={() => setShowPublicationModal(false)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {selectedPost && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Article Title
+                        </label>
+                        <p className="text-slate-900 font-medium">{selectedPost.title}</p>
+                      </div>
+                    )}
+
+                    {selectedKeyword && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Keyword
+                        </label>
+                        <p className="text-slate-900 font-medium">{selectedKeyword.keyword}</p>
+                      </div>
+                    )}
+
+                    {publicationInfo.siteName && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Published On
+                        </label>
+                        <div className="flex items-center gap-2 text-slate-900">
+                          <Globe className="h-4 w-4" />
+                          <span className="font-medium">{publicationInfo.siteName}</span>
+                        </div>
+                        {publicationInfo.siteUrl && (
+                          <p className="text-sm text-slate-600 mt-1">{publicationInfo.siteUrl}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {publicationInfo.platform && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Platform
+                        </label>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                          {publicationInfo.platform}
+                        </span>
+                      </div>
+                    )}
+
+                    {publicationInfo.publishUrl && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Published URL
+                        </label>
+                        <a
+                          href={publicationInfo.publishUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 text-sm underline flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Article on WordPress
+                        </a>
+                      </div>
+                    )}
+
+                    {!publicationInfo.publishUrl && !publicationInfo.siteName && (
+                      <div className="text-center py-4">
+                        <p className="text-slate-600">Publication information not available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Post/Keyword Details Sidebar - removed to enlarge calendar */}
             <div className="hidden">
@@ -581,6 +837,58 @@ export default function CalendarPage() {
                 </div>
               </div>
 
+              {/* Distribution controls */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    id="distributeEnabled"
+                    type="checkbox"
+                    className="h-4 w-4 accent-blue-600"
+                    checked={distributeEnabled}
+                    onChange={(e)=> setDistributeEnabled(e.target.checked)}
+                  />
+                  <label htmlFor="distributeEnabled" className="text-sm text-slate-800 font-medium">Distribute across days</label>
+                </div>
+                {distributeEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Start date</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        value={(overrideStartDate || selectedDate) || ''}
+                        onChange={(e)=> setOverrideStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Length</label>
+                      <select
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        value={distributeDays}
+                        onChange={(e)=> setDistributeDays(parseInt(e.target.value, 10))}
+                      >
+                        <option value={7}>Next 7 days</option>
+                        <option value={14}>Next 14 days</option>
+                        <option value={30}>Next 30 days</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Items per day</label>
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        value={itemsPerDay}
+                        onChange={(e)=> setItemsPerDay(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                      />
+                    </div>
+                  </div>
+                )}
+                {distributeEnabled && (
+                  <p className="mt-2 text-xs text-slate-500">Selected keywords will be queued starting from the start date, {itemsPerDay} per day.</p>
+                )}
+              </div>
+
               {/* Filter tabs */}
               <div className="flex items-center gap-2 -mt-2">
                 {(['all','recommended','starred'] as const).map(tab => (
@@ -684,13 +992,27 @@ export default function CalendarPage() {
                 onClick={async ()=>{
                   try {
                     const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
+                    const addDays = (ymd: string, days: number) => {
+                      const d = new Date(ymd);
+                      d.setDate(d.getDate() + days);
+                      return d.toISOString().slice(0,10);
+                    };
+                    const start = (overrideStartDate || selectedDate || new Date().toISOString().slice(0,10));
+
                     for (let i=0;i<selectedIds.length;i++){
                       const id = selectedIds[i];
                       const time = baseTime;
+                      // Determine scheduled date
+                      let scheduled_date = start;
+                      if (distributeEnabled) {
+                        const dayIndex = Math.floor(i / Math.max(1, itemsPerDay));
+                        scheduled_date = addDays(start, dayIndex);
+                      }
+
                       await fetch('/api/calendar/keywords', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword_id: id, scheduled_date: selectedDate, scheduled_time: time })
+                        body: JSON.stringify({ keyword_id: id, scheduled_date, scheduled_time: time })
                       });
                     }
                     setShowAddModal(false);

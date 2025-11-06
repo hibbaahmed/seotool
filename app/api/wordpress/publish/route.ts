@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
 import { marked } from 'marked';
-import { addInternalLinksToContent } from '@/lib/add-links-to-content';
+import { addInternalLinksToContent, addExternalLinksToContent, addBusinessPromotionToContent } from '@/lib/add-links-to-content';
 
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
@@ -611,6 +611,38 @@ export async function POST(request: NextRequest) {
           console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
           // Continue without links if linking fails
         }
+        
+        // Add automatic external links
+        try {
+          console.log('🌐 Attempting to add contextual external links...');
+          const { linkedContent: externalLinkedContent, linksAdded: externalLinksAdded } = await addExternalLinksToContent(
+            htmlContent,
+            postData.title,
+            2
+          );
+          if (externalLinksAdded > 0) {
+            console.log(`✅ Successfully added ${externalLinksAdded} external links`);
+            htmlContent = externalLinkedContent;
+          }
+        } catch (externalLinkError) {
+          console.error('⚠️ Failed to add external links (continuing anyway):', externalLinkError);
+        }
+        
+        // Add business promotion mentions
+        try {
+          console.log('💼 Attempting to add business promotion mentions...');
+          const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
+            htmlContent,
+            user.id,
+            3
+          );
+          if (mentionsAdded > 0) {
+            console.log(`✅ Successfully added ${mentionsAdded} business mentions`);
+            htmlContent = promotedContent;
+          }
+        } catch (promotionError) {
+          console.error('⚠️ Failed to add business promotion (continuing anyway):', promotionError);
+        }
       } else {
         htmlContent = String(postData.content);
         // Add links even for non-markdown content
@@ -629,6 +661,34 @@ export async function POST(request: NextRequest) {
         } catch (linkError) {
           console.error('⚠️ Failed to add internal links (continuing anyway):', linkError);
           // Continue without links if linking fails
+        }
+        
+        // Add automatic external links
+        try {
+          const { linkedContent: externalLinkedContent, linksAdded: externalLinksAdded } = await addExternalLinksToContent(
+            htmlContent,
+            postData.title,
+            2
+          );
+          if (externalLinksAdded > 0) {
+            htmlContent = externalLinkedContent;
+          }
+        } catch (externalLinkError) {
+          console.error('⚠️ Failed to add external links (continuing anyway):', externalLinkError);
+        }
+        
+        // Add business promotion mentions
+        try {
+          const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
+            htmlContent,
+            user.id,
+            3
+          );
+          if (mentionsAdded > 0) {
+            htmlContent = promotedContent;
+          }
+        } catch (promotionError) {
+          console.error('⚠️ Failed to add business promotion (continuing anyway):', promotionError);
         }
       }
       
@@ -666,12 +726,53 @@ export async function POST(request: NextRequest) {
       }
       
       // Add automatic internal links to content before publishing (for self-hosted)
+      let finalContent = postData.content;
+      
+      // Convert markdown to HTML if needed
+      if (typeof finalContent === 'string' && (finalContent.includes('#') || finalContent.includes('*'))) {
+        finalContent = marked.parse(finalContent, { async: false }) as string;
+      }
+      
+      // Add inline spacing
+      finalContent = addInlineSpacing(finalContent);
+      
+      // Add internal links
       const { linkedContent } = await addInternalLinksToContent(
-        postData.content,
+        finalContent,
         postData.title,
         process.env.NEXT_PUBLIC_BASE_URL
       );
-      postData.content = linkedContent;
+      finalContent = linkedContent;
+      
+      // Add external links
+      try {
+        const { linkedContent: externalLinkedContent, linksAdded: externalLinksAdded } = await addExternalLinksToContent(
+          finalContent,
+          postData.title,
+          2
+        );
+        if (externalLinksAdded > 0) {
+          finalContent = externalLinkedContent;
+        }
+      } catch (e) {
+        console.error('Failed to add external links:', e);
+      }
+      
+      // Add business promotion
+      try {
+        const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
+          finalContent,
+          user.id,
+          3
+        );
+        if (mentionsAdded > 0) {
+          finalContent = promotedContent;
+        }
+      } catch (e) {
+        console.error('Failed to add business promotion:', e);
+      }
+      
+      postData.content = finalContent;
       
       if (publishOptions.publishDate) {
         publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);

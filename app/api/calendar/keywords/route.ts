@@ -48,10 +48,135 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: keywords, error } = await query;
-
+    
     if (error) {
       console.error('Error fetching scheduled keywords:', error);
       return NextResponse.json({ error: 'Failed to fetch keywords' }, { status: 500 });
+    }
+
+    // For generated keywords, fetch publishing info
+    if (keywords && keywords.length > 0) {
+      const generatedKeywords = keywords.filter((k: any) => k.generation_status === 'generated' && k.generated_content_id);
+      
+      if (generatedKeywords.length > 0) {
+        const contentIds = generatedKeywords.map((k: any) => k.generated_content_id);
+        
+        const { data: publishingLogs } = await supabase
+          .from('publishing_logs')
+          .select(`
+            content_id,
+            post_id,
+            wordpress_sites (
+              id,
+              name,
+              url
+            )
+          `)
+          .in('content_id', contentIds)
+          .eq('user_id', user.id)
+          .order('published_at', { ascending: false });
+
+        // Map publishing info to keywords
+        if (publishingLogs) {
+          const publishingMap = new Map();
+          
+          // Fetch permalinks for all posts (batch if possible)
+          const permalinkPromises = publishingLogs.map(async (log: any) => {
+            if (log.content_id && log.wordpress_sites) {
+              const site = log.wordpress_sites;
+              const siteUrl = site.url.replace(/\/$/, '');
+              let publishUrl = `${siteUrl}/?p=${log.post_id}`; // Fallback
+              
+              // Try to fetch permalink from WordPress
+              try {
+                const isWordPressCom = site.url.includes('wordpress.com');
+                
+                if (isWordPressCom) {
+                  // For WordPress.com, fetch using OAuth token
+                  const { data: siteData } = await supabase
+                    .from('wordpress_sites')
+                    .select('access_token')
+                    .eq('id', site.id)
+                    .single();
+                  
+                  if (siteData && siteData.access_token) {
+                    const hostname = new URL(site.url).hostname;
+                    const siteId = hostname.replace('.wordpress.com', '');
+                    
+                    const wpResponse = await fetch(
+                      `https://public-api.wordpress.com/rest/v1.1/sites/${siteId}/posts/${log.post_id}`,
+                      {
+                        headers: {
+                          'Authorization': `Bearer ${siteData.access_token}`,
+                        },
+                      }
+                    );
+                    
+                    if (wpResponse.ok) {
+                      const postData = await wpResponse.json();
+                      if (postData.URL) {
+                        publishUrl = postData.URL;
+                      } else if (postData.link) {
+                        publishUrl = postData.link;
+                      }
+                    }
+                  }
+                } else {
+                  // For self-hosted, try to get credentials and fetch permalink
+                  const { data: siteData } = await supabase
+                    .from('wordpress_sites')
+                    .select('username, password')
+                    .eq('id', site.id)
+                    .single();
+                  
+                  if (siteData && siteData.username && siteData.password) {
+                    const auth = btoa(`${siteData.username}:${siteData.password}`);
+                    const wpResponse = await fetch(`${siteUrl}/wp-json/wp/v2/posts/${log.post_id}`, {
+                      headers: {
+                        'Authorization': `Basic ${auth}`,
+                      },
+                    });
+                    
+                    if (wpResponse.ok) {
+                      const postData = await wpResponse.json();
+                      if (postData.link) {
+                        publishUrl = postData.link;
+                      }
+                    }
+                  }
+                }
+              } catch (error) {
+                // Silently fail and use fallback
+                console.error('Error fetching permalink for post:', log.post_id, error);
+              }
+              
+              return {
+                contentId: log.content_id,
+                info: {
+                  siteName: site.name,
+                  siteUrl: site.url,
+                  publishUrl,
+                }
+              };
+            }
+            return null;
+          });
+          
+          const permalinkResults = await Promise.all(permalinkPromises);
+          permalinkResults.forEach((result) => {
+            if (result) {
+              publishingMap.set(result.contentId, result.info);
+            }
+          });
+
+          // Attach publishing info to keywords
+          keywords.forEach((keyword: any) => {
+            if (keyword.generated_content_id && publishingMap.has(keyword.generated_content_id)) {
+              keyword.publishing_info = publishingMap.get(keyword.generated_content_id);
+            }
+          });
+        }
+      }
     }
 
     return NextResponse.json(keywords || []);
@@ -147,7 +272,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { keyword_id, scheduled_date, scheduled_for_generation } = body;
+    const { keyword_id, scheduled_date, scheduled_time, scheduled_for_generation } = body;
 
     if (!keyword_id) {
       return NextResponse.json({ error: 'Keyword ID is required' }, { status: 400 });
@@ -157,6 +282,10 @@ export async function PUT(request: NextRequest) {
     
     if (scheduled_date !== undefined) {
       updateData.scheduled_date = scheduled_date;
+    }
+    
+    if (scheduled_time !== undefined) {
+      updateData.scheduled_time = scheduled_time;
     }
     
     if (scheduled_for_generation !== undefined) {

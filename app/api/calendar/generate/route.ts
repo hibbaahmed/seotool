@@ -1065,6 +1065,46 @@ export async function POST(request: NextRequest) {
           // Continue without links if linking fails
         }
         
+        // Add automatic external links to authoritative sources based on article content
+        try {
+          const { addExternalLinksToContent } = await import('@/lib/add-links-to-content');
+          console.log('🌐 Attempting to add contextual external links to content...');
+          const { linkedContent: externalLinkedContent, linksAdded: externalLinksAdded } = await addExternalLinksToContent(
+            htmlContent,
+            extractedTitle,
+            2 // Add up to 2 external links
+          );
+          if (externalLinksAdded > 0) {
+            console.log(`✅ Successfully added ${externalLinksAdded} contextual external links`);
+            htmlContent = externalLinkedContent;
+          } else {
+            console.log('⚠️ No external links were added');
+          }
+        } catch (externalLinkError) {
+          console.error('⚠️ Failed to add external links (continuing anyway):', externalLinkError);
+          // Continue without external links if linking fails
+        }
+        
+        // Add strategic business promotion mentions throughout the article
+        try {
+          const { addBusinessPromotionToContent } = await import('@/lib/add-links-to-content');
+          console.log('💼 Attempting to add business promotion mentions...');
+          const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
+            htmlContent,
+            user.id,
+            3 // Add up to 3 business mentions
+          );
+          if (mentionsAdded > 0) {
+            console.log(`✅ Successfully added ${mentionsAdded} business promotion mentions`);
+            htmlContent = promotedContent;
+          } else {
+            console.log('⚠️ No business mentions were added');
+          }
+        } catch (promotionError) {
+          console.error('⚠️ Failed to add business promotion (continuing anyway):', promotionError);
+          // Continue without business promotion if it fails
+        }
+        
         const provider = (site as any).provider || ((site as any).access_token ? 'wpcom' : 'wordpress');
         const adapter = getAdapter(provider, {
           accessToken: (site as any).access_token,

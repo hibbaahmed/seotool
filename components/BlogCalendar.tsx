@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Edit, Trash2, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Edit, Trash2, Eye, GripVertical } from 'lucide-react';
 
 interface ScheduledPost {
   id: string;
@@ -20,6 +20,7 @@ interface ScheduledKeyword {
   id: string;
   keyword: string;
   scheduled_date: string;
+  scheduled_time?: string;
   generation_status: 'pending' | 'generating' | 'generated' | 'failed';
   search_volume: number;
   difficulty_score: number;
@@ -29,6 +30,11 @@ interface ScheduledKeyword {
     id: string;
     topic: string;
     content_output: string;
+  };
+  publishing_info?: {
+    siteName?: string;
+    siteUrl?: string;
+    publishUrl?: string;
   };
 }
 
@@ -46,6 +52,8 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
   const [scheduledKeywords, setScheduledKeywords] = useState<ScheduledKeyword[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draggedItem, setDraggedItem] = useState<{ type: 'post' | 'keyword'; id: string } | null>(null);
+  const [draggedOverDate, setDraggedOverDate] = useState<string | null>(null);
 
   // Get current month and year
   const currentMonth = currentDate.getMonth();
@@ -162,6 +170,121 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
     return keywordDate.getMonth() === currentMonth && keywordDate.getFullYear() === currentYear;
   }).length;
 
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, type: 'post' | 'keyword', id: string) => {
+    setDraggedItem({ type, id });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', `${type}:${id}`);
+    // Add visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  // Handle drag end
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedItem(null);
+    setDraggedOverDate(null);
+    // Reset opacity
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent, dateString: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDraggedOverDate(dateString);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're actually leaving the calendar cell
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDraggedOverDate(null);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e: React.DragEvent, targetDate: Date) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedItem) return;
+
+    const targetDateString = targetDate.toISOString().split('T')[0];
+    
+    // Check if date is in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (targetDate < today) {
+      alert('Cannot move items to past dates');
+      setDraggedItem(null);
+      setDraggedOverDate(null);
+      return;
+    }
+
+    try {
+      if (draggedItem.type === 'post') {
+        // Update post scheduled date
+        const response = await fetch(`/api/calendar/posts/${draggedItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scheduled_date: targetDateString
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update post');
+        }
+
+        // Update local state
+        setScheduledPosts(prev => prev.map(post => 
+          post.id === draggedItem.id 
+            ? { ...post, scheduled_date: targetDateString }
+            : post
+        ));
+      } else if (draggedItem.type === 'keyword') {
+        // Find the keyword to preserve its scheduled_time
+        const keyword = scheduledKeywords.find(k => k.id === draggedItem.id);
+        const scheduled_time = keyword?.scheduled_time || '06:00:00';
+        
+        // Update keyword scheduled date (preserve time)
+        const response = await fetch('/api/calendar/keywords', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            keyword_id: draggedItem.id,
+            scheduled_date: targetDateString,
+            scheduled_time: scheduled_time
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update keyword');
+        }
+
+        // Update local state
+        setScheduledKeywords(prev => prev.map(keyword => 
+          keyword.id === draggedItem.id 
+            ? { ...keyword, scheduled_date: targetDateString }
+            : keyword
+        ));
+      }
+    } catch (error) {
+      console.error('Error moving item:', error);
+      alert('Failed to move item. Please try again.');
+    } finally {
+      setDraggedItem(null);
+      setDraggedOverDate(null);
+    }
+  };
+
   return (
     <div className={`bg-white rounded-2xl shadow-xl border border-slate-200 p-6 ${className}`}>
       {/* Header */}
@@ -238,9 +361,18 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
             <div
               key={index}
               onClick={() => !isPast && onAddPost?.(date.toISOString().split('T')[0])}
+              onDragOver={(e) => !isPast && handleDragOver(e, date.toISOString().split('T')[0])}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => !isPast && handleDrop(e, date)}
               className={`h-32 border border-slate-200 p-2 relative group ${
                 isCurrentDay ? 'bg-blue-50 border-blue-300' : ''
-              } ${isPast ? 'bg-slate-50' : 'hover:bg-slate-50 cursor-pointer'} transition-colors overflow-hidden`}
+              } ${
+                isPast ? 'bg-slate-50' : 'hover:bg-slate-50 cursor-pointer'
+              } ${
+                draggedOverDate === date.toISOString().split('T')[0] && !isPast
+                  ? 'bg-blue-100 border-blue-400 border-2' 
+                  : ''
+              } transition-colors overflow-hidden`}
             >
               {/* Date number */}
               <div className={`text-sm font-medium mb-1 ${
@@ -250,80 +382,264 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
               </div>
 
               {/* Items for this date */}
-              <div className="space-y-1 overflow-y-auto max-h-24 relative z-10">
+              <div className="space-y-1.5 overflow-y-auto max-h-24 relative z-10">
                 {/* Posts */}
-                {postsForDate.map((post) => (
-                  <div
-                    key={post.id}
-                    className={`text-xs p-1 rounded cursor-pointer transition-colors relative z-20 ${
-                      post.status === 'published' 
-                        ? 'bg-green-100 text-green-800 border border-green-200'
-                        : post.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800 border border-red-200'
-                        : 'bg-blue-100 text-blue-800 border border-blue-200'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPostClick?.(post);
-                    }}
-                    title={post.title}
-                  >
-                    <div className="truncate font-medium">{post.title}</div>
-                  </div>
-                ))}
-                
-                {/* Keywords */}
-                {keywordsForDate.map((keyword) => (
-                  <div
-                    key={keyword.id}
-                    className={`text-xs p-1 rounded transition-colors relative z-20 group ${
-                      keyword.generation_status === 'generated' 
-                        ? 'bg-green-100 text-green-800 border border-green-200'
-                        : keyword.generation_status === 'generating'
-                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                        : keyword.generation_status === 'failed'
-                        ? 'bg-red-100 text-red-800 border border-red-200'
-                        : 'bg-purple-100 text-purple-800 border border-purple-200'
-                    }`}
-                    title={keyword.keyword}
-                  >
-                    <div 
-                      className="truncate font-medium cursor-pointer pr-6 relative z-30"
-                      onClick={(e) => {
+                {postsForDate.map((post) => {
+                  // Extract subtitle/keywords from title or content
+                  const subtitle = post.title.length > 50 
+                    ? post.title.substring(0, 50) + '...'
+                    : post.title;
+                  
+                  // Get first few words as subtitle
+                  const titleWords = post.title.split(' ');
+                  const shortTitle = titleWords.slice(0, 5).join(' ');
+                  const keywords = titleWords.slice(5, 8).join(' ').toLowerCase();
+
+                  return (
+                    <div
+                      key={post.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, 'post', post.id)}
+                      onDragEnd={handleDragEnd}
+                      className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-move relative z-20 overflow-hidden group/item"
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        if (keyword.generation_status === 'generated' && keyword.generated_content_id) {
-                          window.location.href = `/dashboard/saved-content/${keyword.generated_content_id}`;
-                        } else {
-                          onKeywordClick?.(keyword);
+                        // If published, try to open WordPress URL directly
+                        if (post.status === 'published') {
+                          if (post.publish_url) {
+                            window.open(post.publish_url, '_blank', 'noopener,noreferrer');
+                          } else {
+                            // Try to fetch publication URL
+                            try {
+                              const response = await fetch(`/api/calendar/posts/${post.id}/publication`);
+                              if (response.ok) {
+                                const data = await response.json();
+                                if (data.publishUrl) {
+                                  window.open(data.publishUrl, '_blank', 'noopener,noreferrer');
+                                  return;
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error fetching publication URL:', error);
+                            }
+                          }
                         }
+                        // If not published or no URL found, show details
+                        onPostClick?.(post);
                       }}
                     >
-                      🔑 {keyword.keyword}
-                    </div>
-                    {/* Generate button for pending, generated, or failed keywords */}
-                    {(keyword.generation_status === 'pending' || keyword.generation_status === 'generated' || keyword.generation_status === 'failed') && onGenerateKeyword && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onGenerateKeyword(keyword);
-                        }}
-                        className={`absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-white rounded transition-all opacity-0 group-hover:opacity-100 z-40 ${
-                          keyword.generation_status === 'generated' 
-                            ? 'bg-orange-600 hover:bg-orange-700' 
-                            : keyword.generation_status === 'failed'
-                            ? 'bg-red-600 hover:bg-red-700'
-                            : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                        title={keyword.generation_status === 'generated' ? 'Regenerate Content' : keyword.generation_status === 'failed' ? 'Retry Generation' : 'Generate Now'}
-                      >
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      {/* Drag handle and status badge */}
+                      <div className="flex items-center justify-between">
+                        <div className={`px-2 py-0.5 text-[10px] font-semibold uppercase flex-1 ${
+                          post.status === 'published' 
+                            ? 'bg-green-50 text-green-700'
+                            : post.status === 'cancelled'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-blue-50 text-blue-700'
+                        }`}>
+                          {post.status === 'published' ? 'PUBLISHED' : post.status === 'cancelled' ? 'CANCELLED' : 'SCHEDULED'}
+                        </div>
+                        <GripVertical className="h-3 w-3 text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity mr-1" />
+                      </div>
+                      
+                      {/* Title */}
+                      <div className="px-2 py-1.5">
+                        <div className="text-xs font-bold text-slate-900 line-clamp-2 leading-tight mb-0.5">
+                          {post.title}
+                        </div>
+                        
+                        {/* Subtitle/Keywords */}
+                        {keywords && (
+                          <div className="text-[10px] text-slate-500 line-clamp-1">
+                            {keywords}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* View Article Link */}
+                      <div className="px-2 pb-1.5 flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                      </button>
-                    )}
-                    {/* Eye icon removed: clicking the chip opens the detail page directly */}
-                  </div>
-                ))}
+                        <span>View Article</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Keywords - Show all as rich cards */}
+                {keywordsForDate.map((keyword) => {
+                  const isGenerated = keyword.generation_status === 'generated';
+                  const isPublished = isGenerated && keyword.publishing_info?.publishUrl;
+                  
+                  // Get status badge info
+                  let statusBadge = {
+                    text: 'PENDING',
+                    bg: 'bg-purple-50',
+                    textColor: 'text-purple-700'
+                  };
+                  
+                  if (keyword.generation_status === 'generated') {
+                    if (isPublished) {
+                      statusBadge = { text: 'PUBLISHED', bg: 'bg-green-50', textColor: 'text-green-700' };
+                    } else {
+                      statusBadge = { text: 'GENERATED', bg: 'bg-green-50', textColor: 'text-green-700' };
+                    }
+                  } else if (keyword.generation_status === 'generating') {
+                    statusBadge = { text: 'GENERATING', bg: 'bg-yellow-50', textColor: 'text-yellow-700' };
+                  } else if (keyword.generation_status === 'failed') {
+                    statusBadge = { text: 'FAILED', bg: 'bg-red-50', textColor: 'text-red-700' };
+                  }
+                  
+                  return (
+                    <div
+                      key={keyword.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, 'keyword', keyword.id)}
+                      onDragEnd={handleDragEnd}
+                      className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-move relative z-20 overflow-hidden group/item"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        // If generated, check if published first
+                        if (keyword.generation_status === 'generated' && keyword.generated_content_id) {
+                          // Try to fetch publication URL first (check if published)
+                          try {
+                            const response = await fetch(`/api/calendar/keywords/${keyword.id}/publication`);
+                            if (response.ok) {
+                              const data = await response.json();
+                              if (data.publishUrl) {
+                                // Article is published - open the blog post
+                                window.open(data.publishUrl, '_blank', 'noopener,noreferrer');
+                                return;
+                              }
+                            }
+                          } catch (error) {
+                            console.error('Error fetching publication URL:', error);
+                          }
+                          
+                          // If not published, check if we have publishUrl in publishing_info as fallback
+                          if (keyword.publishing_info?.publishUrl) {
+                            window.open(keyword.publishing_info.publishUrl, '_blank', 'noopener,noreferrer');
+                            return;
+                          }
+                          
+                          // Article is generated but not published - redirect to saved content
+                          window.location.href = `/dashboard/saved-content?id=${keyword.generated_content_id}`;
+                          return;
+                        }
+                        // If not generated or no content ID, show details
+                        onKeywordClick?.(keyword);
+                      }}
+                    >
+                      {/* Drag handle and status badge */}
+                      <div className="flex items-center justify-between">
+                        <div className={`px-2 py-0.5 text-[10px] font-semibold uppercase flex-1 ${statusBadge.bg} ${statusBadge.textColor}`}>
+                          {statusBadge.text}
+                        </div>
+                        <GripVertical className="h-3 w-3 text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity mr-1" />
+                      </div>
+                      
+                      {/* Title */}
+                      <div className="px-2 py-1.5">
+                        <div className="text-xs font-bold text-slate-900 line-clamp-2 leading-tight mb-0.5">
+                          {keyword.content_writer_outputs?.topic || keyword.keyword}
+                        </div>
+                        
+                        {/* Subtitle */}
+                        <div className="text-[10px] text-slate-500 line-clamp-1">
+                          {keyword.content_writer_outputs?.topic 
+                            ? keyword.keyword.toLowerCase()
+                            : `${keyword.opportunity_level} opportunity · Vol: ${keyword.search_volume?.toLocaleString() || 0}`}
+                        </div>
+                      </div>
+                      
+                      {/* Action buttons */}
+                      <div className="px-2 pb-1.5 flex items-center justify-between">
+                        {isPublished ? (
+                          <div 
+                            className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (keyword.publishing_info?.publishUrl) {
+                                window.open(keyword.publishing_info.publishUrl, '_blank', 'noopener,noreferrer');
+                              } else {
+                                // Try to fetch publication URL
+                                try {
+                                  const response = await fetch(`/api/calendar/keywords/${keyword.id}/publication`);
+                                  if (response.ok) {
+                                    const data = await response.json();
+                                    if (data.publishUrl) {
+                                      window.open(data.publishUrl, '_blank', 'noopener,noreferrer');
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error('Error fetching publication URL:', error);
+                                }
+                              }
+                            }}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            <span>View Article</span>
+                          </div>
+                        ) : keyword.generation_status === 'generated' && keyword.generated_content_id ? (
+                          <div 
+                            className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              // Try to fetch publication URL first
+                              try {
+                                const response = await fetch(`/api/calendar/keywords/${keyword.id}/publication`);
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  if (data.publishUrl) {
+                                    // Article is published - open the blog post
+                                    window.open(data.publishUrl, '_blank', 'noopener,noreferrer');
+                                    return;
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error fetching publication URL:', error);
+                              }
+                              
+                              // If not published, redirect to saved content
+                              window.location.href = `/dashboard/saved-content?id=${keyword.generated_content_id}`;
+                            }}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>View Content</span>
+                          </div>
+                        ) : null}
+                        
+                        {/* Generate button for pending, generated, or failed keywords */}
+                        {(keyword.generation_status === 'pending' || keyword.generation_status === 'generated' || keyword.generation_status === 'failed') && onGenerateKeyword && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onGenerateKeyword(keyword);
+                            }}
+                            className={`p-1 text-white rounded transition-all ${
+                              keyword.generation_status === 'generated' 
+                                ? 'bg-orange-600 hover:bg-orange-700' 
+                                : keyword.generation_status === 'failed'
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
+                            title={keyword.generation_status === 'generated' ? 'Regenerate Content' : keyword.generation_status === 'failed' ? 'Retry Generation' : 'Generate Now'}
+                          >
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Add post button - positioned in top-right corner */}

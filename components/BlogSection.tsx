@@ -42,9 +42,24 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     
     try {
       const response = await fetch(`/api/wordpress/posts?limit=${maxPosts}`);
+      
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        // If response is not ok, try to parse error or use default
+        let errorMessage = 'Failed to fetch posts';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
       const data = await response.json();
       
-      if (response.ok && data.posts) {
+      if (data.posts && Array.isArray(data.posts) && data.posts.length > 0) {
         // Transform WordPress posts to our BlogPost format
         const transformedPosts: BlogPost[] = data.posts.map((post: any) => ({
           id: post.id.toString(),
@@ -63,15 +78,23 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         setBlogPosts(transformedPosts);
         initialized.current = true;
       } else {
-        throw new Error(data.error || 'Failed to fetch posts');
+        // No posts found, but this is not an error - just use sample posts
+        console.log('No WordPress posts found, using sample posts');
+        setBlogPosts(samplePosts.slice(0, maxPosts));
+        initialized.current = true;
       }
     } catch (err) {
       console.error('Error fetching WordPress posts:', err);
-      setError('Failed to load blog posts');
-      // Fall back to sample posts if WordPress fetch fails
+      // Don't show error to user - gracefully fall back to sample posts
+      // This handles cases where WordPress is not configured or not accessible
       if (!initialized.current) {
         setBlogPosts(samplePosts.slice(0, maxPosts));
         initialized.current = true;
+      }
+      // Only set error if we've already tried to load posts
+      // This prevents showing error on initial load when WordPress might not be configured
+      if (initialized.current) {
+        setError('Unable to load blog posts. Please try again later.');
       }
     } finally {
       setLoading(false);
@@ -87,7 +110,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-15',
       readTime: 8,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'SEO',
       tags: ['AI', 'SEO', 'Content Creation', 'Automation'],
       slug: 'ai-powered-seo-content-creation-guide-2024'
@@ -99,7 +122,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-12',
       readTime: 6,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'WordPress',
       tags: ['WordPress', 'Automation', 'Blog', 'Integration'],
       slug: 'wordpress-automation-blog-publishing-workflow'
@@ -111,7 +134,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-10',
       readTime: 7,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'Strategy',
       tags: ['Competitive Analysis', 'SEO Strategy', 'Research'],
       slug: 'competitive-analysis-seo-success-secret'
@@ -123,7 +146,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-08',
       readTime: 9,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'Content Strategy',
       tags: ['Authority', 'Content Strategy', 'Ranking'],
       slug: 'building-authority-content-that-ranks'
@@ -135,7 +158,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-05',
       readTime: 5,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'AI & Technology',
       tags: ['AI', 'Future of SEO', 'Technology', 'Innovation'],
       slug: 'future-of-seo-ai-changing-game'
@@ -147,7 +170,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
       content: '',
       publishedAt: '2024-01-03',
       readTime: 10,
-      author: 'SEOFlow Team',
+      author: 'Bridgely Team',
       category: 'WordPress',
       tags: ['WordPress SEO', 'Optimization', 'Checklist', 'Technical SEO'],
       slug: 'wordpress-seo-optimization-checklist-2024'

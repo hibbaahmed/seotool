@@ -1,9 +1,139 @@
 /**
- * Helper function to add internal links to content before publishing
+ * Helper function to add internal and external links to content before publishing
  * This ensures links are saved directly in WordPress content
  */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * Extract key topics and phrases from article content
+ */
+function extractKeyTopics(content: string, title: string): string[] {
+  // Combine title and content for topic extraction
+  const fullText = `${title} ${content}`;
+  
+  // Remove HTML tags
+  const textOnly = fullText.replace(/<[^>]*>/g, ' ');
+  
+  // Extract multi-word phrases (2-3 words) that might be good topics
+  const words = textOnly.toLowerCase().split(/\s+/);
+  const phrases: string[] = [];
+  
+  // Extract 2-word phrases
+  for (let i = 0; i < words.length - 1; i++) {
+    const word1 = words[i].replace(/[^\w]/g, '');
+    const word2 = words[i + 1].replace(/[^\w]/g, '');
+    if (word1.length > 3 && word2.length > 3) {
+      phrases.push(`${word1} ${word2}`);
+    }
+  }
+  
+  // Extract 3-word phrases
+  for (let i = 0; i < words.length - 2; i++) {
+    const word1 = words[i].replace(/[^\w]/g, '');
+    const word2 = words[i + 1].replace(/[^\w]/g, '');
+    const word3 = words[i + 2].replace(/[^\w]/g, '');
+    if (word1.length > 3 && word2.length > 3 && word3.length > 3) {
+      phrases.push(`${word1} ${word2} ${word3}`);
+    }
+  }
+  
+  // Count phrase frequency
+  const phraseCounts: Record<string, number> = {};
+  phrases.forEach(phrase => {
+    phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+  });
+  
+  // Return top phrases (appearing at least 2 times)
+  return Object.entries(phraseCounts)
+    .filter(([_, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([phrase]) => phrase);
+}
+
+/**
+ * Search for authoritative sources related to article topics using Tavily
+ */
+async function findAuthoritativeSources(
+  content: string,
+  title: string
+): Promise<Array<{ url: string; title: string; phrase: string }>> {
+  try {
+    if (!process.env.TAVILY_API_KEY) {
+      console.log('⚠️ Tavily API key not found, skipping external link search');
+      return [];
+    }
+
+    // Extract key topics from the article
+    const keyTopics = extractKeyTopics(content, title);
+    
+    if (keyTopics.length === 0) {
+      console.log('⚠️ No key topics found in content');
+      return [];
+    }
+
+    console.log('🔍 Key topics found:', keyTopics.slice(0, 3));
+
+    const sources: Array<{ url: string; title: string; phrase: string }> = [];
+
+    // Search for authoritative sources for the top 2-3 topics
+    for (const topic of keyTopics.slice(0, 3)) {
+      try {
+        const searchQuery = `${topic} guide official documentation`;
+        
+        const response = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            api_key: process.env.TAVILY_API_KEY,
+            query: searchQuery,
+            search_depth: 'basic',
+            max_results: 2,
+            include_domains: [
+              'wikipedia.org',
+              'github.com',
+              '.edu',
+              '.gov',
+              'moz.com',
+              'searchengineland.com',
+              'hubspot.com',
+              'semrush.com',
+              'ahrefs.com',
+              'contentmarketinginstitute.com',
+              'copyblogger.com',
+              'neilpatel.com',
+              'backlinko.com'
+            ]
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            // Take the first authoritative result
+            const result = data.results[0];
+            sources.push({
+              url: result.url,
+              title: result.title || topic,
+              phrase: topic
+            });
+            console.log(`✅ Found authoritative source for "${topic}": ${result.url}`);
+          }
+        }
+      } catch (err) {
+        console.error(`⚠️ Error searching for topic "${topic}":`, err);
+      }
+    }
+
+    return sources;
+  } catch (error) {
+    console.error('⚠️ Error finding authoritative sources:', error);
+    return [];
+  }
+}
 
 export async function addInternalLinksToContent(
   content: string,
@@ -295,6 +425,288 @@ export async function addInternalLinksToContent(
     console.error('Error adding internal links to content:', error);
     // Return original content if linking fails
     return { linkedContent: content, linksAdded: 0 };
+  }
+}
+
+/**
+ * Add external links to authoritative sources in content
+ * Dynamically finds relevant sources based on article content
+ * Uses the same styling as internal links for consistency
+ */
+export async function addExternalLinksToContent(
+  content: string,
+  title: string,
+  maxLinks: number = 2
+): Promise<{ linkedContent: string; linksAdded: number }> {
+  try {
+    console.log('🌐 Starting contextual external linking process');
+    
+    // Find authoritative sources relevant to this specific article
+    const authoritativeSources = await findAuthoritativeSources(content, title);
+    
+    if (authoritativeSources.length === 0) {
+      console.log('⚠️ No authoritative sources found for this article content');
+      return { linkedContent: content, linksAdded: 0 };
+    }
+
+    let linkedContent = content;
+    let linksAdded = 0;
+
+    // Process each found source
+    for (const source of authoritativeSources) {
+      if (linksAdded >= maxLinks) break;
+
+      let linkedThisSource = false;
+
+      // Try to find and link the phrase in the content
+      const escapedPhrase = source.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Find occurrences of the phrase (case-insensitive)
+      const regex = new RegExp(`\\b${escapedPhrase}\\b`, 'gi');
+      let match;
+      
+      while ((match = regex.exec(linkedContent)) !== null && !linkedThisSource) {
+        const matchIndex = match.index;
+        
+        // Check if we're inside an existing link
+        const beforeMatch = linkedContent.substring(0, matchIndex);
+        const lastLinkOpen = beforeMatch.lastIndexOf('<a ');
+        const lastLinkClose = beforeMatch.lastIndexOf('</a>');
+        
+        // Check if we're inside an HTML tag
+        const lastOpenTag = beforeMatch.lastIndexOf('<');
+        const lastCloseTag = beforeMatch.lastIndexOf('>');
+        const isInsideTag = lastOpenTag > lastCloseTag;
+        
+        // Check if we're inside an iframe or embed
+        const recentTag = beforeMatch.substring(Math.max(0, lastOpenTag));
+        const isInsideIframe = recentTag.includes('<iframe') && !recentTag.includes('</iframe>');
+        const isInsideEmbed = recentTag.includes('<embed') || beforeMatch.includes('<object');
+
+        // Only proceed if we're not inside an existing link, HTML tag, iframe, or embed
+        if (lastLinkOpen <= lastLinkClose && !isInsideTag && !isInsideIframe && !isInsideEmbed) {
+          const matchedText = match[0];
+          
+          const before = linkedContent.substring(0, matchIndex);
+          const after = linkedContent.substring(matchIndex + matchedText.length);
+          
+          // Insert external link with same styling as internal links
+          // Use green color variant to distinguish from internal links visually
+          const linkedPhrase = `<a href="${source.url}" class="external-link" data-link-type="auto-generated" target="_blank" rel="noopener noreferrer" style="font-weight: 700 !important; color: #059669 !important; text-decoration: underline !important; text-decoration-thickness: 2.5px !important; text-underline-offset: 3px !important; background-color: rgba(5, 150, 105, 0.12) !important; padding: 3px 7px !important; border-radius: 5px !important; transition: all 0.2s ease !important; border: 1.5px solid rgba(5, 150, 105, 0.3) !important; box-shadow: 0 1px 3px rgba(5, 150, 105, 0.1) !important;" onmouseover="this.style.backgroundColor='rgba(5, 150, 105, 0.25)'; this.style.color='#047857'; this.style.borderColor='rgba(5, 150, 105, 0.5)'; this.style.boxShadow='0 2px 5px rgba(5, 150, 105, 0.2)';" onmouseout="this.style.backgroundColor='rgba(5, 150, 105, 0.12)'; this.style.color='#059669'; this.style.borderColor='rgba(5, 150, 105, 0.3)'; this.style.boxShadow='0 1px 3px rgba(5, 150, 105, 0.1)';">${matchedText}</a>`;
+          linkedContent = before + linkedPhrase + after;
+          
+          linksAdded++;
+          linkedThisSource = true;
+          console.log(`✅ Linked "${matchedText}" to authoritative source: ${source.url}`);
+          break;
+        }
+      }
+    }
+
+    console.log(`🌐 Contextual external linking complete. Added ${linksAdded} external links`);
+    return { linkedContent, linksAdded };
+  } catch (error) {
+    console.error('Error adding external links to content:', error);
+    // Return original content if linking fails
+    return { linkedContent: content, linksAdded: 0 };
+  }
+}
+
+/**
+ * Add strategic business mentions throughout content
+ * Places mentions naturally without being promotional
+ */
+export async function addBusinessPromotionToContent(
+  content: string,
+  userId: string,
+  maxMentions: number = 3
+): Promise<{ linkedContent: string; mentionsAdded: number }> {
+  try {
+    console.log('💼 Starting business promotion process');
+    
+    // Fetch user's business information
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { data: onboardingProfile, error } = await supabase
+      .from('user_onboarding_profiles')
+      .select('business_name, website_url, business_description')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !onboardingProfile || !onboardingProfile.business_name) {
+      console.log('⚠️ No business information found for user');
+      return { linkedContent: content, mentionsAdded: 0 };
+    }
+    
+    const businessName = onboardingProfile.business_name;
+    const websiteUrl = onboardingProfile.website_url;
+    const businessDescription = onboardingProfile.business_description || '';
+    
+    console.log(`💼 Found business: ${businessName}`);
+    
+    // Check if business is already mentioned
+    if (content.toLowerCase().includes(businessName.toLowerCase())) {
+      console.log('⚠️ Business already mentioned in content, skipping promotion');
+      return { linkedContent: content, mentionsAdded: 0 };
+    }
+    
+    let linkedContent = content;
+    let mentionsAdded = 0;
+    
+    // Find strategic insertion points in paragraphs
+    // Look for patterns like: "solution", "tool", "platform", "service", etc.
+    const insertionPatterns = [
+      {
+        pattern: /\b(solution|tool|platform|service|software|system)\s+(that|which|to)\s+/gi,
+        variant: (name: string, desc: string) => desc 
+          ? `${name} (${desc.split('.')[0]}) provides`
+          : `${name} provides`
+      },
+      {
+        pattern: /\b(many|some|several)\s+(companies|businesses|platforms|tools)\s+/gi,
+        variant: (name: string) => `Companies like ${name} offer`
+      },
+      {
+        pattern: /\b(enable|allows|helps?|provides?|offers?)\s+/gi,
+        variant: (name: string) => `Platforms such as ${name} enable`
+      },
+      {
+        pattern: /\b(consider|recommend|suggest|using|utilize)\s+/gi,
+        variant: (name: string) => `Tools like ${name} help`
+      }
+    ];
+    
+    // Find insertion points by looking for specific patterns in the content
+    // We'll insert mentions in strategic locations throughout the article
+    
+    const insertionPoints: Array<{ position: number; variant: string }> = [];
+    
+    // Search through content for insertion opportunities
+    for (const { pattern, variant } of insertionPatterns) {
+      if (insertionPoints.length >= maxMentions) break;
+      
+      pattern.lastIndex = 0;
+      const textContent = linkedContent.replace(/<[^>]*>/g, ' '); // Get text-only version for matching
+      const matches = [...textContent.matchAll(pattern)];
+      
+      for (const match of matches) {
+        if (insertionPoints.length >= maxMentions) break;
+        
+        const matchIndex = match.index!;
+        
+        // Map text position back to HTML position (approximate)
+        // Count HTML tags before this position
+        const textBefore = textContent.substring(0, matchIndex);
+        const htmlBefore = linkedContent.substring(0, linkedContent.length - textContent.length + matchIndex);
+        
+        // Find the actual HTML position by counting characters in text vs HTML
+        let htmlPosition = 0;
+        let textPos = 0;
+        for (let i = 0; i < linkedContent.length && textPos < matchIndex; i++) {
+          if (linkedContent[i] === '<') {
+            // Skip HTML tag
+            const tagEnd = linkedContent.indexOf('>', i);
+            if (tagEnd !== -1) {
+              i = tagEnd;
+              continue;
+            }
+          } else {
+            if (textPos === matchIndex) {
+              htmlPosition = i;
+              break;
+            }
+            textPos++;
+          }
+        }
+        
+        if (htmlPosition === 0 && matchIndex > 0) {
+          // Fallback: approximate position
+          htmlPosition = Math.floor(matchIndex * 1.2); // Rough estimate accounting for HTML tags
+        }
+        
+        const beforeMatch = linkedContent.substring(0, htmlPosition);
+        
+        // Check if we're inside HTML tags or links
+        const lastLinkOpen = beforeMatch.lastIndexOf('<a ');
+        const lastLinkClose = beforeMatch.lastIndexOf('</a>');
+        const lastTagOpen = beforeMatch.lastIndexOf('<');
+        const lastTagClose = beforeMatch.lastIndexOf('>');
+        const isInsideTag = lastTagOpen > lastTagClose;
+        const isInsideLink = lastLinkOpen > lastLinkClose;
+        
+        // Also check if we're near the beginning or end (avoid intro/conclusion)
+        const contentLength = linkedContent.length;
+        const positionPercent = (htmlPosition / contentLength) * 100;
+        
+        if (!isInsideTag && !isInsideLink && positionPercent > 15 && positionPercent < 80) {
+          // Check spacing from other mentions (at least 20% of content apart)
+          const minGap = contentLength * 0.20;
+          const tooClose = insertionPoints.some(point => 
+            Math.abs(point.position - htmlPosition) < minGap
+          );
+          
+          if (!tooClose) {
+            insertionPoints.push({
+              position: htmlPosition + match[0].length + 10, // Add some space after match
+              variant: variant(businessName, businessDescription)
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort by position (reverse order for safe insertion)
+    insertionPoints.sort((a, b) => b.position - a.position);
+    
+    // Insert mentions
+    for (const point of insertionPoints.slice(0, maxMentions)) {
+      // Ensure we're inserting at a safe position (after a word boundary)
+      let insertPos = point.position;
+      
+      // Find the nearest space or punctuation for safe insertion
+      for (let i = insertPos; i < Math.min(insertPos + 50, linkedContent.length); i++) {
+        if (linkedContent[i] === ' ' || linkedContent[i] === ',' || linkedContent[i] === '.') {
+          insertPos = i + 1;
+          break;
+        }
+      }
+      
+      // If we're still inside a tag, skip this mention
+      const beforeInsert = linkedContent.substring(0, insertPos);
+      const lastTagOpen = beforeInsert.lastIndexOf('<');
+      const lastTagClose = beforeInsert.lastIndexOf('>');
+      if (lastTagOpen > lastTagClose) {
+        continue; // Skip - we're inside a tag
+      }
+      
+      let businessMention: string;
+      
+      if (websiteUrl) {
+        // Create mention with link
+        const mentionText = point.variant;
+        // Extract just the action part (e.g., "provides", "offers") after business name
+        const actionPart = mentionText.replace(businessName, '').trim();
+        businessMention = ` <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer" class="business-promotion-link" style="font-weight: 600 !important; color: #059669 !important; text-decoration: none !important; border-bottom: 1px solid #059669 !important;">${businessName}</a>`;
+        if (actionPart) {
+          businessMention = `${businessMention} ${actionPart}`;
+        }
+      } else {
+        businessMention = ` ${point.variant}`;
+      }
+      
+      linkedContent = linkedContent.substring(0, insertPos) + businessMention + linkedContent.substring(insertPos);
+      mentionsAdded++;
+      console.log(`✅ Added business mention for "${businessName}"`);
+    }
+    
+    console.log(`💼 Business promotion complete. Added ${mentionsAdded} mentions`);
+    return { linkedContent, mentionsAdded };
+  } catch (error) {
+    console.error('Error adding business promotion to content:', error);
+    return { linkedContent: content, mentionsAdded: 0 };
   }
 }
 
