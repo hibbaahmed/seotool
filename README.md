@@ -1,8 +1,8 @@
-# SEOFlow - AI-Powered SEO Automation Platform
+# Bridgely - AI-Powered SEO Automation Platform
 
 **Rank Clients on Google and Get Cited on ChatGPT – In One Place**
 
-SEOFlow is a comprehensive SEO automation system for agencies and marketers, featuring AI-powered tools for content creation, optimization, and syndication.
+Bridgely is a comprehensive SEO automation system for agencies and marketers, featuring AI-powered tools for content creation, optimization, and syndication.
 
 ## 🚀 Features
 

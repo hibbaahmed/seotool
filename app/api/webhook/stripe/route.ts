@@ -8,6 +8,10 @@ import { supabaseAdmin } from "../../../../lib/supabase/admin";
 import FacebookConversionsAPI from "../../../../lib/facebook-conversions-api";
 import crypto from 'crypto';
 
+// Disable body parsing for webhooks - we need the raw body for signature verification
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Helper function to hash data for Facebook (required)
 function hashDataForFacebook(data?: string): string | undefined {
   if (!data) return undefined;
@@ -22,8 +26,8 @@ function hashDataForFacebook(data?: string): string | undefined {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const endpointSecret = process.env.STRIPE_ENDPOINT_SECRET!;
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const endpointSecret = process.env.STRIPE_ENDPOINT_SECRET;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
 if (!supabaseUrl) {
 	throw new Error("MISSING NEXT_PUBLIC_SUPABASE_URL!");
@@ -32,6 +36,18 @@ if (!supabaseUrl) {
 if (!supabaseServiceRoleKey) {
 	throw new Error("MISSING SUPABASE_SERVICE_ROLE_KEY!");
 }
+
+if (!stripeSecretKey) {
+	throw new Error("MISSING STRIPE_SECRET_KEY!");
+}
+
+if (!endpointSecret) {
+	console.warn("⚠️ WARNING: STRIPE_ENDPOINT_SECRET is not set. Webhook signature verification will fail.");
+	console.warn("💡 For local testing, run: stripe listen --forward-to localhost:3000/api/webhook/stripe");
+	console.warn("💡 Then copy the webhook signing secret (whsec_xxx) to your .env.local file");
+}
+
+const stripe = new Stripe(stripeSecretKey);
 
 // Monthly price IDs
 const tenCreditPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEN_CREDITS as string;
@@ -83,18 +99,50 @@ const supabase = createClient<Database>(
 );
 
 export async function POST(req: any) {
-	const rawBody = await buffer(req.body);
 	try {
+		// Check if endpoint secret is configured
+		if (!endpointSecret) {
+			console.error("❌ STRIPE_ENDPOINT_SECRET is not configured");
+			return Response.json(
+				{ 
+					error: "Webhook secret not configured",
+					message: "Please set STRIPE_ENDPOINT_SECRET in your .env.local file. For local testing, use the secret from 'stripe listen' command."
+				},
+				{ status: 500 }
+			);
+		}
+
+		const rawBody = await buffer(req.body);
 		const sig = headers().get("stripe-signature");
+
+		if (!sig) {
+			console.error("❌ Missing stripe-signature header");
+			return Response.json(
+				{ error: "Missing stripe-signature header" },
+				{ status: 400 }
+			);
+		}
+
 		let event;
 		try {
 			event = stripe.webhooks.constructEvent(
 				rawBody,
-				sig!,
+				sig,
 				endpointSecret
 			);
+			console.log("✅ Webhook signature verified:", event.type);
 		} catch (err: any) {
-			return Response.json({ error: `Webhook Error ${err?.message!} ` });
+			console.error("❌ Webhook signature verification failed:", err.message);
+			console.error("💡 Make sure you're using the correct webhook secret:");
+			console.error("   - Local testing: Use secret from 'stripe listen' (whsec_xxx)");
+			console.error("   - Production: Use secret from Stripe Dashboard webhook endpoint");
+			return Response.json(
+				{ 
+					error: `Webhook signature verification failed: ${err?.message}`,
+					hint: "Check that STRIPE_ENDPOINT_SECRET matches your webhook endpoint secret"
+				},
+				{ status: 400 }
+			);
 		}
 		switch (event.type) {
 			case "checkout.session.completed":
