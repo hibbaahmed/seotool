@@ -113,7 +113,8 @@ export async function POST(req: any) {
 		}
 
 		const rawBody = await buffer(req.body);
-		const sig = headers().get("stripe-signature");
+		const headersList = await headers();
+		const sig = headersList.get("stripe-signature");
 
 		if (!sig) {
 			console.error("❌ Missing stripe-signature header");
