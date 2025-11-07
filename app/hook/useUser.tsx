@@ -20,7 +20,7 @@ const initUser = {
 export default function useUser() {
 	const [user, setUser] = useState(initUser);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
+	const [error, setError] = useState<Error | null>(null);
 
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -34,10 +34,12 @@ export default function useUser() {
 						.select("*,subscription(*)")
 						.eq("id", data.session.user.id)
 						.single();
-					setUser(userProfile);
+					if (userProfile) {
+						setUser(userProfile);
+					}
 				}
 			} catch (err) {
-				setError(err);
+				setError(err instanceof Error ? err : new Error('Unknown error'));
 			} finally {
 				setLoading(false);
 			}
