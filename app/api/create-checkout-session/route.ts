@@ -35,10 +35,6 @@ export async function POST(req: Request) {
     const planInfo = {
       [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTH || '']: { name: 'Starter', value: 16 },
       [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTH || '']: { name: 'Starter', value: 8 },
-      [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS || '']: { name: 'Daily', value: 34 },
-      [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS_YEAR || '']: { name: 'Daily', value: 17 },
-      [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS || '']: { name: 'Influencer', value: 58 },
-      [process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS_YEAR || '']: { name: 'Influencer', value: 29 },
     };
     
     const planData = planInfo[priceId] || { name: 'Daily', value: 34 };
