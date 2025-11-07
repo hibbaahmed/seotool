@@ -287,12 +287,16 @@ export async function POST(req: any) {
 				
 			case "invoice.payment_succeeded":
 				// update here
-				const result = event.data.object;
+				const result = event.data.object as Stripe.Invoice;
 				const end_at = new Date(
 					result.lines.data[0]?.period.end * 1000
 				).toISOString();
 				const customer_id = result.customer as string;
-				const subscription_id = result.subscription as string;
+				// Access subscription property with proper type handling
+				const subscriptionField = (result as any).subscription;
+				const subscription_id = typeof subscriptionField === 'string' 
+					? subscriptionField 
+					: (subscriptionField as Stripe.Subscription | null)?.id || '';
 				const email = result.customer_email as string;
 				const error = await onPaymentSucceeded(
 					end_at,
@@ -303,7 +307,8 @@ export async function POST(req: any) {
 				);
 				if (error) {
 					console.log(error);
-					return Response.json({ error: error.message });
+					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+					return Response.json({ error: errorMessage });
 				}
 				break;
 			case "customer.subscription.deleted":
@@ -311,7 +316,8 @@ export async function POST(req: any) {
                 const cancelError = await onSubCancel(deleteSubscription.id, req);
 				if (cancelError) {
 					console.log(cancelError);
-					return Response.json({ error: cancelError.message });
+					const errorMessage = cancelError instanceof Error ? cancelError.message : 'Unknown error';
+					return Response.json({ error: errorMessage });
 				}
 				break;
 			default:
@@ -319,7 +325,8 @@ export async function POST(req: any) {
 		}
 		return Response.json({});
 	} catch (e) {
-		return Response.json({ error: `Webhook Error}` });
+		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+		return Response.json({ error: `Webhook Error: ${errorMessage}` });
 	}
 }
 
