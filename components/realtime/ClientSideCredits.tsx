@@ -4,7 +4,7 @@
 
 import { Database } from "../../types/supabase";
 import { creditsRow } from "../../types/utils";
-import { supabase } from "../../app/utils/supabaseClient";
+import { supabase } from "../../utils/supabaseClient";
 import { useEffect, useState } from "react";
 
 
