@@ -367,43 +367,117 @@ export const scheduleKeywordGeneration = inngest.createFunction(
 );
 
 // Function to generate content for a single keyword
-// NOTE: This function is DEPRECATED - all generation now happens via /api/calendar/generate
-// which uses multi-phase generation for longer, better quality content.
-// Keeping this function for backwards compatibility with scheduled events,
-// but it now just updates status without generating content.
+// This function calls the /api/calendar/generate endpoint which uses multi-phase generation
 export const generateKeywordContent = inngest.createFunction(
   { 
     id: 'generate-keyword-content',
-    name: 'Generate Content for Keyword (DEPRECATED - redirects to API)'
+    name: 'Generate Content for Keyword'
   },
   { event: 'calendar/keyword.generate' },
   async ({ event, step }) => {
     const { keywordId, keyword, userId, relatedKeywords } = event.data;
 
-    console.log(`⚠️ DEPRECATED: generateKeywordContent called for: ${keyword}`);
-    console.log(`⚠️ This function is deprecated. Use /api/calendar/generate instead for multi-phase generation.`);
-    console.log(`⚠️ Skipping generation to avoid duplicate content.`);
+    console.log(`🚀 Starting content generation for: ${keyword} (ID: ${keywordId})`);
 
     const supabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Just log that this was triggered, but don't generate content
-    // The /api/calendar/generate route will handle the actual generation
-    await step.run('log-deprecated-call', async () => {
-      console.log(`📝 Inngest event received for keyword ${keywordId}: ${keyword}`);
-      console.log(`📝 Use /api/calendar/generate API for actual content generation`);
-      return { deprecated: true, keywordId, keyword };
+    // Get the base URL for the API call
+    const getBaseUrl = (): string => {
+      if (process.env.NEXT_PUBLIC_URL) {
+        const url = process.env.NEXT_PUBLIC_URL.trim();
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        return `https://${url}`;
+      }
+      if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+      }
+      return 'http://localhost:3000';
+    };
+    
+    const baseUrl = getBaseUrl();
+
+    // Call the /api/calendar/generate endpoint to trigger content generation
+    const result = await step.run('call-generate-api', async () => {
+      try {
+        console.log(`📡 Calling /api/calendar/generate for keyword: ${keyword}`);
+        
+        // Verify user exists
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+        
+        if (userError || !userData.user) {
+          console.error(`❌ User not found: ${userId}`, userError);
+          // Update keyword status to failed
+          await supabase
+            .from('discovered_keywords')
+            .update({ generation_status: 'failed' })
+            .eq('id', keywordId);
+          
+          return { success: false, error: 'User not found' };
+        }
+
+        // Use service role key for authentication (server-to-server)
+        const response = await fetch(`${baseUrl}/api/calendar/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-supabase-service-role': process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+            'x-user-id': userId, // Pass user ID for server-side auth
+          },
+          body: JSON.stringify({
+            keyword_id: keywordId,
+            keyword: keyword,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ API call failed: ${response.status} ${errorText}`);
+          
+          // Update keyword status to failed
+          await supabase
+            .from('discovered_keywords')
+            .update({ generation_status: 'failed' })
+            .eq('id', keywordId);
+          
+          return { success: false, error: `API returned ${response.status}: ${errorText}` };
+        }
+
+        const data = await response.json();
+        console.log(`✅ Content generated successfully for: ${keyword}`);
+        
+        return { success: true, data };
+      } catch (error: any) {
+        console.error(`❌ Error calling generate API:`, error);
+        
+        // Update keyword status to failed
+        await supabase
+          .from('discovered_keywords')
+          .update({ generation_status: 'failed' })
+          .eq('id', keywordId);
+        
+        return { success: false, error: error.message };
+      }
     });
 
-    // Return early - all generation now happens via /api/calendar/generate
-    console.log(`✅ Inngest event logged. Actual generation should use /api/calendar/generate.`);
+    if (!result.success) {
+      return {
+        keywordId,
+        keyword,
+        success: false,
+        error: 'error' in result ? result.error : 'Unknown error',
+      };
+    }
+
     return {
-      success: true,
-      deprecated: true,
       keywordId,
-      message: 'Use /api/calendar/generate for multi-phase content generation'
+      keyword,
+      success: true,
+      data: 'data' in result ? result.data : undefined,
     };
   }
 );
