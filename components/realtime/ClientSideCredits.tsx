@@ -19,7 +19,7 @@ type ClientSideCreditsProps = {
 export default function ClientSideCredits({
  creditsRow,
 }: ClientSideCreditsProps) {
- if (!creditsRow) return <p>Credits: 0</p>;
+ if (!creditsRow) return <span className="text-sm font-semibold text-gray-700">Credits: 0</span>;
 
 
  const [credits, setCredits] = useState<creditsRow>(creditsRow);
@@ -47,5 +47,9 @@ export default function ClientSideCredits({
  if (!credits) return null;
 
 
- return <p>Credits: {credits.credits}</p>;
+ return (
+   <span className="text-sm font-semibold text-gray-700">
+     {credits.credits || 0} Credits
+   </span>
+ );
 }

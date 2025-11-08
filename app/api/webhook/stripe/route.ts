@@ -49,41 +49,21 @@ if (!endpointSecret) {
 
 const stripe = new Stripe(stripeSecretKey);
 
-// Monthly price IDs
-const tenCreditPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEN_CREDITS as string;
-const twentyfiveCreditsPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS as string;
-const fiftyCreditsPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS as string;
+// Solo month price ID
+const soloMonthPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTH as string;
 
-// Yearly price IDs
-const tenCreditPriceIdYear = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEN_CREDITS_YEAR as string;
-const twentyfiveCreditsPriceIdYear = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS_YEAR as string;
-const fiftyCreditsPriceIdYear = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS_YEAR as string;
+// Log price ID for debugging
+if (soloMonthPriceId) {
+	console.log('🔑 Loaded Stripe Price ID:', soloMonthPriceId);
+} else {
+	console.warn('⚠️ NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTH is not set');
+}
 
-// Log all price IDs for debugging
-console.log('🔑 Loaded Stripe Price IDs:', {
-	monthly: {
-		ten: tenCreditPriceId,
-		twentyfive: twentyfiveCreditsPriceId,
-		fifty: fiftyCreditsPriceId
-	},
-	yearly: {
-		ten: tenCreditPriceIdYear,
-		twentyfive: twentyfiveCreditsPriceIdYear,
-		fifty: fiftyCreditsPriceIdYear
-	}
-});
-
+// Credits mapping - 30 articles per month = 30 credits
 const creditsPerPriceId: {
 	[key: string]: number;
 } = {
-	// Monthly plans
-	[tenCreditPriceId]: 120,
-	[twentyfiveCreditsPriceId]: 300,
-	[fiftyCreditsPriceId]: 600,
-	// Yearly plans (same credits, different price ID)
-	[tenCreditPriceIdYear]: 120,
-	[twentyfiveCreditsPriceIdYear]: 300,
-	[fiftyCreditsPriceIdYear]: 600,
+	[soloMonthPriceId]: 30,
 };
 
 const supabase = createClient<Database>(
@@ -157,8 +137,44 @@ export async function POST(req: any) {
 					email: checkoutEmail,
 					amount: checkoutAmount,
 					plan: checkoutPlan,
-					sessionId: checkoutSession.id
+					sessionId: checkoutSession.id,
+					mode: checkoutSession.mode,
+					subscription: checkoutSession.subscription
 				});
+				
+				// If this is a subscription, update credits immediately
+				// Note: We don't have the invoice period end yet, so end_at will be calculated from subscription
+				if (checkoutSession.mode === 'subscription' && checkoutSession.subscription && checkoutEmail) {
+					try {
+						const subscriptionId = typeof checkoutSession.subscription === 'string' 
+							? checkoutSession.subscription 
+							: (checkoutSession.subscription as any)?.id;
+						
+						if (subscriptionId) {
+							console.log('💰 Processing subscription credits for checkout:', {
+								subscriptionId,
+								email: checkoutEmail,
+								sessionId: checkoutSession.id
+							});
+							// Don't pass end_at here - it will be calculated from subscription
+							await updateCreditsFromSubscription(checkoutEmail, subscriptionId);
+							console.log('✅ Credits updated successfully in checkout.session.completed');
+						} else {
+							console.warn('⚠️ No subscription ID found in checkout session');
+						}
+					} catch (creditsError) {
+						const errorMessage = creditsError instanceof Error ? creditsError.message : String(creditsError);
+						console.error('❌ Error updating credits in checkout.session.completed:', errorMessage);
+						console.error('💡 Credits will be updated when invoice.payment_succeeded event fires');
+						// Don't fail the webhook - invoice.payment_succeeded will handle it
+					}
+				} else {
+					console.log('ℹ️ Skipping credits update - not a subscription checkout:', {
+						mode: checkoutSession.mode,
+						hasSubscription: !!checkoutSession.subscription,
+						hasEmail: !!checkoutEmail
+					});
+				}
 				
 				// Send Enhanced Facebook Conversions API event for checkout completion
 				// This ensures we capture the purchase immediately with all available data
@@ -330,16 +346,11 @@ export async function POST(req: any) {
 	}
 }
 
-async function onPaymentSucceeded(
-	end_at: string,
-	customer_id: string,
-	subscription_id: string,
-	email: string,
-	req: any
-) {
+// Helper function to update credits from a subscription
+async function updateCreditsFromSubscription(email: string, subscriptionId: string, providedEndAt?: string): Promise<void> {
 	const supabase = await supabaseAdmin();
 
-	// Look up the user_id directly from the profiles table using email
+	// Look up the user_id from the profiles table using email
 	const { data: profileData, error: profileError } = await supabase
 		.from("profiles")
 		.select("id")
@@ -347,29 +358,119 @@ async function onPaymentSucceeded(
 		.single();
 
 	if (profileError) {
-		console.error("Error finding user profile:", profileError);
-		return profileError;
+		console.error("Error finding user profile for credits update:", profileError);
+		throw profileError;
 	}
 
 	const userId = profileData.id;
 
-	// Get the subscription details from Stripe
-	const subscription = await stripe.subscriptions.retrieve(subscription_id, {
-		expand: ['items.data.price']
+	// Get customer ID from subscription
+	const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+		expand: ['items.data.price', 'customer']
 	});
 
-	// Calculate total credits from all subscription items
+	const customerId = typeof subscription.customer === 'string' 
+		? subscription.customer 
+		: (subscription.customer as any)?.id;
+
+	// Get subscription period end date - try multiple methods
+	let subscriptionEndDate: string | null = null;
+	
+	// Method 1: Use provided end_at if available (from invoice.payment_succeeded)
+	if (providedEndAt) {
+		// Convert ISO string to YYYY-MM-DD format if needed
+		subscriptionEndDate = providedEndAt.includes('T') 
+			? providedEndAt.split('T')[0] 
+			: providedEndAt.split(' ')[0]; // Handle space-separated date
+		console.log('✅ Using provided end_at:', subscriptionEndDate);
+	}
+	
+	// Method 2: Try to get from subscription.current_period_end
+	if (!subscriptionEndDate) {
+		const currentPeriodEnd = (subscription as any).current_period_end as number | undefined;
+		if (currentPeriodEnd) {
+			subscriptionEndDate = new Date(currentPeriodEnd * 1000).toISOString().split('T')[0];
+			console.log('✅ Using subscription.current_period_end:', subscriptionEndDate);
+		}
+	}
+	
+	// Method 3: Try to get from plan object directly
+	if (!subscriptionEndDate) {
+		const plan = (subscription as any).plan as any;
+		if (plan) {
+			const interval = plan.interval; // 'month' or 'year'
+			const intervalCount = plan.interval_count || 1;
+			const billingCycleAnchor = (subscription as any).billing_cycle_anchor as number | undefined;
+			
+			if (billingCycleAnchor && interval) {
+				const startDate = new Date(billingCycleAnchor * 1000);
+				let endDate = new Date(startDate);
+				
+				if (interval === 'month') {
+					endDate.setMonth(endDate.getMonth() + intervalCount);
+				} else if (interval === 'year') {
+					endDate.setFullYear(endDate.getFullYear() + intervalCount);
+				} else if (interval === 'day') {
+					endDate.setDate(endDate.getDate() + intervalCount);
+				} else if (interval === 'week') {
+					endDate.setDate(endDate.getDate() + (intervalCount * 7));
+				}
+				
+				subscriptionEndDate = endDate.toISOString().split('T')[0];
+				console.log('✅ Calculated end_at from billing_cycle_anchor and plan interval:', subscriptionEndDate);
+			}
+		}
+	}
+	
+	// Method 4: Calculate from items.data[0].price (subscription items)
+	if (!subscriptionEndDate) {
+		const items = (subscription as any).items?.data;
+		if (items && items.length > 0) {
+			const price = items[0].price;
+			const interval = price?.recurring?.interval;
+			const intervalCount = price?.recurring?.interval_count || 1;
+			const billingCycleAnchor = (subscription as any).billing_cycle_anchor as number | undefined;
+			
+			if (billingCycleAnchor && interval) {
+				const startDate = new Date(billingCycleAnchor * 1000);
+				let endDate = new Date(startDate);
+				
+				if (interval === 'month') {
+					endDate.setMonth(endDate.getMonth() + intervalCount);
+				} else if (interval === 'year') {
+					endDate.setFullYear(endDate.getFullYear() + intervalCount);
+				} else if (interval === 'day') {
+					endDate.setDate(endDate.getDate() + intervalCount);
+				} else if (interval === 'week') {
+					endDate.setDate(endDate.getDate() + (intervalCount * 7));
+				}
+				
+				subscriptionEndDate = endDate.toISOString().split('T')[0];
+				console.log('✅ Calculated end_at from billing_cycle_anchor and items price interval:', subscriptionEndDate);
+			}
+		}
+	}
+	
+	// Method 5: Use start_date + 1 month as fallback
+	if (!subscriptionEndDate) {
+		const startDate = (subscription as any).start_date as number | undefined;
+		if (startDate) {
+			const endDate = new Date(startDate * 1000);
+			endDate.setMonth(endDate.getMonth() + 1);
+			subscriptionEndDate = endDate.toISOString().split('T')[0];
+			console.log('⚠️ Using fallback: start_date + 1 month:', subscriptionEndDate);
+		}
+	}
+
+	if (!subscriptionEndDate) {
+		console.warn('⚠️ Could not determine subscription end date from any method');
+		console.warn('📋 Subscription object keys:', Object.keys(subscription));
+		console.warn('📋 Subscription items:', JSON.stringify((subscription as any).items, null, 2));
+	}
+
+	// Calculate total credits from subscription items
 	let totalCredits = 0;
-	console.log('🔍 Processing subscription items for credits calculation...');
-	console.log('📋 Available price IDs in mapping:', Object.keys(creditsPerPriceId));
-	console.log('🔍 Environment variables check:', {
-		tenMonthly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEN_CREDITS,
-		tenYearly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TEN_CREDITS_YEAR,
-		twentyfiveMonthly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS,
-		twentyfiveYearly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_TWENTYFIVE_CREDITS_YEAR,
-		fiftyMonthly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS,
-		fiftyYearly: !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIFTY_CREDITS_YEAR
-	});
+	console.log('🔍 Calculating credits from subscription:', subscriptionId);
 	
 	subscription.items.data.forEach(item => {
 		const priceId = item.price.id;
@@ -382,95 +483,169 @@ async function onPaymentSucceeded(
 			quantity, 
 			creditsForPrice, 
 			runningTotal: totalCredits,
-			priceFound: !!creditsPerPriceId[priceId],
-			priceMetadata: item.price.metadata
+			priceFound: !!creditsPerPriceId[priceId]
 		});
 		
 		// If price not found, log a warning
 		if (!creditsPerPriceId[priceId]) {
 			console.warn('⚠️ Price ID not found in credits mapping:', priceId);
-			console.warn('🔍 Available price IDs:', Object.keys(creditsPerPriceId));
-			console.warn('🔍 This price ID might be missing from environment variables');
+			console.warn('🔍 Expected price ID:', soloMonthPriceId);
+			console.warn('🔍 Make sure NEXT_PUBLIC_STRIPE_PRICE_ID_SOLO_MONTH matches your Stripe price ID');
 		}
 	});
 
-	console.log('Final credits calculation:', {
+	// Warn if credits are 0 - this shouldn't happen for valid subscriptions
+	if (totalCredits === 0) {
+		console.warn('⚠️ WARNING: Calculated credits is 0! This might indicate a price ID mismatch.');
+		console.warn('📋 Subscription items:', subscription.items.data.map(item => ({
+			priceId: item.price.id,
+			priceFound: !!creditsPerPriceId[item.price.id],
+			metadata: item.price.metadata
+		})));
+		console.warn('🔑 Expected price ID:', soloMonthPriceId);
+		console.warn('🔍 Available price IDs in mapping:', Object.keys(creditsPerPriceId));
+	}
+
+	console.log('✅ Credits calculation:', {
 		userId,
 		totalCredits,
-		subscription_id,
-		customer_id,
-		availablePriceIds: Object.keys(creditsPerPriceId),
-		priceIdMapping: creditsPerPriceId
+		subscription_id: subscriptionId,
+		customer_id: customerId,
+		email,
+		subscriptionEndDate,
+		priceIds: subscription.items.data.map(item => item.price.id)
 	});
 
-	// Update subscription table - note that we no longer reference user_id
+	// Update subscription table with end_at if we have it
+	const subscriptionUpdate: any = {
+		customer_id: customerId,
+		subscription_id: subscriptionId,
+	};
+	
+	if (subscriptionEndDate) {
+		subscriptionUpdate.end_at = subscriptionEndDate;
+	}
+	
 	const { error: subscriptionError } = await supabase
 		.from("subscription")
-		.update({
-			end_at,
-			customer_id,
-			subscription_id,
-			// updated_at: new Date().toISOString()
-		})
+		.update(subscriptionUpdate)
 		.eq("email", email);
 	
 	if (subscriptionError) {
 		console.error('Error updating subscription:', subscriptionError);
-		return subscriptionError;
+		throw subscriptionError;
 	}
-	
-	// Update credits table with both IDs and the new credits amount
-	// First check if a record exists
+
+	// Update credits table - check if record exists first
 	const { data: existingCredits, error: checkError } = await supabase
 		.from("credits")
 		.select("*")
 		.eq("user_id", userId)
-		.single();
+		.maybeSingle(); // Use maybeSingle() to handle case where no record exists
+	
+	if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is OK
+		console.error('Error checking existing credits:', checkError);
+		throw checkError;
+	}
+	
+	// Validate that we have the required end_at date
+	// If we still don't have it, use a default of 30 days from now
+	if (!subscriptionEndDate) {
+		const fallbackDate = new Date();
+		fallbackDate.setDate(fallbackDate.getDate() + 30);
+		subscriptionEndDate = fallbackDate.toISOString().split('T')[0];
+		console.warn('⚠️ Using fallback end_at (30 days from now):', subscriptionEndDate);
+	}
 
 	let creditsError;
 	if (existingCredits) {
-		// Update existing record
+		// Update existing record - only update if we have valid credits
+		console.log('🔄 Updating existing credits record:', {
+			oldCredits: existingCredits.credits,
+			newCredits: totalCredits,
+			end_at: subscriptionEndDate
+		});
 		const { error } = await supabase
 			.from("credits")
 			.update({
-				customer_id,
-				subscription_id,
-				credits: totalCredits,
+				customer_id: customerId,
+				subscription_id: subscriptionId,
+				credits: totalCredits > 0 ? totalCredits : existingCredits.credits, // Don't set to 0 if calculation failed
+				email: email,
+				end_at: subscriptionEndDate,
 			})
 			.eq("user_id", userId);
 		creditsError = error;
 	} else {
-		// Insert new record
-		const { error } = await supabase
-			.from("credits")
-			.insert({
-				user_id: userId,
-				email,
-				customer_id,
-				subscription_id,
-				credits: totalCredits,
-			});
-		creditsError = error;
+		// Insert new record - only insert if we have valid credits
+		if (totalCredits > 0) {
+			console.log('➕ Inserting new credits record with', totalCredits, 'credits, end_at:', subscriptionEndDate);
+			const { error } = await supabase
+				.from("credits")
+				.insert({
+					user_id: userId,
+					email: email,
+					customer_id: customerId,
+					subscription_id: subscriptionId,
+					credits: totalCredits,
+					end_at: subscriptionEndDate,
+				});
+			creditsError = error;
+		} else {
+			console.error('❌ Cannot insert credits: totalCredits is 0. Price ID mismatch likely.');
+			throw new Error('Credits calculation resulted in 0. Check price ID mapping.');
+		}
 	}
 	
 	if (creditsError) {
 		console.error('Error updating credits:', creditsError);
-		return creditsError;
+		throw creditsError;
 	}
 
-	console.log('Successfully updated tables:', {
+	console.log('✅ Successfully updated credits and subscription:', {
 		userId,
-		subscription_id,
-		customer_id,
+		subscription_id: subscriptionId,
+		customer_id: customerId,
 		totalCredits,
 		email
 	});
+}
 
-	// Note: Facebook Purchase event is now sent from checkout.session.completed
-	// to avoid duplicate events and ensure immediate tracking with complete customer data
-	console.log('📝 Payment succeeded - Facebook Purchase event already sent from checkout.session.completed');
-	
-	return null;
+async function onPaymentSucceeded(
+	end_at: string,
+	customer_id: string,
+	subscription_id: string,
+	email: string,
+	req: any
+) {
+	try {
+		// Update credits and subscription (this will be idempotent if already updated in checkout.session.completed)
+		// Pass the end_at from the invoice so we use the correct period end date
+		await updateCreditsFromSubscription(email, subscription_id, end_at);
+		
+		// Also update subscription table with the end_at from the invoice
+		// (updateCreditsFromSubscription already updates subscription, but we want to ensure end_at is set correctly)
+		const supabase = await supabaseAdmin();
+		const { error: subscriptionError } = await supabase
+			.from("subscription")
+			.update({
+				end_at, // This is the end_at from the invoice period
+				customer_id,
+				subscription_id,
+			})
+			.eq("email", email);
+		
+		if (subscriptionError) {
+			console.error('Error updating subscription end date:', subscriptionError);
+			return subscriptionError;
+		}
+
+		console.log('📝 Payment succeeded - credits and subscription updated with end_at:', end_at);
+		return null;
+	} catch (error) {
+		console.error('Error in onPaymentSucceeded:', error);
+		return error instanceof Error ? error : new Error('Unknown error');
+	}
 }
 
 async function onSubCancel(subscription_id: string, req: any) {

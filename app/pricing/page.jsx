@@ -8,8 +8,8 @@ export default function Price() {
       <div className="w-full max-w-7xl mx-auto space-y-8">
           <PricingSection />
         <FAQ />
-      </div>
-    </main>
+        </div>
+      </main>
   );
 }
 

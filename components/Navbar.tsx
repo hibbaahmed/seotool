@@ -31,15 +31,18 @@ import {
   Github,
   ArrowRight,
   Database,
-  Calendar
+  Calendar,
+  CreditCard
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
+import ClientSideCredits from './realtime/ClientSideCredits';
 
 interface NavbarProps {
   user: any;
+  credits?: any;
 }
 
-export default function AuthenticatedNavbar({ user }: NavbarProps) {
+export default function AuthenticatedNavbar({ user, credits }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -95,8 +98,17 @@ export default function AuthenticatedNavbar({ user }: NavbarProps) {
         <div className="hidden lg:flex items-center space-x-3">
           {user ? (
             <div className="flex items-center gap-4">
+              {/* Credits Display */}
+              {credits && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-4 py-2.5 flex items-center space-x-3 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-pulse shadow-lg shadow-blue-400/50"></div>
+                  <CreditCard className="w-4 h-4 text-blue-600" />
+                  <ClientSideCredits creditsRow={credits} />
+                </div>
+              )}
+              
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full border-2 border-green-500 flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full border-2 border-blue-400 flex items-center justify-center">
                   <span className="text-white text-sm font-semibold">
                     {user.email?.charAt(0).toUpperCase()}
                   </span>
@@ -175,20 +187,19 @@ export default function AuthenticatedNavbar({ user }: NavbarProps) {
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            {/* Connect Supabase Button for Mobile */}
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full mb-4 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors duration-200"
-            >
-              <Database size={16} />
-              <span>Connect Supabase</span>
-            </button>
             {user ? (
               <div className="space-y-4">
+                {/* Mobile Credits Display */}
+                {credits && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-4 py-3 flex items-center space-x-3 border border-blue-200 shadow-sm mb-4">
+                    <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-pulse shadow-lg shadow-blue-400/50"></div>
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    <ClientSideCredits creditsRow={credits} />
+                  </div>
+                )}
+                
                 <div className="flex items-center px-4 py-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full border-2 border-green-500 flex items-center justify-center mr-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full border-2 border-blue-400 flex items-center justify-center mr-3">
                     <span className="text-white text-sm font-semibold">
                       {user.email?.charAt(0).toUpperCase()}
                     </span>

@@ -194,7 +194,7 @@ export default function Price() {
                     onClick={handleSubscriptionClick}
                     disabled
                   >
-                    Get Started for Free
+                    Get Started
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 ) : (
@@ -205,7 +205,7 @@ export default function Price() {
                     )}
                     buttonText={
                       <span className="flex items-center gap-2">
-                        Get Started for Free
+                        Get Started
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     }

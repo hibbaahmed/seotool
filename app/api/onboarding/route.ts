@@ -802,26 +802,57 @@ async function callAI(prompt: string): Promise<string> {
     throw new Error('Missing ANTHROPIC_API_KEY');
   }
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
+  // Latest and best Claude models in order of preference
+  // Fallback to other models if primary fails
+  const models = [
+    'claude-3-5-sonnet-20241022',  // Latest Sonnet - best balance of speed and quality
+    'claude-3-5-sonnet-20240620',  // Previous Sonnet version
+    'claude-3-opus-20240229',      // Highest quality (slower)
+    'claude-3-sonnet-20240229',    // Earlier Sonnet
+    'claude-3-5-haiku-20241022'    // Fastest (lower quality but reliable fallback)
+  ];
 
-  if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
+  let lastError: Error | null = null;
+
+  // Try each model in order until one succeeds
+  for (const model of models) {
+    try {
+      console.log(`🤖 Attempting AI call with model: ${model}`);
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Model ${model} failed with status ${response.status}: ${errorText}`);
+        lastError = new Error(`AI API error with ${model}: ${response.status} - ${errorText}`);
+        continue; // Try next model
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully used model: ${model}`);
+      return data.content[0].text;
+      
+    } catch (error) {
+      console.error(`❌ Error with model ${model}:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      continue; // Try next model
+    }
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  // If all models failed, throw the last error
+  throw new Error(`All AI models failed. Last error: ${lastError?.message || 'Unknown error'}`);
 }
 
 function parseCompetitorData(response: string): CompetitorData[] {

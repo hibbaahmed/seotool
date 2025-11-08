@@ -263,8 +263,8 @@ export default function OnboardingPage() {
                 value={formData.websiteUrl}
                 onChange={handleInputChange}
                 placeholder="https://yourwebsite.com"
-                className={`w-full px-6 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all duration-200 text-lg bg-slate-50 focus:bg-white ${
-                  errors.websiteUrl ? 'border-red-400 bg-red-50' : 'hover:border-slate-300'
+                className={`w-full px-6 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 text-lg bg-slate-50 focus:bg-white ${
+                  errors.websiteUrl ? 'border-red-400 bg-red-50' : 'hover:border-blue-300'
                 }`}
               />
               {errors.websiteUrl && (
@@ -272,32 +272,32 @@ export default function OnboardingPage() {
               )}
             </div>
             
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-8">
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-xl p-8">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center">
+                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <AlertCircle className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h4 className="text-lg font-semibold text-slate-900 mb-4">What we'll analyze:</h4>
                   <ul className="text-slate-600 space-y-3">
                     <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
                       Your current keyword rankings
                     </li>
                     <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
                       Technical SEO issues
                     </li>
                     <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
                       Content gaps and opportunities
                     </li>
                     <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
                       Competitor analysis
                     </li>
                     <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
                       Google trends and SERP data
                     </li>
                   </ul>
@@ -321,8 +321,8 @@ export default function OnboardingPage() {
                 value={formData.businessName}
                 onChange={handleInputChange}
                 placeholder="Your Company Name"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.businessName ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 ${
+                  errors.businessName ? 'border-red-500' : 'border-slate-200 hover:border-blue-300'
                 }`}
               />
               {errors.businessName && (
@@ -339,8 +339,8 @@ export default function OnboardingPage() {
                 name="industry"
                 value={formData.industry}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.industry ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 ${
+                  errors.industry ? 'border-red-500' : 'border-slate-200 hover:border-blue-300'
                 }`}
               >
                 <option value="">Select your industry</option>
@@ -374,7 +374,7 @@ export default function OnboardingPage() {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder="Briefly describe what your business does..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 resize-none hover:border-blue-300"
               />
             </div>
           </div>
@@ -394,8 +394,8 @@ export default function OnboardingPage() {
                 onChange={handleInputChange}
                 rows={4}
                 placeholder="Describe your ideal customers (e.g., small business owners, marketing professionals, tech-savvy millennials...)"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                  errors.targetAudience ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 resize-none ${
+                  errors.targetAudience ? 'border-red-500' : 'border-slate-200 hover:border-blue-300'
                 }`}
               />
               {errors.targetAudience && (
@@ -403,12 +403,14 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="p-1.5 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-white" />
+                </div>
                 <div>
-                  <h4 className="text-sm font-medium text-green-900">Keyword Discovery Process:</h4>
-                  <ul className="mt-2 text-sm text-green-800 space-y-1">
+                  <h4 className="text-sm font-medium text-slate-900">Keyword Discovery Process:</h4>
+                  <ul className="mt-2 text-sm text-slate-700 space-y-1">
                     <li>• <strong>Competitor Analysis:</strong> Find keywords your competitors rank for</li>
                     <li>• <strong>Site Analysis:</strong> Identify your current keyword performance</li>
                     <li>• <strong>Google Trends:</strong> Discover trending and seasonal opportunities</li>
@@ -425,7 +427,7 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-blue-100 rounded-full">
+                <div className="p-4 bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-full">
                   <Search className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
@@ -445,12 +447,12 @@ export default function OnboardingPage() {
                 {Object.entries(analysisProgress).map(([key, completed]) => (
                   <div key={key} className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${
-                      completed ? 'bg-green-100' : 'bg-gray-100'
+                      completed ? 'bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100' : 'bg-slate-100'
                     }`}>
                       {completed ? (
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-blue-600" />
                       ) : (
-                        <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                        <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -473,8 +475,8 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-green-100 rounded-full">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                <div className="p-4 bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-full">
+                  <CheckCircle className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">
@@ -488,33 +490,35 @@ export default function OnboardingPage() {
             </div>
 
             {summary && summary.totalKeywords > 0 && (
-              <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                  <div className="p-2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-lg">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
                   <h4 className="text-lg font-semibold text-slate-900">Your Keyword Opportunities</h4>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div className="bg-white rounded-lg p-3 border border-blue-100">
-                    <div className="text-2xl font-bold text-blue-600">{summary.totalKeywords}</div>
+                  <div className="bg-white rounded-lg p-3 border border-blue-200 shadow-sm">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{summary.totalKeywords}</div>
                     <div className="text-sm text-slate-600">Total Keywords</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-green-100">
-                    <div className="text-2xl font-bold text-green-600">{summary.highOpportunityKeywords}</div>
+                  <div className="bg-white rounded-lg p-3 border border-indigo-200 shadow-sm">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{summary.highOpportunityKeywords}</div>
                     <div className="text-sm text-slate-600">High Opportunity</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-yellow-100">
-                    <div className="text-2xl font-bold text-yellow-600">{summary.mediumOpportunityKeywords}</div>
+                  <div className="bg-white rounded-lg p-3 border border-purple-200 shadow-sm">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{summary.mediumOpportunityKeywords}</div>
                     <div className="text-sm text-slate-600">Medium Opportunity</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-gray-100">
-                    <div className="text-2xl font-bold text-gray-600">{summary.lowOpportunityKeywords}</div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
+                    <div className="text-2xl font-bold text-slate-600">{summary.lowOpportunityKeywords}</div>
                     <div className="text-sm text-slate-600">Low Opportunity</div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-lg p-4">
               <h5 className="font-medium text-slate-900 mb-2">What's Next?</h5>
               <ul className="text-sm text-slate-700 space-y-1">
                 <li>• Review your keyword list with opportunity ratings</li>
@@ -537,7 +541,7 @@ export default function OnboardingPage() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-20">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-900 rounded-3xl mb-8 shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl mb-8 shadow-lg">
               <Search className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-6xl font-bold text-slate-900 mb-6 tracking-tight">
@@ -557,9 +561,9 @@ export default function OnboardingPage() {
                   <div className="flex flex-col items-center w-full">
                     <div className={`flex items-center justify-center w-14 h-14 rounded-full border-2 transition-all duration-300 ${
                       step.completed 
-                        ? 'bg-slate-900 border-slate-900 text-white' 
+                        ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-transparent text-white' 
                         : step.inProgress 
-                          ? 'bg-slate-900 border-slate-900 text-white' 
+                          ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-transparent text-white' 
                           : 'bg-white border-slate-200 text-slate-400'
                     }`}>
                       {step.completed ? (
@@ -581,7 +585,7 @@ export default function OnboardingPage() {
                   </div>
                   {index < steps.length - 1 && (
                     <div className={`flex-1 h-px mx-6 transition-all duration-300 ${
-                      step.completed ? 'bg-slate-900' : 'bg-slate-200'
+                      step.completed ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600' : 'bg-slate-200'
                     }`} />
                   )}
                 </div>
@@ -614,7 +618,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
-                className="px-8 py-4 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+                className="px-8 py-4 border border-slate-200 rounded-xl text-slate-600 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
               >
                 Previous
               </button>
@@ -624,7 +628,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={handleStartAnalysis}
                     disabled={isAnalyzing}
-                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
+                    className="px-12 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-3 font-semibold text-lg shadow-lg hover:shadow-xl"
                   >
                     {isAnalyzing ? (
                       <>
@@ -641,7 +645,7 @@ export default function OnboardingPage() {
                 ) : currentStep === 4 ? (
                   <button
                     onClick={handleViewResults}
-                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
+                    className="px-12 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center gap-3 font-semibold text-lg shadow-lg hover:shadow-xl"
                   >
                     View Keyword List
                     <ArrowRight className="h-6 w-6" />
@@ -649,7 +653,7 @@ export default function OnboardingPage() {
                 ) : currentStep < 2 ? (
                   <button
                     onClick={handleNext}
-                    className="px-12 py-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center gap-3 font-semibold text-lg"
+                    className="px-12 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center gap-3 font-semibold text-lg shadow-lg hover:shadow-xl"
                   >
                     Next
                     <ArrowRight className="h-6 w-6" />
