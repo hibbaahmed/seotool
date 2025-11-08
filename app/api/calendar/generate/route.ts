@@ -65,11 +65,36 @@ function addInlineSpacing(html: string): string {
 // POST /api/calendar/generate - Generate content for a keyword immediately
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Check for server-side authentication (from Inngest/scheduled tasks)
+    const serviceRoleKey = request.headers.get('x-supabase-service-role');
+    const userIdHeader = request.headers.get('x-user-id');
+    
+    let supabase;
+    let user;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (serviceRoleKey === process.env.SUPABASE_SERVICE_ROLE_KEY && userIdHeader) {
+      // Server-side authentication (from Inngest)
+      console.log('🔐 Using service role authentication for scheduled task');
+      supabase = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      
+      // Verify user exists
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userIdHeader);
+      if (userError || !userData.user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      user = userData.user;
+    } else {
+      // Regular user authentication
+      supabase = await createClient();
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      user = authUser;
     }
 
     const body = await request.json();
