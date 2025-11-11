@@ -11,7 +11,7 @@ import {
   DialogPortal,
   DialogOverlay
 } from "./ui/dialog";
-import { Button } from './ui/button';
+import { Button } from './ui/Button';
 import { useRouter } from 'next/navigation';
 import { Coins } from 'lucide-react';
 
