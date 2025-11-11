@@ -4,7 +4,7 @@ import { generateContentSystemPrompt } from '@/lib/content-generation-prompts';
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userId, enableMultiPhase = true } = await request.json();
+    const { messages, userId, enableMultiPhase = true, isTest = false } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
     // Extract topic/keywords for image search
@@ -205,7 +205,8 @@ export async function POST(request: NextRequest) {
         extractedTopic,
         uploadedImageUrls,
         youtubeVideos,
-        apiKey
+        apiKey,
+        isTest
       );
     } else {
       console.log('⚠️ Using SINGLE-PHASE generation (16,000 tokens)');
@@ -214,7 +215,8 @@ export async function POST(request: NextRequest) {
         extractedTopic,
         uploadedImageUrls,
         youtubeVideos,
-        apiKey
+        apiKey,
+        isTest
       );
     }
 
@@ -233,8 +235,10 @@ async function handleMultiPhaseGeneration(
   topic: string,
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
-  apiKey: string
+  apiKey: string,
+  isTest: boolean = false
 ) {
+  // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
   const encoder = new TextEncoder();
   
   const readableStream = new ReadableStream({
@@ -687,12 +691,14 @@ async function handleSinglePhaseGeneration(
   topic: string,
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
-  apiKey: string
+  apiKey: string,
+  isTest: boolean = false
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
     imageUrls,
-    youtubeVideos: videos
+    youtubeVideos: videos,
+    isTest
   });
 
     const candidateModels = [

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Calendar, Plus, Edit, Trash2, Eye, Clock, Globe, FileText, BarChart3, Target, Star } from 'lucide-react';
 import BlogCalendar from '@/components/BlogCalendar';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { useCredits } from '@/app/context/CreditsContext';
 
 interface KeywordStats {
   totalKeywords: number;
@@ -49,6 +50,7 @@ interface ScheduledKeyword {
 }
 
 export default function CalendarPage() {
+  const { checkUserCredits, deductCredits, refreshCredits } = useCredits();
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
   const [selectedKeyword, setSelectedKeyword] = useState<ScheduledKeyword | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -193,9 +195,14 @@ export default function CalendarPage() {
     })();
   };
 
-  const handleGenerateNow = async (keyword?: ScheduledKeyword) => {
+  const handleGenerateNow = async (keyword?: ScheduledKeyword, isTest = false) => {
     const keywordToGenerate = keyword || selectedKeyword;
     if (!keywordToGenerate) return;
+
+    // Both test and full generation require 1 credit
+    const requiredCredits = 1;
+    const hasCredits = await (checkUserCredits as any)(requiredCredits);
+    if (!hasCredits) return; // Dialog is shown automatically by context
 
     setIsGenerating(true);
     try {
@@ -205,12 +212,19 @@ export default function CalendarPage() {
         body: JSON.stringify({
           keyword_id: keywordToGenerate.id,
           keyword: keywordToGenerate.keyword,
+          is_test: isTest, // Pass test mode flag
         }),
       });
 
       if (response.ok) {
         const result = await response.json();
-        alert('Content generated successfully! Redirecting to view your content...');
+        
+        // Credits are deducted server-side, refresh the credits context
+        await refreshCredits();
+
+        alert(isTest 
+          ? 'Test content generated successfully! Redirecting to view your content...' 
+          : 'Content generated successfully! Redirecting to view your content...');
         // Redirect to the generated content
         if (result.content_id) {
           window.location.href = `/dashboard/saved-content?id=${result.content_id}`;
@@ -218,7 +232,13 @@ export default function CalendarPage() {
           window.location.reload();
         }
       } else {
-        alert('Failed to generate content');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate content' }));
+        alert(errorData.error || 'Failed to generate content');
+        
+        // If it's a credit error, refresh credits to update UI
+        if (response.status === 402) {
+          await refreshCredits();
+        }
       }
     } catch (error) {
       console.error('Error generating content:', error);
@@ -576,33 +596,56 @@ export default function CalendarPage() {
                     {/* Actions */}
                     <div className="pt-4 border-t border-slate-200 space-y-2">
                       {(selectedKeyword.generation_status === 'pending' || selectedKeyword.generation_status === 'generated' || selectedKeyword.generation_status === 'failed') && (
-                        <button
-                          onClick={() => handleGenerateNow()}
-                          disabled={isGenerating}
-                          className={`w-full ${
-                            selectedKeyword.generation_status === 'generated' 
-                              ? 'bg-orange-600 hover:bg-orange-700' 
-                              : selectedKeyword.generation_status === 'failed'
-                              ? 'bg-red-600 hover:bg-red-700'
-                              : 'bg-blue-600 hover:bg-blue-700'
-                          } text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="h-4 w-4" />
-                              {selectedKeyword.generation_status === 'generated' 
-                                ? 'Regenerate Content' 
+                        <>
+                          {/* Test Generate Button */}
+                          <button
+                            onClick={() => handleGenerateNow(undefined, true)}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                            title="Generate a short test blog post (200-300 words) - 1 credit required"
+                          >
+                            {isGenerating ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Generating Test...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-4 w-4" />
+                                Test Generate (200-300 words)
+                              </>
+                            )}
+                          </button>
+                          
+                          {/* Full Generate Button */}
+                          <button
+                            onClick={() => handleGenerateNow()}
+                            disabled={isGenerating}
+                            className={`w-full ${
+                              selectedKeyword.generation_status === 'generated' 
+                                ? 'bg-orange-600 hover:bg-orange-700' 
                                 : selectedKeyword.generation_status === 'failed'
-                                ? 'Retry Generation'
-                                : 'Generate Now'}
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            } text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-4 w-4" />
+                                {selectedKeyword.generation_status === 'generated' 
+                                  ? 'Regenerate Content' 
+                                  : selectedKeyword.generation_status === 'failed'
+                                  ? 'Retry Generation'
+                                  : 'Generate Full Blog Post'}
                             </>
                           )}
-                        </button>
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => setSelectedKeyword(null)}
@@ -985,46 +1028,128 @@ export default function CalendarPage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-200 sticky bottom-0 bg-white flex items-center justify-end gap-3">
-              <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
-              <button
-                disabled={selectedIds.length===0}
-                onClick={async ()=>{
-                  try {
-                    const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
-                    const addDays = (ymd: string, days: number) => {
-                      const d = new Date(ymd);
-                      d.setDate(d.getDate() + days);
-                      return d.toISOString().slice(0,10);
-                    };
-                    const start = (overrideStartDate || selectedDate || new Date().toISOString().slice(0,10));
+            <div className="p-6 border-t border-slate-200 sticky bottom-0 bg-white flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {/* Test Generate Button - only show if exactly one keyword is selected */}
+                {selectedIds.length === 1 && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const selectedKeywordId = selectedIds[0];
+                        const keyword = availableKeywords.find(k => k.id === selectedKeywordId);
+                        if (!keyword) {
+                          alert('Keyword not found');
+                          return;
+                        }
 
-                    for (let i=0;i<selectedIds.length;i++){
-                      const id = selectedIds[i];
-                      const time = baseTime;
-                      // Determine scheduled date
-                      let scheduled_date = start;
-                      if (distributeEnabled) {
-                        const dayIndex = Math.floor(i / Math.max(1, itemsPerDay));
-                        scheduled_date = addDays(start, dayIndex);
+                        // Check if user has enough credits
+                        const hasCredits = await (checkUserCredits as any)(1);
+                        if (!hasCredits) return; // Dialog is shown automatically by context
+
+                        setIsGenerating(true);
+                        try {
+                          const response = await fetch('/api/calendar/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              keyword_id: keyword.id,
+                              keyword: keyword.keyword,
+                              is_test: true, // Test generation
+                            }),
+                          });
+
+                          if (response.ok) {
+                            const result = await response.json();
+                            
+                            // Credits are deducted server-side, refresh the credits context
+                            await refreshCredits();
+
+                            alert('Test content generated successfully! Redirecting to view your content...');
+                            // Redirect to the generated content
+                            if (result.content_id) {
+                              window.location.href = `/dashboard/saved-content?id=${result.content_id}`;
+                            } else {
+                              window.location.reload();
+                            }
+                          } else {
+                            const errorData = await response.json().catch(() => ({ error: 'Failed to generate content' }));
+                            alert(errorData.error || 'Failed to generate test content');
+                            
+                            // If it's a credit error, refresh credits to update UI
+                            if (response.status === 402) {
+                              await refreshCredits();
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error generating test content:', error);
+                          alert('Failed to generate test content');
+                        } finally {
+                          setIsGenerating(false);
+                        }
+                      } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to generate test content');
                       }
+                    }}
+                    disabled={isGenerating || selectedIds.length !== 1}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    title="Generate a short test blog post (200-300 words) - 1 credit required"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Generating Test...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4" />
+                        Test Generate (200-300 words)
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setShowAddModal(false); setSelectedIds([]); }} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
+                <button
+                  disabled={selectedIds.length===0}
+                  onClick={async ()=>{
+                    try {
+                      const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
+                      const addDays = (ymd: string, days: number) => {
+                        const d = new Date(ymd);
+                        d.setDate(d.getDate() + days);
+                        return d.toISOString().slice(0,10);
+                      };
+                      const start = (overrideStartDate || selectedDate || new Date().toISOString().slice(0,10));
 
-                      await fetch('/api/calendar/keywords', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword_id: id, scheduled_date, scheduled_time: time })
-                      });
+                      for (let i=0;i<selectedIds.length;i++){
+                        const id = selectedIds[i];
+                        const time = baseTime;
+                        // Determine scheduled date
+                        let scheduled_date = start;
+                        if (distributeEnabled) {
+                          const dayIndex = Math.floor(i / Math.max(1, itemsPerDay));
+                          scheduled_date = addDays(start, dayIndex);
+                        }
+
+                        await fetch('/api/calendar/keywords', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ keyword_id: id, scheduled_date, scheduled_time: time })
+                        });
+                      }
+                      setShowAddModal(false);
+                      setSelectedIds([]);
+                      window.location.reload();
+                    } catch (e) {
+                      console.error(e);
+                      alert('Failed to schedule keywords');
                     }
-                    setShowAddModal(false);
-                    setSelectedIds([]);
-                    window.location.reload();
-                  } catch (e) {
-                    console.error(e);
-                    alert('Failed to schedule keywords');
-                  }
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >Schedule {selectedIds.length>0?`(${selectedIds.length})`:''}</button>
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >Schedule {selectedIds.length>0?`(${selectedIds.length})`:''}</button>
+              </div>
             </div>
           </div>
         </div>

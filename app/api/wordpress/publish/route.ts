@@ -4,6 +4,51 @@ import { WordPressAPI } from '@/lib/wordpress/api';
 import { marked } from 'marked';
 import { addInternalLinksToContent, addExternalLinksToContent, addBusinessPromotionToContent } from '@/lib/add-links-to-content';
 
+// Helper function to remove excessive bold formatting from HTML
+// Keeps bold only for FAQ questions, removes from all other content
+function removeExcessiveBoldFromHTML(html: string): string {
+  // First, protect FAQ questions by temporarily replacing them
+  const faqQuestionPlaceholders: string[] = [];
+  let placeholderIndex = 0;
+  
+  // Match FAQ questions in various HTML formats:
+  // - <p><strong>Q: ...</strong></p>
+  // - <strong>Q: ...</strong>
+  // - <p><b>Q: ...</b></p>
+  // - <b>Q: ...</b>
+  // Handle both Q: and Q. formats, case insensitive
+  const faqQuestionPatterns = [
+    /<p[^>]*>\s*<(strong|b)[^>]*>\s*Q[:\\.]\s+([^<]+)<\/(strong|b)>\s*<\/p>/gi,
+    /<(strong|b)[^>]*>\s*Q[:\\.]\s+([^<]+)<\/(strong|b)>/gi
+  ];
+  
+  for (const pattern of faqQuestionPatterns) {
+    html = html.replace(pattern, (match) => {
+      // Skip if already a placeholder
+      if (match.includes('__FAQ_QUESTION_')) {
+        return match;
+      }
+      const placeholder = `__FAQ_QUESTION_${placeholderIndex}__`;
+      faqQuestionPlaceholders.push(match);
+      placeholderIndex++;
+      return placeholder;
+    });
+  }
+  
+  // Now remove ALL bold tags from the HTML (both <strong> and <b>)
+  // Remove <strong> tags but keep the content (non-greedy to avoid matching across tags)
+  html = html.replace(/<strong[^>]*>(.*?)<\/strong>/gis, '$1');
+  // Remove <b> tags but keep the content
+  html = html.replace(/<b[^>]*>(.*?)<\/b>/gis, '$1');
+  
+  // Restore FAQ questions with their bold formatting
+  faqQuestionPlaceholders.forEach((question, index) => {
+    html = html.replace(`__FAQ_QUESTION_${index}__`, question);
+  });
+  
+  return html;
+}
+
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
   // Add inline styles to ensure proper spacing in WordPress
@@ -64,6 +109,17 @@ function addInlineSpacing(html: string): string {
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
   if (!fullOutput) return '';
+  
+  // Check if content is already cleaned (no "**Content**" or "Title:" markers)
+  // If it looks like already-cleaned markdown content, just return it
+  const hasContentMarkers = /(?:^|\n)(?:\d+\.?\s*)?\*\*(?:Title|Meta Description|Content)\*\*/i.test(fullOutput);
+  const hasTitleLabels = /(?:^|\n)(?:Title|Meta Description):\s/i.test(fullOutput);
+  
+  if (!hasContentMarkers && !hasTitleLabels) {
+    // Content appears to be already cleaned - use it as-is
+    console.log('Content appears already cleaned, using as-is');
+    return fullOutput;
+  }
   
   let cleaned = fullOutput;
   
@@ -297,6 +353,59 @@ function extractContentFromAIOutput(fullOutput: string): string {
   extractedContent = extractedContent.replace(/(^##?[^\n]+\n)(\n)/gm, '$1\n');
   extractedContent = extractedContent.replace(/([^\n])\n(##?[^\n]+$)/gm, '$1\n\n$2');
   
+  // Step 10: Remove excessive bold formatting
+  // Strategy: Keep bold ONLY for FAQ questions, remove all other bold formatting
+  const contentLines = extractedContent.split('\n');
+  const cleanedContent: string[] = [];
+  let inFAQSection = false;
+  
+  for (let i = 0; i < contentLines.length; i++) {
+    const line = contentLines[i];
+    const trimmed = line.trim();
+    
+    // Detect FAQ section
+    if (trimmed.match(/^##\s+FAQ/i)) {
+      inFAQSection = true;
+      cleanedContent.push(line);
+      continue;
+    }
+    
+    // Detect end of FAQ section (new H2 heading)
+    if (inFAQSection && trimmed.match(/^##\s+[^F]/)) {
+      inFAQSection = false;
+    }
+    
+    // In FAQ section: keep bold only for questions (Q: format)
+    if (inFAQSection) {
+      // Keep FAQ questions bold (lines starting with **Q: or **Q.)
+      if (trimmed.match(/^\*\*Q[:\\.]\s+/i)) {
+        cleanedContent.push(line);
+      } else {
+        // Remove all bold from FAQ answers and other FAQ content
+        const unbolded = line.replace(/\*\*([^*]+?)\*\*/g, '$1');
+        cleanedContent.push(unbolded);
+      }
+      continue;
+    }
+    
+    // Outside FAQ section: remove all bold formatting
+    // But preserve structure (headings, lists, blockquotes)
+    if (trimmed.match(/^#/) || 
+        trimmed.match(/^[-\*]\s/) || 
+        trimmed.match(/^\d+\.\s/) ||
+        trimmed.match(/^>\s/)) {
+      // For headings and lists, remove bold but keep the content
+      const unbolded = line.replace(/\*\*([^*]+?)\*\*/g, '$1');
+      cleanedContent.push(unbolded);
+    } else {
+      // For regular paragraphs, remove all bold formatting
+      const unbolded = line.replace(/\*\*([^*]+?)\*\*/g, '$1');
+      cleanedContent.push(unbolded);
+    }
+  }
+  
+  extractedContent = cleanedContent.join('\n');
+  
   return extractedContent;
 }
 
@@ -415,68 +524,84 @@ export async function POST(request: NextRequest) {
         const topic = (content as any).topic || 'Generated Article';
         let extractedTitle = null;
         
-        // Priority 1: Extract from Title section with comprehensive patterns
-        const titlePatterns = [
-          /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
-          /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
-          /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
-          /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
-          /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
-          /Title[:\s]+\*\*([^\n]+?)\*\*/i,
-          /Title[:\s]+"([^"]+?)"/i,
-          /Title[:\s]+'([^']+?)'/i
-        ];
+        // Check if content has old-style markers or is already cleaned
+        const hasMarkers = /(?:^|\n)(?:\d+\.?\s*)?\*\*(?:Title|Content)\*\*/i.test(contentOutput);
         
-        for (const pattern of titlePatterns) {
-          const match = contentOutput.match(pattern);
-          if (match && match[1]) {
-            const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
-            // Validate: title should be meaningful (not just "Title" or the topic)
-            if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== topic.toLowerCase()) {
-              extractedTitle = candidate;
-              break;
-            }
+        if (!hasMarkers) {
+          // Content is already cleaned - just extract the first H1
+          console.log('Content appears already cleaned, extracting first H1 as title');
+          const h1Match = contentOutput.match(/^#\s+([^\n]+)/m);
+          if (h1Match && h1Match[1]) {
+            extractedTitle = h1Match[1].trim();
+            console.log(`✅ Extracted H1 title from cleaned content: ${extractedTitle}`);
           }
-        }
-        
-        // Priority 2: Extract from H1 in content section (after "Content" marker)
-        if (!extractedTitle) {
-          const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
-          if (contentSectionMatch) {
-            const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
-            const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
-            if (h1Match && h1Match[1]) {
-              const h1Title = h1Match[1].trim();
-              // Validate: should be a real title, not section markers
-              if (h1Title.length > 5 && 
-                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
-                  h1Title.toLowerCase() !== topic.toLowerCase()) {
-                extractedTitle = h1Title;
+        } else {
+          // Old-style content with markers - use comprehensive extraction
+          console.log('Content has markers, using comprehensive title extraction');
+          
+          // Priority 1: Extract from Title section with comprehensive patterns
+          const titlePatterns = [
+            /(?:^|\n)\d+\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+            /(?:^|\n)\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+            /(?:^|\n)1\.\s*\*\*Title\*\*[:\s]*\n\s*([^\n]+?)(?:\n|$)/i,
+            /(?:^|\n)Title:\s*"?([^"\n]+?)"?\s*(?:\n|$)/i,
+            /(?:^|\n)\*\*Title\*\*:\s*([^\n]+?)(?:\n|$)/i,
+            /Title[:\s]+\*\*([^\n]+?)\*\*/i,
+            /Title[:\s]+"([^"]+?)"/i,
+            /Title[:\s]+'([^']+?)'/i
+          ];
+          
+          for (const pattern of titlePatterns) {
+            const match = contentOutput.match(pattern);
+            if (match && match[1]) {
+              const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
+              // Validate: title should be meaningful (not just "Title" or the topic)
+              if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== topic.toLowerCase()) {
+                extractedTitle = candidate;
+                break;
               }
             }
           }
-        }
-        
-        // Priority 3: Try to find any H1 in the content
-        if (!extractedTitle) {
-          const h1Patterns = [
-            /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/m,
-            /#\s+([^\n]+?)(?:\n|$)/m
-          ];
-          for (const pattern of h1Patterns) {
-            const matches = [...contentOutput.matchAll(pattern)];
-            for (const match of matches) {
-              if (match && match[1]) {
-                const h1Title = match[1].trim();
+          
+          // Priority 2: Extract from H1 in content section (after "Content" marker)
+          if (!extractedTitle) {
+            const contentSectionMatch = contentOutput.match(/(?:^|\n)(?:\d+\.\s*)?\*\*Content\*\*[:\s]*\n/i);
+            if (contentSectionMatch) {
+              const afterContent = contentOutput.substring(contentSectionMatch.index! + contentSectionMatch[0].length);
+              const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
+              if (h1Match && h1Match[1]) {
+                const h1Title = h1Match[1].trim();
+                // Validate: should be a real title, not section markers
                 if (h1Title.length > 5 && 
-                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
                     h1Title.toLowerCase() !== topic.toLowerCase()) {
                   extractedTitle = h1Title;
-                  break;
                 }
               }
             }
-            if (extractedTitle) break;
+          }
+          
+          // Priority 3: Try to find any H1 in the content
+          if (!extractedTitle) {
+            const h1Patterns = [
+              /(?:^|\n)#\s+([^\n]+?)(?:\n|$)/gm,
+              /#\s+([^\n]+?)(?:\n|$)/gm
+            ];
+            for (const pattern of h1Patterns) {
+              const matches = [...contentOutput.matchAll(pattern)];
+              for (const match of matches) {
+                if (match && match[1]) {
+                  const h1Title = match[1].trim();
+                  if (h1Title.length > 5 && 
+                      !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
+                      h1Title.toLowerCase() !== topic.toLowerCase()) {
+                    extractedTitle = h1Title;
+                    break;
+                  }
+                }
+              }
+              if (extractedTitle) break;
+            }
           }
         }
         
@@ -485,7 +610,7 @@ export async function POST(request: NextRequest) {
           extractedTitle = topic;
           console.warn(`⚠️ Could not extract title from content, using topic: ${topic}`);
         } else {
-          console.log(`✅ Extracted title: ${extractedTitle}`);
+          console.log(`✅ Final extracted title: ${extractedTitle}`);
         }
         
         // Extract clean content from AI output (removes title, meta description, etc.)
@@ -591,6 +716,10 @@ export async function POST(request: NextRequest) {
           // If markdown images still exist, manually convert them
           htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
         }
+        
+        // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
+        htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+        
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
         
@@ -643,8 +772,16 @@ export async function POST(request: NextRequest) {
         } catch (promotionError) {
           console.error('⚠️ Failed to add business promotion (continuing anyway):', promotionError);
         }
+        
+        // Final cleanup: Remove any bold that might have been re-added during link processing
+        // (This shouldn't happen, but being extra safe)
+        htmlContent = removeExcessiveBoldFromHTML(htmlContent);
       } else {
         htmlContent = String(postData.content);
+        
+        // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
+        htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+        
         // Add links even for non-markdown content
         try {
           console.log('🔗 Attempting to add internal links to content...');
@@ -690,6 +827,9 @@ export async function POST(request: NextRequest) {
         } catch (promotionError) {
           console.error('⚠️ Failed to add business promotion (continuing anyway):', promotionError);
         }
+        
+        // Final cleanup: Remove any bold that might have been re-added during link processing
+        htmlContent = removeExcessiveBoldFromHTML(htmlContent);
       }
       
       const response = await fetch(endpoint, {
@@ -733,6 +873,9 @@ export async function POST(request: NextRequest) {
         finalContent = marked.parse(finalContent, { async: false }) as string;
       }
       
+      // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
+      finalContent = removeExcessiveBoldFromHTML(finalContent);
+      
       // Add inline spacing
       finalContent = addInlineSpacing(finalContent);
       
@@ -771,6 +914,9 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error('Failed to add business promotion:', e);
       }
+      
+      // Final cleanup: Remove any bold that might have been re-added during link processing
+      finalContent = removeExcessiveBoldFromHTML(finalContent);
       
       postData.content = finalContent;
       

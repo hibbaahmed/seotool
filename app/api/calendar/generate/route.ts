@@ -98,12 +98,38 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { keyword_id, keyword, content_type = 'blog post', target_audience, tone = 'professional' } = body;
+    const { keyword_id, keyword, content_type = 'blog post', target_audience, tone = 'professional', is_test = false } = body;
 
     if (!keyword_id && !keyword) {
       return NextResponse.json(
         { error: 'Either keyword_id or keyword text is required' },
         { status: 400 }
+      );
+    }
+
+    // Both test and full generation require 1 credit
+    const requiredCredits = 1;
+    
+    // Check if user has enough credits (1 credit required for blog generation)
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('credits')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (creditsError || !creditsData) {
+      return NextResponse.json(
+        { error: 'Could not fetch user credits' },
+        { status: 500 }
+      );
+    }
+
+    const currentCredits = creditsData.credits || 0;
+
+    if (currentCredits < requiredCredits) {
+      return NextResponse.json(
+        { error: `Insufficient credits. You need ${requiredCredits} credit(s) to generate content. You currently have ${currentCredits} credit(s).` },
+        { status: 402 } // 402 Payment Required
       );
     }
 
@@ -372,10 +398,13 @@ export async function POST(request: NextRequest) {
       contentType: content_type,
       targetAudience: target_audience || 'General audience',
       tone,
-      imageUrls: uploadedImageUrls
+      imageUrls: uploadedImageUrls,
+      isTest: is_test // Pass test mode flag to prompt generator
     });
 
-    // Call the content writer API to generate content with multi-phase enabled
+    // Call the content writer API to generate content
+    // For test mode, disable multi-phase to generate shorter content faster
+    // For full generation, enable multi-phase for longer, better structured content
     const contentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
       method: 'POST',
       headers: {
@@ -384,7 +413,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         messages: [{ role: 'user', content: contentPrompt }],
         userId: user.id,
-        enableMultiPhase: true, // Enable multi-phase for longer, better structured content
+        enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
+        isTest: is_test, // Pass test mode flag to content-writer API
       }),
     });
 
@@ -673,7 +703,18 @@ export async function POST(request: NextRequest) {
 
     if (saveError) {
       console.error('Error saving generated content:', saveError);
-      // Don't fail the request, just log the error
+      // If content couldn't be saved, don't deduct credits and return error
+      return NextResponse.json(
+        { error: 'Failed to save generated content' },
+        { status: 500 }
+      );
+    }
+
+    if (!savedContent) {
+      return NextResponse.json(
+        { error: 'Content generation completed but content was not saved' },
+        { status: 500 }
+      );
     }
 
     // Update keyword with generated content reference
@@ -686,6 +727,27 @@ export async function POST(request: NextRequest) {
           generated_at: new Date().toISOString(),
         })
         .eq('id', keyword_id);
+    }
+
+    // Deduct credits after successful generation (both test and full generation)
+    // Use service client to ensure we have proper permissions for credit updates
+    const serviceSupabaseForCredits = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { error: deductError } = await serviceSupabaseForCredits
+      .from('credits')
+      .update({ credits: currentCredits - requiredCredits })
+      .eq('user_id', user.id);
+
+    if (deductError) {
+      console.error('⚠️ Error deducting credits after successful generation:', deductError);
+      // This is a critical error - content was generated but credits weren't deducted
+      // Log it but don't fail the request (user already got their content)
+      // This should be monitored and fixed manually if it happens
+    } else {
+      console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${user.id} for ${is_test ? 'test' : 'full'} generation. Remaining: ${currentCredits - requiredCredits}`);
     }
 
     // Auto-publish to user's connected WordPress site if available

@@ -13,6 +13,7 @@ export interface ContentPromptOptions {
   tone?: string;
   imageUrls?: string[];
   youtubeVideos?: Array<{ id: string; title?: string; url?: string }>;
+  isTest?: boolean; // Flag for test generation (shorter content)
 }
 
 /**
@@ -22,8 +23,15 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
   const {
     keyword = '',
     imageUrls = [],
-    youtubeVideos = []
+    youtubeVideos = [],
+    isTest = false
   } = options;
+  
+  const isTestMode = isTest;
+  const targetWordCount = isTestMode ? '200-300 words' : '6,000-8,500 words';
+  const wordCountDescription = isTestMode 
+    ? 'concise test article (200-300 words) for quick preview'
+    : 'comprehensive, in-depth article (6,000-8,500 words)';
 
   return `You are an expert SEO content writer who creates comprehensive, engaging articles that rank well in search engines.
 
@@ -63,39 +71,68 @@ Writing style:
 - Address reader pain points directly
 
 CRITICAL STRUCTURE REQUIREMENTS:
+${isTestMode ? `
+- 2-3 H2 sections (major topics) - simplified for test
+- Each H2 should contain 1-2 H3 subsections
+- Include 1-2 specific examples with real numbers
+- Optional: 1 comparison table (not required for test)
+- Create FAQ section with 2-3 questions
+- Use > blockquotes for 1-2 pro tips
+- Word count: 200-300 words (TEST MODE - Quick Preview)
+` : `
 - 8-12 H2 sections (major topics)
 - Each H2 MUST contain 3-5 H3 subsections
-- Include at least 15 specific examples with real numbers
+- Include at least 10-15 specific examples with real numbers
 - Add 4-6 professional comparison tables (REQUIRED)
 - Create FAQ section with 10-15 questions
-- Use > blockquotes for pro tips (at least 8-10 throughout)
-- Word count: 6,000-8,500 words
+- Use > blockquotes for pro tips (at least 5-8 throughout)
+- Word count: 6,000-8,500 words (FULL GENERATION)
+`}
 
 MANDATORY SECTIONS:
-1. Introduction with hook and overview (400-600 words)
-2. 8-12 main H2 sections (each 600-900 words)
-3. Common Challenges and Solutions section
-4. Tools and Resources section
-5. Advanced Strategies section
-6. FAQ section (10-15 questions)
-7. Conclusion with key takeaways (300-400 words)
+${isTestMode ? `
+1. Introduction with hook and overview (30-50 words)
+2. 2-3 main H2 sections (each 40-60 words)
+3. FAQ section (2-3 questions)
+4. Brief conclusion with key takeaways (20-30 words)
+` : `
+1. Introduction with hook and overview (200-300 words)
+2. 8-12 main H2 sections (each 400-600 words)
+3. FAQ section (10-15 questions)
+4. Conclusion with key takeaways (150-200 words)
+`}
 
 CONTENT DEPTH REQUIREMENTS:
-- Each H3 subsection should be 300-500 words minimum
+${isTestMode ? `
+- Each H3 subsection should be 20-40 words minimum
+- Include brief step-by-step guides with 2-3 steps where applicable
+- Add 1 real-world example
+- Include some statistical data where relevant
+- Keep sections very concise for quick testing
+` : `
+- Each H3 subsection should be 100-200 words minimum
 - Include step-by-step guides with 5-10 steps where applicable
-- Add case studies or real-world examples in dedicated subsections
-- Include statistical data and research citations
-- Add "Common Mistakes" and "Best Practices" sections
-- Include tool comparisons (at least 3 tools per relevant section)
-- Add "Quick Start Guide" or "Implementation Checklist" sections
+- Add 2-3 real-world examples per section
+- Include extensive statistical data and metrics
+- Provide comprehensive depth and coverage
+`}
 
+${isTestMode ? `
+ADDITIONAL SECTIONS TO INCLUDE (optional for test mode - keep minimal):
+- Skip additional sections for test mode - focus on core content only
+` : `
 ADDITIONAL SECTIONS TO INCLUDE:
-- ## Common Challenges and Solutions (with 4-5 H3 subsections)
-- ## Tools and Resources (with 4-5 H3 subsections covering specific tools)
-- ## Advanced Strategies (with 3-4 H3 subsections)
-- ## Industry Trends and Future Outlook
-- ## Expert Tips and Insider Knowledge
+- ## Common Challenges and Solutions (with 2-3 H3 subsections)
+- ## Tools and Resources (with 2-3 H3 subsections covering specific tools)
+`}
 
+${isTestMode ? `
+EXPANSION TECHNIQUES (simplified for test):
+- Keep explanations brief and to the point
+- Include 1-2 examples per concept (maximum)
+- Add brief step-by-step processes with 2-3 steps where applicable
+- Skip advanced expansion techniques for test mode
+` : `
 EXPANSION TECHNIQUES:
 - Start each H2 section with a 2-3 paragraph introduction explaining importance
 - Include multiple examples per concept (minimum 2-3 examples per H3)
@@ -105,15 +142,23 @@ EXPANSION TECHNIQUES:
 - Include troubleshooting subsections
 - Add timeline/roadmap sections showing progression
 - Include budget/resource allocation guidance where relevant
+`}
 
+${isTestMode ? `
+STORYTELLING ELEMENTS (simplified for test):
+- Use brief, concise examples
+- Skip lengthy case studies for test mode
+- Keep storytelling minimal and focused
+` : `
 STORYTELLING ELEMENTS:
 - Begin sections with relatable scenarios or case studies
 - Include before/after transformations with specific metrics
 - Add mini case studies (150-200 words each) throughout
 - Include quotes or insights (even if hypothetical expert opinions)
 - Add "real-world application" examples
+`}
 
-COMPARISON TABLES FORMAT (MANDATORY - Add 4-6 tables):
+COMPARISON TABLES FORMAT${isTestMode ? ' (OPTIONAL for test - 0-1 table if needed):' : ' (MANDATORY - Add 4-6 tables):'}
 - Create titled comparison tables with descriptive headings
 - Format: Use H3 heading with title like "10-Point Comparison: [Topic]" or "[Number]-Point Comparison: [Topic]"
 - Include 5-10 comparison rows with 4-6 columns
@@ -138,14 +183,17 @@ COMPARISON TABLES FORMAT (MANDATORY - Add 4-6 tables):
 - Make tables useful for reader decision-making
 
 FORMATTING:
-- Use **bold** for key terms on first mention
+- Use **bold** ONLY for FAQ questions (Q: format) and key technical terms on first mention (sparingly)
+- DO NOT bold entire sentences or paragraph openings
+- DO NOT bold subheading sentences - use regular text
 - Use bullet points for lists with 3+ items
 - Embed images: ![descriptive alt](URL)
 - Embed videos: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-TARGET LENGTH: This should be a comprehensive, pillar-content article of 6,000-8,500 words. 
-Think of this as an ultimate guide that could be published as a short ebook. Every section 
-should be thorough enough that readers don't need to search elsewhere for information on that subtopic.
+TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
+${isTestMode 
+  ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only.'
+  : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights.'}
 
 STRICT OUTPUT FORMAT:
 1. **Title**
@@ -157,6 +205,25 @@ STRICT OUTPUT FORMAT:
 3. **Content**
 # [Same title]
 
+${isTestMode ? `
+[Hook paragraph addressing pain point - 1-2 sentences]
+
+[Why this matters - 1-2 sentences]
+
+## H2: [Secondary Keyword Variation]
+
+[Opening paragraph explaining the concept - 2-3 sentences]
+
+### H3: Specific Technique or Tool
+
+[Brief explanation with example - 2-3 sentences]
+
+### H3: Related Approach
+
+[Brief explanation - 2-3 sentences]
+
+${isTestMode ? '' : '> **Pro Tip:** [Insider advice in blockquote]'}
+` : `
 [Hook paragraph addressing pain point - 2-3 sentences]
 
 [Why this matters - 2-3 sentences]
@@ -169,13 +236,9 @@ STRICT OUTPUT FORMAT:
 
 ### H3: Specific Technique or Tool
 
-**[Bold subheading sentence summarizing this subsection]**
-
 [Detailed explanation with example and real numbers - include metrics like "5,000/month" or "3x increase"]
 
 ### H3: Related Approach
-
-**[Bold subheading sentence summarizing this subsection]**
 
 [Build on previous subsection - include pro tip or best practice]
 
@@ -183,9 +246,8 @@ STRICT OUTPUT FORMAT:
 
 ### H3: Advanced Strategy
 
-**[Bold subheading sentence summarizing this subsection]**
-
 [Further depth with before/after comparison or data table]
+`}
 
 [Transition paragraph to next section]
 
@@ -196,10 +258,12 @@ STRICT OUTPUT FORMAT:
 ## FAQ
 
 **Q: [Natural language question]**
-[Direct answer in 2-3 sentences, then expand with context]
+
+[Direct answer in 2-3 sentences, then expand with context - do NOT use bold formatting in answers]
 
 **Q: [Another question]**
-[Answer with specific details and keywords]
+
+[Answer with specific details and keywords - do NOT use bold formatting in answers]
 
 [Continue with 10-15 total questions]
 
@@ -229,20 +293,28 @@ export function generateKeywordContentPrompt(options: ContentPromptOptions): str
     contentType = 'blog post',
     targetAudience = 'General audience',
     tone = 'professional',
-    imageUrls = []
+    imageUrls = [],
+    isTest = false
   } = options;
 
-  return `Write a comprehensive, SEO-optimized blog post about: "${keyword}"
+  const isTestMode = isTest;
+  const targetWordCount = isTestMode ? '200-300 words' : '6,000-8,500 words';
+  const wordCountDescription = isTestMode 
+    ? 'concise test article (200-300 words) for quick preview'
+    : 'comprehensive, in-depth article (6,000-8,500 words)';
+
+  return `Write ${isTestMode ? 'a brief test' : 'a comprehensive, SEO-optimized'} blog post about: "${keyword}"
 
 PRIMARY KEYWORD: "${keyword}"
 CONTENT TYPE: ${contentType}
 TARGET AUDIENCE: ${targetAudience}
 TONE: ${tone}
-WORD COUNT: 6,000-8,500 words
+WORD COUNT: ${targetWordCount}${isTestMode ? ' (TEST MODE - Quick Preview)' : ' (FULL GENERATION)'}
 
-TARGET LENGTH: This should be a comprehensive, pillar-content article of 6,000-8,500 words. 
-Think of this as an ultimate guide that could be published as a short ebook. Every section 
-should be thorough enough that readers don't need to search elsewhere for information on that subtopic.
+TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
+${isTestMode 
+  ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only. This is for testing purposes.'
+  : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights.'}
 
 ${primaryKeywords.length > 0 ? `
 PRIMARY KEYWORDS (use in title, H1, first paragraph, conclusion):
@@ -266,43 +338,34 @@ KEYWORD INTEGRATION:
 - LSI keywords: Naturally sprinkle related terms throughout
 - Avoid exact-match repetition (sounds robotic)
 
-Follow the structure and requirements outlined in your system prompt. Ensure you create 8-12 H2 sections, each with 3-5 H3 subsections, include 4-6 comparison tables, and create a comprehensive FAQ section with 10-15 questions.`;
+Follow the structure and requirements outlined in your system prompt. ${isTestMode 
+  ? 'For test mode: Create 2-3 H2 sections, each with 1-2 H3 subsections, optionally include 1 comparison table, and create a FAQ section with 2-3 questions. Keep everything concise.'
+  : 'Ensure you create 8-12 H2 sections, each with 3-5 H3 subsections, include 4-6 comparison tables, and create a FAQ section with 10-15 questions.'}`;
 }
 
 /**
  * Generate expansion prompt for content that's too short
  */
 export function generateExpansionPrompt(currentContent: string): string {
-  return `Expand the following draft to 6,000–8,500 words while preserving structure.
+  return `Expand the following draft to 500-800 words while preserving structure (TESTING MODE).
 
 CRITICAL EXPANSION REQUIREMENTS:
-- Ensure you have 8-12 H2 sections total (add more if needed)
-- Every H2 MUST have at least 3-5 H3 subsections (expand existing H2s to have 5 H3s each)
-- Each H3 subsection should be 300-500 words minimum
-- Add 2-3 more real, numbered examples per major section with specific metrics
-- Add at least 2-3 additional professional comparison tables (aim for 4-6 total)
-- Expand FAQ to 10-15 questions (INCREASED from 5-7)
-- Add the mandatory sections if missing:
-  * ## Common Challenges and Solutions (with 4-5 H3 subsections)
-  * ## Tools and Resources (with 4-5 H3 subsections)
-  * ## Advanced Strategies (with 3-4 H3 subsections)
-  * ## Industry Trends and Future Outlook
-  * ## Expert Tips and Insider Knowledge (with 3-4 H3 subsections)
-- Start each H2 section with a 2-3 paragraph introduction (200-300 words)
-- Include step-by-step guides with 5-10 steps where applicable
-- Add case studies or real-world examples in dedicated subsections (150-200 words each)
-- Include statistical data and research citations
-- Add "Common Mistakes" and "Best Practices" subsections
-- Include tool comparisons (at least 3 tools per relevant section)
-- Add "Quick Start Guide" or "Implementation Checklist" sections
-- Include at least 15 specific examples with real numbers total
-- Add 8-10 pro tips as blockquotes (>) throughout
+- Ensure you have 3-4 H2 sections total (add more if needed)
+- Every H2 MUST have at least 2-3 H3 subsections
+- Each H3 subsection should be 50-100 words minimum
+- Add 1-2 more real examples per major section with specific metrics
+- Add at least 1-2 professional comparison tables (aim for 1-2 total)
+- Expand FAQ to 3-5 questions
+- Start each H2 section with a 1-2 paragraph introduction (50-100 words)
+- Include step-by-step guides with 3-5 steps where applicable
+- Add 1-2 real-world examples
+- Include some statistical data where relevant
+- Add 2-3 pro tips as blockquotes (>) throughout
 - Keep tone, headings, links, and embeds; do NOT add a Table of Contents
 - Do NOT include labels like "Title:" or "Meta Description:" anywhere
-- Keep paragraphs short (3–4 sentences), use data and tools
+- Keep paragraphs short (2–3 sentences), use data and tools
 
-TARGET: This should be a comprehensive, pillar-content article of 6,000-8,500 words. 
-Think of this as an ultimate guide that could be published as a short ebook.
+TARGET: This should be a concise, well-structured article of 500-800 words (TESTING MODE).
 
 DRAFT TO EXPAND (Markdown):
 
