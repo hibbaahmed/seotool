@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe, Link as LinkIcon, Calendar, Code } from 'lucide-react';
+import Subscription from '../components/Subscription';
+import { Card, CardContent } from '../../components/ui/Card';
 
 export default function DashboardPage() {
   return (
@@ -16,6 +18,13 @@ export default function DashboardPage() {
               Access all your AI-powered marketing tools in one place
             </p>
           </div>
+
+          {/* Subscription Card - Moved Higher */}
+          <Card className="bg-white border border-slate-200 rounded-2xl shadow-lg mb-8">
+            <CardContent className="p-6">
+              <Subscription />
+            </CardContent>
+          </Card>
 
           {/* Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
