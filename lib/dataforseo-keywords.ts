@@ -373,10 +373,12 @@ export async function saveKeywordsToDatabase(
   const keywordsToInsert = keywordSet.all.map(k => ({
     keyword: k.keyword,
     search_volume: k.searchVolume,
-    difficulty: k.difficulty,
+    // Map to existing schema column
+    difficulty_score: k.difficulty,
     cpc: k.cpc,
     keyword_type: k.type,
-    project_id: projectId,
+    // Store the passed projectId into the existing onboarding_profile_id column
+    onboarding_profile_id: projectId,
     user_id: userId,
     source: 'dataforseo',
     related_keywords: k.relatedKeywords || [],
