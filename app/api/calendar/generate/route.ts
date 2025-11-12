@@ -69,6 +69,51 @@ function addInlineSpacing(html: string): string {
   return html;
 }
 
+// Helper function to get the base URL from request headers or environment
+function getBaseUrl(request: NextRequest): string {
+  // Try to get from environment variable first (most reliable)
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    console.log('✅ Using NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  
+  // Try Vercel URL (available in Vercel deployments)
+  if (process.env.VERCEL_URL) {
+    const vercelUrl = `https://${process.env.VERCEL_URL}`;
+    console.log('✅ Using VERCEL_URL:', vercelUrl);
+    return vercelUrl;
+  }
+  
+  // Get from request headers (works in production on Vercel)
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = request.headers.get('host');
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  
+  // Determine protocol
+  let protocol = 'https'; // Default to https for production
+  if (forwardedProto) {
+    protocol = forwardedProto;
+  } else if (process.env.NODE_ENV === 'development') {
+    protocol = 'http';
+  }
+  
+  // Determine hostname
+  const hostname = forwardedHost || host;
+  
+  if (hostname) {
+    // Remove port from host if present (Vercel doesn't include port in production)
+    const cleanHost = hostname.split(':')[0];
+    const baseUrl = `${protocol}://${cleanHost}`;
+    console.log('✅ Using base URL from request headers:', baseUrl);
+    return baseUrl;
+  }
+  
+  // Final fallback
+  const fallback = process.env.NODE_ENV === 'production' ? 'https://localhost:3000' : 'http://localhost:3000';
+  console.warn('⚠️ Could not determine base URL, using fallback:', fallback);
+  return fallback;
+}
+
 // POST /api/calendar/generate - Generate content for a keyword immediately
 export async function POST(request: NextRequest) {
   try {
@@ -409,24 +454,45 @@ export async function POST(request: NextRequest) {
       isTest: is_test // Pass test mode flag to prompt generator
     });
 
+    // Get the base URL from request headers (works in production)
+    const baseUrl = getBaseUrl(request);
+    console.log('🌐 Using base URL for content generation:', baseUrl);
+    
     // Call the content writer API to generate content
     // For test mode, disable multi-phase to generate shorter content faster
     // For full generation, enable multi-phase for longer, better structured content
-    const contentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: contentPrompt }],
-        userId: user.id,
-        enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
-        isTest: is_test, // Pass test mode flag to content-writer API
-      }),
-    });
+    const contentWriterUrl = `${baseUrl}/api/ai/content-writer`;
+    console.log('📞 Calling content writer API:', contentWriterUrl);
+    
+    let contentResponse;
+    try {
+      contentResponse = await fetch(contentWriterUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: contentPrompt }],
+          userId: user.id,
+          enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
+          isTest: is_test, // Pass test mode flag to content-writer API
+        }),
+      });
+    } catch (fetchError) {
+      console.error('❌ Error calling content writer API:', fetchError);
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      throw new Error(`Failed to call content writer API: ${errorMessage}. Base URL: ${baseUrl}`);
+    }
 
     if (!contentResponse.ok) {
-      throw new Error('Content generation failed');
+      const errorText = await contentResponse.text().catch(() => 'Unknown error');
+      console.error('❌ Content writer API returned error:', {
+        status: contentResponse.status,
+        statusText: contentResponse.statusText,
+        body: errorText,
+        url: contentWriterUrl
+      });
+      throw new Error(`Content generation failed: ${contentResponse.status} ${contentResponse.statusText}. ${errorText}`);
     }
 
     // Stream the response and collect the full content
@@ -526,17 +592,30 @@ export async function POST(request: NextRequest) {
         // Use shared expansion prompt function
         const expansionPrompt = generateExpansionPrompt(fullContent);
 
-        const expandRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            messages: [{ role: 'user', content: expansionPrompt }], 
-            userId: user.id,
-            enableMultiPhase: false // Use single-phase for expansion to avoid duplicate phases
-          })
-        });
+        // Use the same base URL from request headers
+        const baseUrl = getBaseUrl(request);
+        const expandUrl = `${baseUrl}/api/ai/content-writer`;
+        console.log('📞 Calling content writer API for expansion:', expandUrl);
+        
+        let expandRes;
+        try {
+          expandRes = await fetch(expandUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              messages: [{ role: 'user', content: expansionPrompt }], 
+              userId: user.id,
+              enableMultiPhase: false // Use single-phase for expansion to avoid duplicate phases
+            })
+          });
+        } catch (expandError) {
+          console.error('❌ Error calling content writer API for expansion:', expandError);
+          // Don't fail the entire request if expansion fails
+          console.warn('⚠️ Expansion request failed, continuing with original content');
+          expandRes = null;
+        }
 
-        if (expandRes.ok && expandRes.body) {
+        if (expandRes && expandRes.ok && expandRes.body) {
           const reader2 = expandRes.body.getReader();
           const decoder2 = new TextDecoder();
           let expanded = '';
