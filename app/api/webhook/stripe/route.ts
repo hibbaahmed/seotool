@@ -740,11 +740,12 @@ async function onSubScheduledCancel(subscription_id: string, cancel_at: string |
 	const userId = profileData.id;
 
 	// Update subscription table with cancel_at date
+	// Use type assertion since cancel_at exists in the database but may not be in TypeScript types
 	const { error: subUpdateError } = await supabase
 		.from("subscription")
 		.update({
 			cancel_at: cancel_at // Store the cancellation date
-		})
+		} as any)
 		.eq("subscription_id", subscription_id);
 
 	if (subUpdateError) {
@@ -753,11 +754,12 @@ async function onSubScheduledCancel(subscription_id: string, cancel_at: string |
 	}
 
 	// Update credits table with cancel_at date
+	// Use type assertion since cancel_at exists in the database but may not be in TypeScript types
 	const { error: creditsUpdateError } = await supabase
 		.from("credits")
 		.update({
 			cancel_at: cancel_at // Store the cancellation date
-		})
+		} as any)
 		.eq("user_id", userId);
 
 	if (creditsUpdateError) {
@@ -849,13 +851,14 @@ async function onSubCancel(subscription_id: string, req: any) {
 	});
 
 	// NOW null out everything since the subscription has actually ended
+	// Use type assertion since cancel_at exists in the database but may not be in TypeScript types
 	const { data: subUpdateData, error: subUpdateError } = await supabase
 		.from("subscription")
 		.update({
 			customer_id: null,
 			subscription_id: null,
 			cancel_at: null, // Clear the scheduled cancellation date
-		})
+		} as any)
 		.eq("subscription_id", subscription_id)
 		.select();
 
@@ -866,6 +869,7 @@ async function onSubCancel(subscription_id: string, req: any) {
 	});
 	
 	// Update credits table
+	// Use type assertion since cancel_at exists in the database but may not be in TypeScript types
 	const { data: creditsUpdateData, error: creditsUpdateError } = await supabase
 		.from("credits")
 		.update({
@@ -873,7 +877,7 @@ async function onSubCancel(subscription_id: string, req: any) {
 			subscription_id: null,
 			credits: 0,
 			cancel_at: null, // Clear the scheduled cancellation date
-		})
+		} as any)
 		.eq("user_id", userId)
 		.select();
 
