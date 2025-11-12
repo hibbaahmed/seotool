@@ -300,6 +300,19 @@ export async function POST(req: any) {
 				// Note: We'll get the email from the invoice.payment_succeeded event instead
 				// since that's where we have access to the email
 				break;
+
+			
+case "customer.subscription.updated":
+	// Handle subscription updates (for cancellations)
+	console.log('🔄 customer.subscription.updated event received');
+	const updatedSubscription = event.data.object;
+	const updateError = await onSubUpdate(updatedSubscription, req);
+	if (updateError) {
+		console.log('❌ Error in onSubUpdate:', updateError);
+		const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+		return Response.json({ error: errorMessage });
+	}
+	break;
 				
 			case "invoice.payment_succeeded":
 				// update here
@@ -648,10 +661,52 @@ async function onPaymentSucceeded(
 	}
 }
 
-async function onSubCancel(subscription_id: string, req: any) {
+// Updated onSubUpdate - Store cancel_at instead of nulling
+async function onSubUpdate(subscription: Stripe.Subscription, req: any) {
+	console.log('🔄 Subscription update received:', {
+		id: subscription.id,
+		cancel_at_period_end: subscription.cancel_at_period_end,
+		cancel_at: subscription.cancel_at,
+		canceled_at: subscription.canceled_at,
+		status: subscription.status
+	});
+
+	// Handle cancellations - check for cancel_at, cancel_at_period_end, OR canceled_at
+	if (subscription.cancel_at || subscription.cancel_at_period_end || subscription.canceled_at) {
+		const cancelAtDate = subscription.cancel_at 
+			? new Date(subscription.cancel_at * 1000).toISOString() 
+			: null;
+		
+		console.log('⚠️ Subscription scheduled for cancellation:', {
+			cancel_at: cancelAtDate,
+			cancel_at_period_end: subscription.cancel_at_period_end,
+			canceled_at: subscription.canceled_at
+		});
+		
+		// Store the cancellation date instead of immediately revoking access
+		return await onSubScheduledCancel(subscription.id, cancelAtDate, req);
+	}
+
+	// Handle if status changed to "canceled" or "incomplete_expired"
+	if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
+		console.log('⚠️ Subscription status is canceled/expired - revoking access now');
+		return await onSubCancel(subscription.id, req);
+	}
+
+	console.log('ℹ️ Subscription update does not require cancellation action');
+	return null;
+}
+
+// NEW FUNCTION: Store scheduled cancellation date
+async function onSubScheduledCancel(subscription_id: string, cancel_at: string | null, req: any) {
 	const supabase = await supabaseAdmin();
 
-	// First find the subscription to get the email
+	console.log('📅 Storing scheduled cancellation:', {
+		subscription_id,
+		cancel_at
+	});
+
+	// Find the subscription to get the email
 	const { data: subData, error: subError } = await supabase
 		.from("subscription")
 		.select("email")
@@ -659,11 +714,119 @@ async function onSubCancel(subscription_id: string, req: any) {
 		.single();
 
 	if (subError) {
-		console.error("Error finding subscription:", subError);
+		console.error("❌ Error finding subscription:", subError);
 		return subError;
 	}
 
 	const email = subData.email;
+
+	if (!email) {
+		console.error("❌ No email found in subscription record!");
+		return new Error("No email found in subscription");
+	}
+
+	// Look up the user_id from the profiles table
+	const { data: profileData, error: profileError } = await supabase
+		.from("profiles")
+		.select("id")
+		.eq("email", email)
+		.single();
+
+	if (profileError) {
+		console.error("Error finding user profile:", profileError);
+		return profileError;
+	}
+
+	const userId = profileData.id;
+
+	// Update subscription table with cancel_at date
+	const { error: subUpdateError } = await supabase
+		.from("subscription")
+		.update({
+			cancel_at: cancel_at // Store the cancellation date
+		})
+		.eq("subscription_id", subscription_id);
+
+	if (subUpdateError) {
+		console.error("❌ Error updating subscription cancel_at:", subUpdateError);
+		return subUpdateError;
+	}
+
+	// Update credits table with cancel_at date
+	const { error: creditsUpdateError } = await supabase
+		.from("credits")
+		.update({
+			cancel_at: cancel_at // Store the cancellation date
+		})
+		.eq("user_id", userId);
+
+	if (creditsUpdateError) {
+		console.error("❌ Error updating credits cancel_at:", creditsUpdateError);
+		return creditsUpdateError;
+	}
+
+	console.log('✅ Scheduled cancellation stored successfully:', {
+		email,
+		userId,
+		subscription_id,
+		cancel_at
+	});
+
+	// Send Facebook Conversions API event for subscription cancellation
+	try {
+		const facebookAPI = new FacebookConversionsAPI();
+		
+		console.log('🔄 Sending Facebook Unsubscribe event for scheduled cancellation...', {
+			email: email,
+			subscription_id: subscription_id,
+			cancel_at: cancel_at
+		});
+		
+		await facebookAPI.sendSubscriptionEvent({
+			email: email,
+			planName: 'Cancelled',
+			planValue: 0,
+			currency: 'USD',
+			eventType: 'Unsubscribe',
+			ipAddress: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '0.0.0.0',
+			userAgent: req.headers['user-agent'] || 'Server',
+			request: req
+		});
+		
+		console.log('✅ Facebook Conversions API Unsubscribe event sent successfully');
+	} catch (facebookError) {
+		console.error('❌ Error sending Facebook Unsubscribe event:', facebookError);
+	}
+
+	return null;
+}
+
+// Keep the existing onSubCancel for when subscription is actually deleted
+async function onSubCancel(subscription_id: string, req: any) {
+	const supabase = await supabaseAdmin();
+
+	console.log('🔴 CANCELLATION WEBHOOK RECEIVED (final deletion):', subscription_id);
+
+	// First find the subscription to get the email
+	const { data: subData, error: subError } = await supabase
+		.from("subscription")
+		.select("*")
+		.eq("subscription_id", subscription_id)
+		.single();
+
+	if (subError) {
+		console.error("❌ Error finding subscription:", subError);
+		return subError;
+	}
+
+	console.log('📋 Found subscription data:', JSON.stringify(subData, null, 2));
+
+	const email = subData.email;
+
+	if (!email) {
+		console.error("❌ No email found in subscription record!");
+		return new Error("No email found in subscription");
+	}
 
 	// Now look up the user_id from the profiles table
 	const { data: profileData, error: profileError } = await supabase
@@ -679,63 +842,63 @@ async function onSubCancel(subscription_id: string, req: any) {
 
 	const userId = profileData.id;
 
-	// Update both tables
-	const [subUpdateError, creditsUpdateError] = await Promise.all([
-		supabase
-			.from("subscription")
-			.update({
-				customer_id: null,
-				subscription_id: null,
-				// updated_at: new Date().toISOString()
-			})
-			.eq("subscription_id", subscription_id),
-		
-		supabase
-			.from("credits")
-			.update({
-				customer_id: null,
-				subscription_id: null,
-				credits: 0,
-				// updated_at: new Date().toISOString()
-			})
-			.eq("user_id", userId)
-	]).then(([subRes, creditsRes]) => [subRes.error, creditsRes.error]);
+	console.log('🔄 Actually cancelling subscription in database (nulling data):', {
+		subscription_id,
+		email,
+		userId
+	});
+
+	// NOW null out everything since the subscription has actually ended
+	const { data: subUpdateData, error: subUpdateError } = await supabase
+		.from("subscription")
+		.update({
+			customer_id: null,
+			subscription_id: null,
+			cancel_at: null, // Clear the scheduled cancellation date
+		})
+		.eq("subscription_id", subscription_id)
+		.select();
+
+	console.log('📊 Subscription update result:', {
+		error: subUpdateError,
+		rowsAffected: subUpdateData?.length || 0,
+		updatedData: subUpdateData
+	});
+	
+	// Update credits table
+	const { data: creditsUpdateData, error: creditsUpdateError } = await supabase
+		.from("credits")
+		.update({
+			customer_id: null,
+			subscription_id: null,
+			credits: 0,
+			cancel_at: null, // Clear the scheduled cancellation date
+		})
+		.eq("user_id", userId)
+		.select();
+
+	console.log('📊 Credits update result:', {
+		error: creditsUpdateError,
+		rowsAffected: creditsUpdateData?.length || 0,
+		updatedData: creditsUpdateData
+	});
 
 	if (subUpdateError) {
-		console.error("Error updating subscription:", subUpdateError);
+		console.error("❌ Error updating subscription:", subUpdateError);
 		return subUpdateError;
 	}
 
 	if (creditsUpdateError) {
-		console.error("Error updating credits:", creditsUpdateError);
+		console.error("❌ Error updating credits:", creditsUpdateError);
 		return creditsUpdateError;
 	}
 
-	// Send Facebook Conversions API event for subscription cancellation
-	try {
-		const facebookAPI = new FacebookConversionsAPI();
-		
-		console.log('🔄 Sending Facebook Unsubscribe event for cancelled subscription...', {
-			email: email,
-			subscription_id: subscription_id
-		});
-		
-    await facebookAPI.sendSubscriptionEvent({
-            email: email,
-            planName: 'Cancelled',
-            planValue: 0,
-            currency: 'USD',
-            eventType: 'Unsubscribe',
-            ipAddress: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Server',
-            request: req
-        });
-		
-		console.log('✅ Facebook Conversions API Unsubscribe event sent successfully');
-	} catch (facebookError) {
-		console.error('❌ Error sending Facebook Unsubscribe event:', facebookError);
-		// Don't fail the webhook if Facebook tracking fails
-	}
+	console.log('✅ Subscription cancelled successfully in database:', {
+		email,
+		userId,
+		subscriptionRowsAffected: subUpdateData?.length || 0,
+		creditsRowsAffected: creditsUpdateData?.length || 0
+	});
 
 	return null;
 }
