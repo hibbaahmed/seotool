@@ -91,7 +91,49 @@ function addInlineSpacing(html: string): string {
 // Helper function to extract title and clean content for WordPress publishing
 // Matches the exact logic from the original API route
 function extractTitleAndContentForWordPress(contentOutput: string, keywordText: string): { title: string; cleanedContent: string } {
+  console.log(`🔍 extractTitleAndContentForWordPress: Analyzing content (${contentOutput.length} chars)`);
+  
   let extractedTitle: string | null = null;
+  
+  // Check if content is already cleaned (no markers, has multiple headings)
+  const hasContentMarkers = /(?:^|\n)(?:\d+\.?\s*)?\*\*(?:Title|Meta Description|Content)\*\*/i.test(contentOutput);
+  const hasTitleLabels = /(?:^|\n)(?:Title|Meta Description):\s/i.test(contentOutput);
+  const hasMultipleHeadings = (contentOutput.match(/^##\s+/gm) || []).length >= 3;
+  const hasSubstantialContent = contentOutput.length > 2000;
+  const looksLikeCleanMarkdown = hasMultipleHeadings && hasSubstantialContent && !hasContentMarkers && !hasTitleLabels;
+  
+  // If content is already cleaned, extract title from H1 and return content as-is
+  // Make this check more lenient to avoid re-processing already-cleaned content
+  const hasAnyHeadings = (contentOutput.match(/^##\s+/gm) || []).length >= 1;
+  const hasH1 = /^#\s+/m.test(contentOutput);
+  
+  if (looksLikeCleanMarkdown || (!hasContentMarkers && !hasTitleLabels) || (hasAnyHeadings || hasH1)) {
+    console.log(`✅ Content appears already cleaned (${contentOutput.length} chars, ${(contentOutput.match(/^##\s+/gm) || []).length} H2 headings), extracting title from H1`);
+    
+    // Extract title from first H1
+    const h1Match = contentOutput.match(/^#\s+([^\n]+)/m);
+    if (h1Match && h1Match[1]) {
+      const h1Title = h1Match[1].trim();
+      if (h1Title.length > 5 && 
+          !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i)) {
+        extractedTitle = h1Title;
+      }
+    }
+    
+    // Fallback to keyword if no H1 found
+    if (!extractedTitle) {
+      extractedTitle = keywordText;
+    }
+    
+    console.log(`✅ Using cleaned content as-is WITHOUT any processing. Title: ${extractedTitle}, Content length: ${contentOutput.length} chars`);
+    console.log(`📊 Returning full content: ${contentOutput.length} characters`);
+    return {
+      title: extractedTitle,
+      cleanedContent: contentOutput.trim()
+    };
+  }
+  
+  console.log(`⚠️ Content has markers, proceeding with extraction`);
   
   // Priority 1: Extract from Title section with comprehensive patterns
   const titlePatterns = [
@@ -161,6 +203,8 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
     extractedTitle = keywordText;
   }
   
+  console.log(`✅ Extracted title: ${extractedTitle}`);
+  
   // Extract and clean content
   let cleaned = contentOutput;
   cleaned = cleaned.replace(/^\d+\.?\s*\*\*Title\*\*.*$/gmi, '');
@@ -175,7 +219,7 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
   cleaned = cleaned.replace(/(?:^|\n)\s*Title:\s*[^\n]+/gim, '');
   cleaned = cleaned.replace(/(?:^|\n)\s*Meta Description:\s*[^\n]+/gim, '');
   
-  // Extract Content section
+  // Extract Content section - but be more careful to get ALL content
   const contentPatterns = [
     /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
     /(?:^|\n)\*\*Content\*\*[:\s]*\n?(.*)$/is,
@@ -183,16 +227,28 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
   ];
   
   let extractedContent = '';
+  let foundContentMarker = false;
+  
   for (const pattern of contentPatterns) {
     const match = cleaned.match(pattern);
     if (match && match[1]) {
-      extractedContent = match[1];
+      extractedContent = match[1].trim();
+      foundContentMarker = true;
+      console.log(`✅ Found content marker. Extracted length: ${extractedContent.length} chars`);
       break;
     }
   }
   
-  if (!extractedContent) {
-    extractedContent = cleaned;
+  // If no Content section found, use everything after removing metadata
+  if (!extractedContent || !foundContentMarker) {
+    console.log(`⚠️ No content marker found, using cleaned content as-is (${cleaned.length} chars)`);
+    extractedContent = cleaned.trim();
+  }
+  
+  console.log(`📊 Final extracted content length: ${extractedContent.length} characters`);
+  
+  if (extractedContent.length < 1000) {
+    console.warn(`⚠️ WARNING: Extracted content is very short (${extractedContent.length} chars)! This might indicate a problem.`);
   }
   
   // Remove duplicate titles at the start
@@ -265,43 +321,12 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
   extractedContent = extractedContent.replace(/^###\s+\*\*(.+?)\*\*\s*$/gmi, '### $1');
   extractedContent = extractedContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
   
-  // Remove repetitive content after conclusion
-  const conclusionRegex = /(?:^|\n)##\s+Conclusion\s*\n/i;
-  const conclusionMatch = extractedContent.match(conclusionRegex);
+  // DON'T truncate after conclusion - keep ALL content including FAQ sections
+  // Only remove truly repetitive promotional boilerplate at the very end
+  const contentLength = extractedContent.length;
+  const endThreshold = Math.floor(contentLength * 0.8); // Last 20% of content
   
-  if (conclusionMatch && conclusionMatch.index !== undefined) {
-    const conclusionStart = conclusionMatch.index;
-    const afterConclusionStart = conclusionStart + conclusionMatch[0].length;
-    const afterConclusion = extractedContent.substring(afterConclusionStart);
-    const firstParagraphMatch = afterConclusion.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
-    
-    if (firstParagraphMatch && firstParagraphMatch.index !== undefined) {
-      const firstParaEnd = afterConclusionStart + firstParagraphMatch.index + firstParagraphMatch[0].length;
-      const afterFirstPara = afterConclusion.substring(firstParagraphMatch[0].length);
-      const repetitivePattern = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gmi;
-      
-      if (afterFirstPara.match(repetitivePattern)) {
-        extractedContent = extractedContent.substring(0, firstParaEnd).trim();
-      } else {
-        const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
-        let conclusionEnd = conclusionStart + conclusionMatch[0].length;
-        for (let i = 0; i < Math.min(2, paragraphMatches.length); i++) {
-          const paraText = paragraphMatches[i];
-          if (paraText && paraText.trim().length > 20) {
-            const paraIndex = afterConclusion.indexOf(paraText);
-            if (paraIndex !== -1) {
-              conclusionEnd = afterConclusionStart + paraIndex + paraText.length;
-            }
-          }
-        }
-        extractedContent = extractedContent.substring(0, conclusionEnd).trim();
-      }
-    }
-    
-    extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
-  }
-  
-  // Remove trailing sections
+  // Only remove metadata sections that appear at the VERY END
   const stopKeywords = [
     '\n4. **SEO Suggestions',
     '\n**SEO Suggestions**',
@@ -313,13 +338,79 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
     '\n**Call-to-Action**',
     '\n## Call-to-Action'
   ];
+  
   for (const stopKeyword of stopKeywords) {
     const index = extractedContent.indexOf(stopKeyword);
-    if (index !== -1) {
-      extractedContent = extractedContent.substring(0, index);
-      break;
+    if (index !== -1 && index >= endThreshold) {
+      // Make sure there's no FAQ or other legitimate content before this
+      const beforeKeyword = extractedContent.substring(0, index);
+      const afterKeyword = extractedContent.substring(index + stopKeyword.length);
+      const hasFAQBefore = /##\s+FAQ/i.test(beforeKeyword);
+      const isMetadataSection = afterKeyword.trim().length < 200 || afterKeyword.trim().match(/^\s*$/);
+      
+      if (!hasFAQBefore && isMetadataSection) {
+        extractedContent = extractedContent.substring(0, index);
+        break;
+      }
     }
   }
+  
+  // Remove repetitive promotional text only at the very end (last 500 chars)
+  const last500Chars = extractedContent.substring(Math.max(0, extractedContent.length - 500));
+  const repetitivePromoPattern = /(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gi;
+  const promoMatches = [...last500Chars.matchAll(repetitivePromoPattern)];
+  
+  if (promoMatches.length >= 2) {
+    const lastHeadingMatch = extractedContent.match(/(?:^|\n)(##\s+[^\n]+)(?:\n|$)/g);
+    if (lastHeadingMatch && lastHeadingMatch.length > 0) {
+      const lastHeading = lastHeadingMatch[lastHeadingMatch.length - 1];
+      const lastHeadingIndex = extractedContent.lastIndexOf(lastHeading);
+      
+      if (lastHeadingIndex !== -1) {
+        const afterLastHeading = extractedContent.substring(lastHeadingIndex + lastHeading.length);
+        const promoTextLength = afterLastHeading.match(repetitivePromoPattern)?.join('').length || 0;
+        if (promoTextLength > afterLastHeading.length * 0.5) {
+          const headingEnd = lastHeadingIndex + lastHeading.length;
+          const firstParaAfterHeading = afterLastHeading.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
+          if (firstParaAfterHeading) {
+            const keepUpTo = headingEnd + firstParaAfterHeading.index! + firstParaAfterHeading[0].length;
+            extractedContent = extractedContent.substring(0, keepUpTo).trim();
+          }
+        }
+      }
+    }
+  }
+  
+  // Remove standalone repetitive promotional sentences only at the very end
+  const contentLines = extractedContent.split('\n');
+  const cleanedLines: string[] = [];
+  let foundFAQ = false;
+  
+  for (let i = 0; i < contentLines.length; i++) {
+    const line = contentLines[i];
+    const trimmed = line.trim();
+    
+    if (trimmed.match(/^##\s+FAQ/i)) {
+      foundFAQ = true;
+      cleanedLines.push(line);
+      continue;
+    }
+    
+    if (foundFAQ) {
+      cleanedLines.push(line);
+      continue;
+    }
+    
+    const isPromoLine = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*$/i.test(trimmed);
+    
+    if (isPromoLine && i > contentLines.length * 0.9 && !foundFAQ && !trimmed.match(/^[-*>\d]/)) {
+      continue;
+    }
+    
+    cleanedLines.push(line);
+  }
+  
+  extractedContent = cleanedLines.join('\n');
   
   // Clean up whitespace and apply paragraph spacing
   extractedContent = extractedContent

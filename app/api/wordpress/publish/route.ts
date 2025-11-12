@@ -108,18 +108,32 @@ function addInlineSpacing(html: string): string {
 
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
-  if (!fullOutput) return '';
+  if (!fullOutput) {
+    console.warn('⚠️ extractContentFromAIOutput called with empty content');
+    return '';
+  }
   
-  // Check if content is already cleaned (no "**Content**" or "Title:" markers)
-  // If it looks like already-cleaned markdown content, just return it
+  console.log(`🔍 Analyzing content for extraction. Total length: ${fullOutput.length} characters`);
+  
+  // CRITICAL: Check if content is already cleaned
+  // The content from the database should already be fully processed by Inngest
+  // We should NOT re-process it - just return it as-is
   const hasContentMarkers = /(?:^|\n)(?:\d+\.?\s*)?\*\*(?:Title|Meta Description|Content)\*\*/i.test(fullOutput);
   const hasTitleLabels = /(?:^|\n)(?:Title|Meta Description):\s/i.test(fullOutput);
   
-  if (!hasContentMarkers && !hasTitleLabels) {
-    // Content appears to be already cleaned - use it as-is
-    console.log('Content appears already cleaned, using as-is');
-    return fullOutput;
+  // VERY lenient check: if content has ANY H2 headings OR is substantial, treat as already cleaned
+  // This ensures we don't re-process content that's already been cleaned by Inngest
+  const hasAnyHeadings = (fullOutput.match(/^##\s+/gm) || []).length >= 1;
+  const hasSubstantialContent = fullOutput.length > 1000; // More than 1000 chars
+  const hasH1 = /^#\s+/m.test(fullOutput);
+  
+  // If content looks like markdown (has headings and substantial length) and doesn't have clear markers, use as-is
+  if ((hasAnyHeadings || hasH1 || hasSubstantialContent) && !hasContentMarkers && !hasTitleLabels) {
+    console.log(`✅ Content appears already cleaned (${fullOutput.length} chars, ${(fullOutput.match(/^##\s+/gm) || []).length} H2 headings), returning as-is WITHOUT any processing`);
+    return fullOutput.trim();
   }
+  
+  console.log(`⚠️ Content has markers or looks raw, proceeding with extraction. hasContentMarkers=${hasContentMarkers}, hasTitleLabels=${hasTitleLabels}, hasHeadings=${hasAnyHeadings}, length=${fullOutput.length}`);
   
   let cleaned = fullOutput;
   
@@ -150,24 +164,41 @@ function extractContentFromAIOutput(fullOutput: string): string {
   
   // Step 3: Find and extract the Content section (handle escaped and non-escaped markdown)
   // Look for "3. **Content**" or "**Content**" followed by actual content
+  // IMPORTANT: Use the `s` flag to match across newlines and get ALL content after the marker
   const contentPatterns = [
-    /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,
+    /(?:^|\n)\d+\.?\s*\*\*Content\*\*[:\s]*\n?(.*)$/is,  // With `s` flag, `.` matches newlines too
     /(?:^|\n)\*\*Content\*\*[:\s]*\n?(.*)$/is,
     /(?:^|\n)3\.\s+\*\*Content\*\*[:\s]*\n?(.*)$/is
   ];
   
   let extractedContent = '';
+  let foundContentMarker = false;
+  
   for (const pattern of contentPatterns) {
     const match = cleaned.match(pattern);
     if (match && match[1]) {
-      extractedContent = match[1];
+      extractedContent = match[1].trim();
+      foundContentMarker = true;
+      console.log(`✅ Found content using pattern. Content length AFTER marker: ${extractedContent.length} characters`);
+      console.log(`📊 First 200 chars of extracted content: ${extractedContent.substring(0, 200)}...`);
       break;
     }
   }
   
-  // If no Content section found, try to use everything after removing metadata sections
-  if (!extractedContent) {
-    extractedContent = cleaned;
+  // If no Content section found, use everything after removing metadata sections
+  if (!extractedContent || !foundContentMarker) {
+    console.log(`⚠️ No content marker found, using cleaned content as-is (${cleaned.length} chars)`);
+    extractedContent = cleaned.trim();
+    console.log(`📊 First 200 chars of content: ${extractedContent.substring(0, 200)}...`);
+  }
+  
+  // CRITICAL: Log content length for debugging
+  console.log(`📊 Content after extraction: ${extractedContent.length} characters`);
+  if (extractedContent.length < 2000) {
+    console.error(`❌ CRITICAL WARNING: Extracted content is very short (${extractedContent.length} chars)!`);
+    console.error(`📋 Original input length was: ${fullOutput.length} characters`);
+    console.error(`📋 Cleaned length before extraction was: ${cleaned.length} characters`);
+    console.error(`⚠️ This indicates content is being lost during extraction!`);
   }
   
   // Step 4: Remove duplicate titles at the start (H1 format, plain text, or multiple occurrences)
@@ -238,7 +269,12 @@ function extractContentFromAIOutput(fullOutput: string): string {
   extractedContent = extractedContent.replace(/^\d+\.\s*\*\*[^*]+\*\*\s*$/gmi, '');
   extractedContent = extractedContent.replace(/^\*\*(?:Title|Meta Description|Content|SEO Suggestions|Image Suggestions|Call-to-Action)\*\*\s*$/gmi, '');
   
-  // Step 6: Remove trailing sections (SEO Suggestions, Call-to-Action, etc.)
+  // Step 6: Only remove metadata sections that appear at the VERY END of the content
+  // Don't remove sections that might be part of the main content (like FAQ after conclusion)
+  // Check if these keywords appear near the end (last 20% of content)
+  const contentLength = extractedContent.length;
+  const endThreshold = Math.floor(contentLength * 0.8); // Last 20% of content
+  
   const stopKeywords = [
     '\n4. **SEO Suggestions',
     '\n**SEO Suggestions**',
@@ -248,26 +284,36 @@ function extractContentFromAIOutput(fullOutput: string): string {
     '\n## Image Suggestions',
     '\n5. **Call-to-Action',
     '\n**Call-to-Action**',
-    '\n## Call-to-Action',
-    '\n4. **Image',
-    '\n5. **SEO',
-    '\n6. **Call',
-    '\nSEO Suggestions',
-    '\nImage Suggestions',
-    '\nCall-to-Action'
+    '\n## Call-to-Action'
   ];
   
+  // Only remove if the keyword appears in the last 20% of content
   for (const keyword of stopKeywords) {
     const index = extractedContent.indexOf(keyword);
-    if (index !== -1) {
-      extractedContent = extractedContent.substring(0, index);
-      break;
+    if (index !== -1 && index >= endThreshold) {
+      // Make sure there's no FAQ or other legitimate content after conclusion before this
+      const beforeKeyword = extractedContent.substring(0, index);
+      const afterKeyword = extractedContent.substring(index + keyword.length);
+      
+      // Check if there's a FAQ section before this keyword (if so, don't remove)
+      const hasFAQBefore = /##\s+FAQ/i.test(beforeKeyword);
+      // Check if this is clearly a metadata section (short content after, or end of document)
+      const isMetadataSection = afterKeyword.trim().length < 200 || afterKeyword.trim().match(/^\s*$/);
+      
+      if (!hasFAQBefore && isMetadataSection) {
+        extractedContent = extractedContent.substring(0, index);
+        break;
+      }
     }
   }
   
-  // Remove Key Takeaways sections entirely
-  extractedContent = extractedContent.replace(/\n(?:##\s*)?Key Takeaways:?\s*[\s\S]*?(?=\n##\s|$)/gmi, '\n');
-  // Remove [Call-to-Action]: placeholder lines
+  // Remove Key Takeaways sections only if they're at the very end
+  const keyTakeawaysMatch = extractedContent.match(/\n(?:##\s*)?Key Takeaways:?\s*[\s\S]*$/i);
+  if (keyTakeawaysMatch && keyTakeawaysMatch.index !== undefined && keyTakeawaysMatch.index >= endThreshold) {
+    extractedContent = extractedContent.substring(0, keyTakeawaysMatch.index);
+  }
+  
+  // Remove [Call-to-Action]: placeholder lines (these are always metadata)
   extractedContent = extractedContent.replace(/^\s*\[Call-to-Action\]:.*$/gmi, '');
   // Remove boilerplate lines like "Here is a 2,700-word comprehensive ... blog post ..."
   extractedContent = extractedContent.replace(/^[\s>*]*Here is a [^\n]*?blog post[^\n]*?:\s*\n?/i, '');
@@ -276,50 +322,81 @@ function extractContentFromAIOutput(fullOutput: string): string {
   // Also clean H2 headings with bold (## **Text** -> ## Text)
   extractedContent = extractedContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
   
-  // Remove repetitive content after conclusion
-  // Find the conclusion heading and keep only the conclusion section (first substantial paragraph)
-  const conclusionRegex = /(?:^|\n)##\s+Conclusion\s*\n/i;
-  const conclusionMatch = extractedContent.match(conclusionRegex);
+  // DON'T truncate after conclusion - keep ALL content including FAQ sections
+  // Only remove truly repetitive promotional boilerplate at the very end
+  // Check for repetitive promotional text at the end (last 500 characters)
+  const last500Chars = extractedContent.substring(Math.max(0, extractedContent.length - 500));
+  const repetitivePromoPattern = /(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gi;
+  const promoMatches = [...last500Chars.matchAll(repetitivePromoPattern)];
   
-  if (conclusionMatch && conclusionMatch.index !== undefined) {
-    const conclusionStart = conclusionMatch.index;
-    const afterConclusionStart = conclusionStart + conclusionMatch[0].length;
-    const afterConclusion = extractedContent.substring(afterConclusionStart);
-    
-    // Find the first substantial paragraph (ending with double newline or end of string)
-    // This is the main conclusion paragraph
-    const firstParagraphMatch = afterConclusion.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
-    
-    if (firstParagraphMatch && firstParagraphMatch.index !== undefined) {
-      const firstParaEnd = afterConclusionStart + firstParagraphMatch.index + firstParagraphMatch[0].length;
+  // Only remove if there are multiple promotional sentences at the very end
+  // and they're not part of a legitimate section
+  if (promoMatches.length >= 2) {
+    // Find the last legitimate section heading before the promotional text
+    const lastHeadingMatch = extractedContent.match(/(?:^|\n)(##\s+[^\n]+)(?:\n|$)/g);
+    if (lastHeadingMatch && lastHeadingMatch.length > 0) {
+      const lastHeading = lastHeadingMatch[lastHeadingMatch.length - 1];
+      const lastHeadingIndex = extractedContent.lastIndexOf(lastHeading);
       
-      // Check if there's repetitive content after the first paragraph
-      const afterFirstPara = afterConclusion.substring(firstParagraphMatch[0].length);
-      const repetitivePattern = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gmi;
-      
-      if (afterFirstPara.match(repetitivePattern)) {
-        // Remove everything after the first conclusion paragraph
-        extractedContent = extractedContent.substring(0, firstParaEnd).trim();
-      } else {
-        // Keep first 2 paragraphs if they're substantial and not repetitive
-        const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
-        let conclusionEnd = conclusionStart + conclusionMatch[0].length;
-        for (let i = 0; i < Math.min(2, paragraphMatches.length); i++) {
-          const paraText = paragraphMatches[i];
-          if (paraText && paraText.trim().length > 20) {
-            const paraIndex = afterConclusion.indexOf(paraText);
-            if (paraIndex !== -1) {
-              conclusionEnd = afterConclusionStart + paraIndex + paraText.length;
-            }
+      // Check if promotional text appears after the last heading
+      if (lastHeadingIndex !== -1) {
+        const afterLastHeading = extractedContent.substring(lastHeadingIndex + lastHeading.length);
+        // Only remove if promotional text dominates the content after last heading
+        const promoTextLength = afterLastHeading.match(repetitivePromoPattern)?.join('').length || 0;
+        if (promoTextLength > afterLastHeading.length * 0.5) {
+          // Keep everything up to and including the last heading, plus a reasonable amount after
+          const headingEnd = lastHeadingIndex + lastHeading.length;
+          // Find the first paragraph after the heading
+          const firstParaAfterHeading = afterLastHeading.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
+          if (firstParaAfterHeading) {
+            const keepUpTo = headingEnd + firstParaAfterHeading.index! + firstParaAfterHeading[0].length;
+            extractedContent = extractedContent.substring(0, keepUpTo).trim();
           }
         }
-        extractedContent = extractedContent.substring(0, conclusionEnd).trim();
       }
     }
-    
-    // Final cleanup: Remove any remaining repetitive bullet-like sentences
-    extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
   }
+  
+  // Remove standalone repetitive promotional sentences (but keep if they're in FAQ or other sections)
+  // Only remove if they appear at the very end and are clearly boilerplate
+  const lines = extractedContent.split('\n');
+  const cleanedLines: string[] = [];
+  let foundFAQ = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect FAQ section
+    if (trimmed.match(/^##\s+FAQ/i)) {
+      foundFAQ = true;
+      cleanedLines.push(line);
+      continue;
+    }
+    
+    // After FAQ section starts, keep everything
+    if (foundFAQ) {
+      cleanedLines.push(line);
+      continue;
+    }
+    
+    // Check if this is a repetitive promotional line
+    const isPromoLine = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*$/i.test(trimmed);
+    
+    // Only remove if:
+    // 1. It's a promotional line
+    // 2. We're in the last 10% of lines (near the end)
+    // 3. There's no FAQ section
+    // 4. It's not part of a list or quote
+    if (isPromoLine && i > lines.length * 0.9 && !foundFAQ && !trimmed.match(/^[-*>\d]/)) {
+      // Skip this line
+      continue;
+    }
+    
+    cleanedLines.push(line);
+  }
+  
+  extractedContent = cleanedLines.join('\n');
   
   // Step 7: Final cleanup - remove any remaining numbered section markers
   // Do multiple passes to catch any we missed
@@ -614,7 +691,32 @@ export async function POST(request: NextRequest) {
         }
         
         // Extract clean content from AI output (removes title, meta description, etc.)
+        console.log(`\n========== WORDPRESS PUBLISHING: CONTENT EXTRACTION ==========`);
+        console.log(`📝 Original database content length: ${contentOutput.length} characters`);
+        console.log(`📋 First 500 chars: ${contentOutput.substring(0, 500)}...`);
+        console.log(`📋 Last 500 chars: ...${contentOutput.substring(Math.max(0, contentOutput.length - 500))}`);
+        
         const extractedContent = extractContentFromAIOutput(contentOutput);
+        
+        console.log(`\n========== EXTRACTION COMPLETE ==========`);
+        console.log(`✅ Final extracted content length: ${extractedContent.length} characters`);
+        console.log(`📊 Length comparison: Original=${contentOutput.length} → Extracted=${extractedContent.length}`);
+        console.log(`📊 Content retained: ${((extractedContent.length / contentOutput.length) * 100).toFixed(1)}%`);
+        
+        // CRITICAL: Validate that we have substantial content
+        if (extractedContent.length < contentOutput.length * 0.8) {
+          console.error(`\n❌❌❌ CRITICAL ERROR: Lost ${contentOutput.length - extractedContent.length} characters (${(((contentOutput.length - extractedContent.length) / contentOutput.length) * 100).toFixed(1)}% loss)!`);
+          console.error('⚠️ This indicates the extraction function is removing too much content!');
+          console.error('📋 You should check the extraction logic in extractContentFromAIOutput()');
+        }
+        
+        if (extractedContent.length < 2000) {
+          console.error(`\n❌ CRITICAL WARNING: Extracted content is very short (${extractedContent.length} chars)!`);
+          console.error(`📋 Original content length: ${contentOutput.length} characters`);
+          console.error('⚠️ This might indicate content extraction is too aggressive or content is malformed.');
+        }
+        console.log(`==================================================\n`);
+        
         postData = {
           title: extractedTitle,
           content: extractedContent,
@@ -708,9 +810,13 @@ export async function POST(request: NextRequest) {
       // Convert Markdown to HTML for WordPress.com
       // Ensure images are properly converted from markdown (![alt](url)) to HTML (<img>)
       let htmlContent: string;
-      if (typeof postData.content === 'string') {
+      console.log(`🔄 Converting markdown to HTML. Content length: ${postData.content.length} characters`);
+      
+      if (typeof postData.content === 'string' && postData.content.trim()) {
         // Parse markdown to HTML
         htmlContent = marked.parse(postData.content, { async: false }) as string;
+        console.log(`✅ Markdown converted to HTML. HTML length: ${htmlContent.length} characters`);
+        
         // Double-check that markdown images were converted (should be HTML <img> tags now)
         if (htmlContent.includes('![') && htmlContent.includes('](')) {
           // If markdown images still exist, manually convert them
@@ -832,6 +938,10 @@ export async function POST(request: NextRequest) {
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
       }
       
+      // Log final content length before publishing
+      console.log(`🚀 Publishing to WordPress.com. Final HTML content length: ${htmlContent.length} characters`);
+      console.log(`📋 Post title: ${postData.title}`);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -851,14 +961,16 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('WordPress.com publishing error:', error);
+        console.error('❌ WordPress.com publishing error:', error);
+        console.error(`📊 Content that failed to publish - Length: ${htmlContent.length} characters`);
         return NextResponse.json({ 
           error: 'Failed to publish to WordPress.com',
           details: error
         }, { status: response.status });
       }
-
+      
       publishedPost = await response.json();
+      console.log(`✅ Successfully published to WordPress.com. Post ID: ${publishedPost.ID}, Content length: ${htmlContent.length} characters`);
     } else {
       // Use self-hosted WordPress REST API
       if (!wpAPI) {
@@ -867,10 +979,12 @@ export async function POST(request: NextRequest) {
       
       // Add automatic internal links to content before publishing (for self-hosted)
       let finalContent = postData.content;
+      console.log(`🔄 Preparing content for self-hosted WordPress. Content length: ${finalContent.length} characters`);
       
       // Convert markdown to HTML if needed
-      if (typeof finalContent === 'string' && (finalContent.includes('#') || finalContent.includes('*'))) {
+      if (typeof finalContent === 'string' && finalContent.trim() && (finalContent.includes('#') || finalContent.includes('*'))) {
         finalContent = marked.parse(finalContent, { async: false }) as string;
+        console.log(`✅ Markdown converted to HTML. HTML length: ${finalContent.length} characters`);
       }
       
       // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
@@ -918,12 +1032,17 @@ export async function POST(request: NextRequest) {
       // Final cleanup: Remove any bold that might have been re-added during link processing
       finalContent = removeExcessiveBoldFromHTML(finalContent);
       
+      console.log(`🚀 Publishing to self-hosted WordPress. Final HTML content length: ${finalContent.length} characters`);
+      console.log(`📋 Post title: ${postData.title}`);
+      
       postData.content = finalContent;
       
       if (publishOptions.publishDate) {
         publishedPost = await wpAPI.schedulePost(postData as any, publishOptions.publishDate);
+        console.log(`✅ Successfully scheduled post. Content length: ${finalContent.length} characters`);
       } else {
         publishedPost = await wpAPI.createPost(postData as any);
+        console.log(`✅ Successfully published post. Post ID: ${publishedPost?.id}, Content length: ${finalContent.length} characters`);
       }
     }
 
