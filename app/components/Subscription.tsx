@@ -56,9 +56,11 @@ export default function Subscription() {
 	};
 
 	// Check if subscription is scheduled for cancellation
-	const isCancelScheduled = user?.subscription?.cancel_at !== null;
-	const cancelDate = user?.subscription?.cancel_at 
-		? new Date(user.subscription.cancel_at)
+	// Use type assertion since cancel_at exists in the database but may not be in TypeScript types
+	const subscription = user?.subscription as any;
+	const isCancelScheduled = subscription?.cancel_at !== null && subscription?.cancel_at !== undefined;
+	const cancelDate = subscription?.cancel_at 
+		? new Date(subscription.cancel_at)
 		: null;
 
 	// Check if subscription is still active (even if cancel is scheduled)
