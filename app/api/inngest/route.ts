@@ -13,8 +13,8 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 // Increase max duration so Inngest finalization doesn't hit Vercel timeout
-// Set to 900s if your plan supports it; otherwise 300s.
-export const maxDuration = 900;
+// Set to your plan limit (Pro plan supports up to 800s).
+export const maxDuration = 800;
 
 // Create the Inngest serve handler
 export const { GET, POST, PUT } = serve({
