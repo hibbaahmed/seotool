@@ -202,14 +202,14 @@ function extractContentFromAIOutput(fullOutput: string): string {
   }
   
   // Step 4: Remove duplicate titles at the start (H1 format, plain text, or multiple occurrences)
-  const lines = extractedContent.split('\n');
+  const contentLines = extractedContent.split('\n');
   let startIndex = 0;
   let foundFirstTitle = false;
   const foundTitles: string[] = [];
   
   // First pass: identify all title-like patterns at the start
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
-    const line = lines[i].trim();
+  for (let i = 0; i < Math.min(10, contentLines.length); i++) {
+    const line = contentLines[i].trim();
     
     // Check for H1 format: # Title
     if (line.match(/^#\s+.+$/)) {
@@ -256,11 +256,11 @@ function extractContentFromAIOutput(fullOutput: string): string {
   }
   
   // Skip blank lines after titles
-  while (startIndex < lines.length && lines[startIndex].trim() === '') {
+  while (startIndex < contentLines.length && contentLines[startIndex].trim() === '') {
     startIndex++;
   }
   
-  extractedContent = lines.slice(startIndex).join('\n');
+  extractedContent = contentLines.slice(startIndex).join('\n');
   
   // Step 5: Remove any remaining numbered sections and metadata (very aggressive)
   extractedContent = extractedContent.replace(/^\d+\.?\s*\*\*[^*]+\*\*.*$/gmi, '');
