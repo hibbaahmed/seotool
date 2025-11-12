@@ -359,12 +359,12 @@ function extractContentFromAIOutput(fullOutput: string): string {
   
   // Remove standalone repetitive promotional sentences (but keep if they're in FAQ or other sections)
   // Only remove if they appear at the very end and are clearly boilerplate
-  const lines = extractedContent.split('\n');
+  const promoCleaningLines = extractedContent.split('\n');
   const cleanedLines: string[] = [];
   let foundFAQ = false;
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (let i = 0; i < promoCleaningLines.length; i++) {
+    const line = promoCleaningLines[i];
     const trimmed = line.trim();
     
     // Detect FAQ section
@@ -388,7 +388,7 @@ function extractContentFromAIOutput(fullOutput: string): string {
     // 2. We're in the last 10% of lines (near the end)
     // 3. There's no FAQ section
     // 4. It's not part of a list or quote
-    if (isPromoLine && i > lines.length * 0.9 && !foundFAQ && !trimmed.match(/^[-*>\d]/)) {
+    if (isPromoLine && i > promoCleaningLines.length * 0.9 && !foundFAQ && !trimmed.match(/^[-*>\d]/)) {
       // Skip this line
       continue;
     }
@@ -432,12 +432,12 @@ function extractContentFromAIOutput(fullOutput: string): string {
   
   // Step 10: Remove excessive bold formatting
   // Strategy: Keep bold ONLY for FAQ questions, remove all other bold formatting
-  const contentLines = extractedContent.split('\n');
+  const formattingLines = extractedContent.split('\n');
   const cleanedContent: string[] = [];
   let inFAQSection = false;
   
-  for (let i = 0; i < contentLines.length; i++) {
-    const line = contentLines[i];
+  for (let i = 0; i < formattingLines.length; i++) {
+    const line = formattingLines[i];
     const trimmed = line.trim();
     
     // Detect FAQ section
