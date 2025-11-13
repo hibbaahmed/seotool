@@ -97,8 +97,12 @@ async function generatePhase(
     'claude-3-sonnet-20240229',
   ];
 
+  const errors: Array<{ model: string; error: string }> = [];
+
   for (const model of candidateModels) {
     try {
+      console.log(`🤖 Trying model: ${model}`);
+      
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -119,15 +123,26 @@ async function generatePhase(
 
       if (response.ok) {
         const data = await response.json();
-        return data.content[0]?.text || '';
+        const content = data.content[0]?.text || '';
+        console.log(`✅ Success with model: ${model}`);
+        return content;
+      } else {
+        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+        const errorMsg = `HTTP ${response.status}: ${errorData.error?.message || response.statusText}`;
+        console.error(`❌ Model ${model} failed: ${errorMsg}`);
+        errors.push({ model, error: errorMsg });
       }
     } catch (error) {
-      console.error(`Error with model ${model}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Model ${model} threw exception: ${errorMsg}`);
+      errors.push({ model, error: errorMsg });
       continue;
     }
   }
 
-  throw new Error('All Claude models failed for this phase');
+  // All models failed - provide detailed error
+  const errorSummary = errors.map(e => `${e.model}: ${e.error}`).join('\n  ');
+  throw new Error(`All Claude models failed for this phase:\n  ${errorSummary}`);
 }
 
 /**

@@ -1123,6 +1123,10 @@ export default function CalendarPage() {
                       };
                       const start = (overrideStartDate || selectedDate || new Date().toISOString().slice(0,10));
 
+                      let successCount = 0;
+                      let failedCount = 0;
+                      const errors: string[] = [];
+
                       for (let i=0;i<selectedIds.length;i++){
                         const id = selectedIds[i];
                         const time = baseTime;
@@ -1133,18 +1137,33 @@ export default function CalendarPage() {
                           scheduled_date = addDays(start, dayIndex);
                         }
 
-                        await fetch('/api/calendar/keywords', {
+                        const response = await fetch('/api/calendar/keywords', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ keyword_id: id, scheduled_date, scheduled_time: time })
                         });
+
+                        if (response.ok) {
+                          successCount++;
+                        } else {
+                          failedCount++;
+                          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                          errors.push(`Keyword ${id}: ${errorData.error || response.statusText}`);
+                        }
                       }
+
+                      console.log(`✅ Scheduled ${successCount} keywords successfully`);
+                      if (failedCount > 0) {
+                        console.error(`❌ Failed to schedule ${failedCount} keywords:`, errors);
+                        alert(`Scheduled ${successCount} keywords successfully, but ${failedCount} failed. Check console for details.`);
+                      }
+
                       setShowAddModal(false);
                       setSelectedIds([]);
                       window.location.reload();
                     } catch (e) {
-                      console.error(e);
-                      alert('Failed to schedule keywords');
+                      console.error('Failed to schedule keywords:', e);
+                      alert(`Failed to schedule keywords: ${e instanceof Error ? e.message : 'Unknown error'}`);
                     }
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400"

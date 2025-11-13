@@ -361,14 +361,39 @@ export function formatKeywordsForPrompt(keywordSet: KeywordSet): string {
 
 /**
  * Save keywords to database
+ * Uses service role client to bypass RLS (called from Inngest background jobs)
  */
 export async function saveKeywordsToDatabase(
   keywordSet: KeywordSet,
   projectId: string,
   userId: string
 ) {
-  const { createClient } = await import('@/utils/supabase/server');
-  const supabase = await createClient();
+  // Use service role client to bypass RLS when called from Inngest
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
+  // Helper to calculate opportunity level based on search volume and difficulty
+  const calculateOpportunityLevel = (searchVolume: number, difficulty: number): 'low' | 'medium' | 'high' => {
+    // High opportunity: good search volume (>1000) with low-medium difficulty (<40)
+    if (searchVolume >= 1000 && difficulty < 40) {
+      return 'high';
+    }
+    // Medium opportunity: decent search volume (>500) with medium difficulty (40-70)
+    if (searchVolume >= 500 && difficulty < 70) {
+      return 'medium';
+    }
+    // Low opportunity: low volume or high difficulty
+    return 'low';
+  };
 
   const keywordsToInsert = keywordSet.all.map(k => ({
     keyword: k.keyword,
@@ -377,6 +402,8 @@ export async function saveKeywordsToDatabase(
     difficulty_score: k.difficulty,
     cpc: k.cpc,
     keyword_type: k.type,
+    // Calculate opportunity level based on volume and difficulty
+    opportunity_level: calculateOpportunityLevel(k.searchVolume, k.difficulty),
     // Store the passed projectId into the existing onboarding_profile_id column
     onboarding_profile_id: projectId,
     user_id: userId,
