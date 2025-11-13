@@ -1,61 +1,169 @@
-"use client";
+"use client"
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import Link from 'next/link';
+import { trackEnhancedFacebookEvent } from '@/lib/facebook-tracking-utils';
 
 function CheckoutSuccessContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [plan, setPlan] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(5);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Get checkout details from URL params
+  const sessionId = searchParams.get('session_id');
+  const plan = searchParams.get('plan') || 'Business';
+  const value = searchParams.get('value') || '69';
 
   useEffect(() => {
-    const sessionIdParam = searchParams.get('session_id');
-    const planParam = searchParams.get('plan');
+    // Track successful purchase with enhanced Facebook tracking
+    const numericValue = parseFloat(value);
+    const eventId = `purchase_${sessionId || Date.now()}`;
     
-    setSessionId(sessionIdParam);
-    setPlan(planParam);
-  }, [searchParams]);
+    const trackingData = {
+      value: numericValue,
+      currency: 'USD',
+      content_type: 'subscription',
+      content_name: `${plan} Plan`,
+      content_category: 'SEO Tool',
+      content_ids: [plan.toLowerCase()],
+      num_items: 1,
+    };
+
+    // Initial tracking without user data
+    trackEnhancedFacebookEvent('Purchase', trackingData, undefined, eventId);
+
+    // Enhanced user data for better matching (fetched separately for privacy)
+    if (sessionId) {
+      fetch(`/api/get-session-data?session_id=${sessionId}`)
+        .then(response => response.json())
+        .then(sessionData => {
+          if (sessionData.email) {
+            // Enhanced user data for better match quality
+            const userData = {
+              em: sessionData.email,
+              ...(sessionData.firstName && { fn: sessionData.firstName }),
+              ...(sessionData.lastName && { ln: sessionData.lastName }),
+              ...(sessionData.city && { ct: sessionData.city }),
+              ...(sessionData.state && { st: sessionData.state }),
+              ...(sessionData.zipCode && { zp: sessionData.zipCode }),
+              ...(sessionData.country && { country: sessionData.country }),
+            };
+
+            // Track enhanced purchase event with user data
+            trackEnhancedFacebookEvent('Purchase', trackingData, userData, eventId);
+            
+            console.log('🎯 Enhanced Facebook Purchase event tracked with complete user data');
+          }
+        })
+        .catch(err => {
+          console.warn('⚠️ Could not fetch session data for enhanced tracking:', err);
+        });
+    }
+
+    // Auto-redirect countdown
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          setIsRedirecting(true);
+          router.push('/calendar');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [router, plan, value, sessionId]);
+
+  const handleManualRedirect = () => {
+    setIsRedirecting(true);
+    router.push('/calendar');
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center">
-        <div className="mb-6">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full mx-auto text-center">
+        {/* Success Icon */}
+        <div className="mb-8">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-6">
             <CheckCircle className="w-12 h-12 text-green-600" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            Payment Successful!
-          </h1>
-          <p className="text-lg text-slate-600 mb-2">
-            Thank you for subscribing to Bridgely
-          </p>
-          {plan && (
-            <p className="text-base text-slate-500">
-              You've successfully subscribed to the <span className="font-semibold text-slate-700">{plan}</span> plan
-            </p>
-          )}
         </div>
 
-        {sessionId && (
-          <div className="bg-slate-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-slate-600 mb-1">Session ID:</p>
-            <p className="text-xs text-slate-500 font-mono break-all">{sessionId}</p>
-          </div>
-        )}
+        {/* Success Message */}
+        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+          Payment Successful! 🎉
+        </h1>
+        
+        <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+          Welcome to Bridgely {plan}! Your subscription is now active and you have full access to all our SEO tools.
+        </p>
 
+        {/* Plan Details */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-6 mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <h2 className="text-2xl font-bold text-slate-900">{plan} Plan Activated</h2>
+            <Sparkles className="w-6 h-6 text-purple-600" />
+          </div>
+          <p className="text-slate-600">
+            You now have unlimited access to SEO research, content generation, and all advanced features.
+          </p>
+        </div>
+
+        {/* Next Steps */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-6 mb-8">
+          <h3 className="text-xl font-bold text-slate-900 mb-4">What's Next?</h3>
+          <div className="space-y-3 text-left max-w-md mx-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+              <span className="text-slate-600">Schedule your content calendar</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+              <span className="text-slate-600">Generate SEO-optimized content</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+              <span className="text-slate-600">Track your keyword performance</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
         <div className="space-y-4">
-          <Link href="/dashboard">
-            <Button className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl">
-              Go to Dashboard
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              size="lg"
+              onClick={handleManualRedirect}
+              disabled={isRedirecting}
+              className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl w-full sm:w-auto"
+            >
+              {isRedirecting ? 'Redirecting...' : 'Go to Calendar'}
+              <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-          </Link>
-          <Link href="/pricing">
-            <Button className="w-full bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 py-3 px-6 rounded-xl font-semibold text-lg transition-all duration-200">
-              View Pricing
-            </Button>
-          </Link>
+            
+            <Link href="/calendar">
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-200 w-full sm:w-auto"
+              >
+                View Calendar
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="text-slate-500 text-sm">
+            {countdown > 0 ? (
+              <p>Redirecting to calendar in {countdown} seconds...</p>
+            ) : (
+              <p>Redirecting now...</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -66,11 +174,10 @@ export default function CheckoutSuccessPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-white">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
       </div>
     }>
       <CheckoutSuccessContent />
     </Suspense>
   );
 }
-

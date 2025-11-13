@@ -47,7 +47,7 @@ export default function DashboardPage() {
               </div>
             </Link> */}
 
-            {/* <Link 
+            <Link 
               href="/saved-content"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -64,7 +64,7 @@ export default function DashboardPage() {
                 <span>View Saved Content</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link> */}
+            </Link>
 
             {/* <Link 
               href="/content-writer"
@@ -123,7 +123,7 @@ export default function DashboardPage() {
               </div>
             </Link> */}
 
-            {/* <Link 
+            <Link 
               href="/saved"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                 <span>View All Saved</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Link> */}
+            </Link>
 
             <Link 
               href="/dashboard/wordpress-sites"
