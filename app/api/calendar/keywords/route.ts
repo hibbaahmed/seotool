@@ -220,25 +220,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate date/time is not in the past
-    const scheduledDate = new Date(`${scheduled_date}T${scheduled_time}`);
+    // Parse the scheduled date in local timezone to avoid UTC conversion issues
+    const [year, month, day] = scheduled_date.split('-').map(Number);
+    const scheduledDate = new Date(year, month - 1, day);
+    
+    // Get today's date (local timezone, midnight)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Get yesterday's date for comparison
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
     console.log('📅 Date validation:', { 
-      scheduledDate: scheduledDate.toISOString(), 
-      today: today.toISOString(), 
-      isPast: scheduledDate < today 
+      scheduledDateString: scheduled_date,
+      scheduledDate: scheduledDate.toDateString(),
+      today: today.toDateString(),
+      yesterday: yesterday.toDateString(),
+      isPast: scheduledDate < yesterday
     });
     
-    if (scheduledDate < today) {
-      console.error('❌ Scheduled date is in the past');
+    // Only reject if scheduling for yesterday or earlier
+    // Allow scheduling for today (even if time has passed - Inngest will handle it)
+    if (scheduledDate < yesterday) {
+      console.error('❌ Scheduled date is in the past (before yesterday)');
       console.error('🔴🔴🔴 RETURNING 400: Cannot schedule for past dates 🔴🔴🔴');
       return NextResponse.json(
         { 
           error: 'Cannot schedule keywords for past dates', 
           details: { 
-            scheduled: scheduledDate.toISOString(), 
-            today: today.toISOString() 
+            scheduled: scheduled_date,
+            today: today.toISOString().split('T')[0],
+            message: 'You can only schedule for today or future dates'
           } 
         },
         { status: 400 }
