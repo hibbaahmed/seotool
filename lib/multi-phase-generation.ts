@@ -27,41 +27,41 @@ export async function generateMultiPhaseContent(
 ): Promise<MultiPhaseResult> {
   const { topic, userInput, imageUrls, videos, apiKey } = options;
 
-  // PHASE 1: Generate Outline
+  // PHASE 1: Generate Outline (reduced from 4000 to stay under rate limit)
   console.log('📋 Phase 1: Generating outline...');
   const outline = await generatePhase(
     getOutlinePrompt(topic, userInput),
     apiKey,
-    4000
+    3000
   );
   console.log(`✅ Phase 1 complete. Outline length: ${outline.length} characters`);
 
-  // PHASE 2: Generate Introduction + First 4 sections
+  // PHASE 2: Generate Introduction + First 4 sections (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 2: Writing introduction and sections 1-4...');
   const sections1to4 = await generatePhase(
     getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections'),
     apiKey,
-    8000
+    5000
   );
   const words1to4 = sections1to4.split(/\s+/).length;
   console.log(`✅ Phase 2 complete. Length: ${sections1to4.length} chars, ~${words1to4} words`);
 
-  // PHASE 3: Generate Sections 5-8
+  // PHASE 3: Generate Sections 5-8 (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 3: Writing sections 5-8...');
   const sections5to8 = await generatePhase(
     getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8'),
     apiKey,
-    8000
+    5000
   );
   const words5to8 = sections5to8.split(/\s+/).length;
   console.log(`✅ Phase 3 complete. Length: ${sections5to8.length} chars, ~${words5to8} words`);
 
-  // PHASE 4: Generate Remaining sections, FAQ, and Conclusion
+  // PHASE 4: Generate Remaining sections, FAQ, and Conclusion (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
   const finalSections = await generatePhase(
     getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos),
     apiKey,
-    8000
+    5000
   );
   const wordsFinal = finalSections.split(/\s+/).length;
   console.log(`✅ Phase 4 complete. Length: ${finalSections.length} chars, ~${wordsFinal} words`);
@@ -83,60 +83,103 @@ export async function generateMultiPhaseContent(
 }
 
 /**
- * Generate a single phase using Claude API
+ * Sleep helper for rate limit backoff
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Generate a single phase using Claude API with retry logic
  */
 async function generatePhase(
   systemPrompt: string,
   apiKey: string,
   maxTokens: number
 ): Promise<string> {
+  // Use only valid, working models (404 models removed)
   const candidateModels = [
-    'claude-sonnet-4-5-20250929',
     'claude-sonnet-4-20250514',
-    'claude-3-5-sonnet-20241022',
-    'claude-3-sonnet-20240229',
+    'claude-sonnet-4-5-20250929',
   ];
 
   const errors: Array<{ model: string; error: string }> = [];
 
   for (const model of candidateModels) {
-    try {
-      console.log(`🤖 Trying model: ${model}`);
-      
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: maxTokens,
-          temperature: 0.7,
-          system: systemPrompt,
-          messages: [
-            { role: 'user', content: 'Generate the content as specified in the system prompt.' }
-          ]
-        })
-      });
+    // Try each model with exponential backoff for rate limits
+    const maxRetries = 3;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const backoffMs = Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30s
+          console.log(`⏳ Retry ${attempt}/${maxRetries} for ${model} after ${backoffMs}ms`);
+          await sleep(backoffMs);
+        }
+        
+        console.log(`🤖 Trying model: ${model} (attempt ${attempt + 1}/${maxRetries})`);
+        
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: maxTokens,
+            temperature: 0.7,
+            system: systemPrompt,
+            messages: [
+              { role: 'user', content: 'Generate the content as specified in the system prompt.' }
+            ]
+          })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.content[0]?.text || '';
-        console.log(`✅ Success with model: ${model}`);
-        return content;
-      } else {
-        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
-        const errorMsg = `HTTP ${response.status}: ${errorData.error?.message || response.statusText}`;
-        console.error(`❌ Model ${model} failed: ${errorMsg}`);
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.content[0]?.text || '';
+          console.log(`✅ Success with model: ${model}`);
+          
+          // Add delay to avoid hitting rate limits on next request
+          // With 8,000 tokens/minute limit, wait 15s between phases to be safe
+          await sleep(15000);
+          
+          return content;
+        } else {
+          const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+          const errorMsg = `HTTP ${response.status}: ${errorData.error?.message || response.statusText}`;
+          
+          // If 429 (rate limit), retry with backoff
+          if (response.status === 429 && attempt < maxRetries - 1) {
+            console.warn(`⚠️ Rate limit hit on ${model}, will retry...`);
+            continue; // Try again with backoff
+          }
+          
+          // If 404 (model not found), skip to next model immediately
+          if (response.status === 404) {
+            console.error(`❌ Model ${model} not found (404), skipping to next model`);
+            errors.push({ model, error: `Model not found (404)` });
+            break; // Skip retries, try next model
+          }
+          
+          console.error(`❌ Model ${model} failed: ${errorMsg}`);
+          errors.push({ model, error: errorMsg });
+          
+          if (attempt === maxRetries - 1) {
+            break; // Max retries reached, try next model
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Model ${model} threw exception: ${errorMsg}`);
         errors.push({ model, error: errorMsg });
+        
+        if (attempt === maxRetries - 1) {
+          break; // Max retries reached, try next model
+        }
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`❌ Model ${model} threw exception: ${errorMsg}`);
-      errors.push({ model, error: errorMsg });
-      continue;
     }
   }
 
