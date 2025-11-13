@@ -63,13 +63,18 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
   const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
+  
+  // Get starting day of week (0 = Sunday, 1 = Monday, etc.)
   const startingDayOfWeek = firstDayOfMonth.getDay();
+  
+  // Adjust for Monday start (convert Sunday=0 to Sunday=6, Monday=0)
+  const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
 
   // Generate calendar days
   const calendarDays = [];
   
   // Add empty cells for days before the first day of the month
-  for (let i = 0; i < startingDayOfWeek; i++) {
+  for (let i = 0; i < adjustedStartDay; i++) {
     calendarDays.push(null);
   }
   
