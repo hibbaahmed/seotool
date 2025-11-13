@@ -188,20 +188,33 @@ export async function GET(request: NextRequest) {
 
 // POST /api/calendar/keywords - Schedule a keyword for generation
 export async function POST(request: NextRequest) {
+  console.log('🔵🔵🔵 POST /api/calendar/keywords - REQUEST START 🔵🔵🔵');
+  console.log('Request URL:', request.url);
+  console.log('Request method:', request.method);
+  
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
+    console.log('Auth check:', { hasUser: !!user, userId: user?.id, authError: authError?.message });
+
     if (authError || !user) {
+      console.error('❌ Unauthorized: No user or auth error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log('📦 Request body parsed:', JSON.stringify(body, null, 2));
+    
     const { keyword_id, scheduled_date, scheduled_time = '06:00:00' } = body;
 
+    console.log('📥 Extracted fields:', { keyword_id, scheduled_date, scheduled_time });
+
     if (!keyword_id || !scheduled_date) {
+      console.error('❌ Missing required fields:', { keyword_id, scheduled_date });
+      console.error('🔴🔴🔴 RETURNING 400: Missing required fields 🔴🔴🔴');
       return NextResponse.json(
-        { error: 'Keyword ID and scheduled date are required' },
+        { error: 'Keyword ID and scheduled date are required', details: { keyword_id: !!keyword_id, scheduled_date: !!scheduled_date } },
         { status: 400 }
       );
     }
@@ -211,14 +224,29 @@ export async function POST(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    console.log('📅 Date validation:', { 
+      scheduledDate: scheduledDate.toISOString(), 
+      today: today.toISOString(), 
+      isPast: scheduledDate < today 
+    });
+    
     if (scheduledDate < today) {
+      console.error('❌ Scheduled date is in the past');
+      console.error('🔴🔴🔴 RETURNING 400: Cannot schedule for past dates 🔴🔴🔴');
       return NextResponse.json(
-        { error: 'Cannot schedule keywords for past dates' },
+        { 
+          error: 'Cannot schedule keywords for past dates', 
+          details: { 
+            scheduled: scheduledDate.toISOString(), 
+            today: today.toISOString() 
+          } 
+        },
         { status: 400 }
       );
     }
 
     // Update the keyword to schedule it
+    console.log(`🔄 Updating keyword ${keyword_id} for user ${user.id}...`);
     const { data: keyword, error } = await supabase
       .from('discovered_keywords')
       .update({
@@ -234,12 +262,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error scheduling keyword:', error);
-      return NextResponse.json({ error: 'Failed to schedule keyword' }, { status: 500 });
+      console.error('❌ Database error scheduling keyword:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
+      console.error('🔴🔴🔴 RETURNING 500: Database update failed 🔴🔴🔴');
+      return NextResponse.json({ error: 'Failed to schedule keyword', details: error.message }, { status: 500 });
     }
+
+    console.log(`✅ Successfully scheduled keyword: ${keyword.keyword}`);
 
     // Also send an Inngest schedule event for precise timing
     try {
+      console.log('📤 Sending Inngest event...');
       await inngest.send({
         name: 'calendar/keyword.schedule',
         data: {
@@ -250,14 +286,23 @@ export async function POST(request: NextRequest) {
           relatedKeywords: keyword.related_keywords || [],
         }
       });
+      console.log('✅ Inngest event sent successfully');
     } catch (e) {
-      console.error('Failed to send schedule event to Inngest:', e);
+      console.error('⚠️ Failed to send schedule event to Inngest:', e);
     }
 
+    console.log('🟢🟢🟢 POST /api/calendar/keywords - SUCCESS - RETURNING 200 🟢🟢🟢');
     return NextResponse.json(keyword, { status: 200 });
   } catch (error) {
-    console.error('Calendar keywords POST API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('❌❌❌ CALENDAR KEYWORDS POST API ERROR ❌❌❌');
+    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Full error:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 

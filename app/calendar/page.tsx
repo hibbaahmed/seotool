@@ -1137,17 +1137,22 @@ export default function CalendarPage() {
                           scheduled_date = addDays(start, dayIndex);
                         }
 
+                        const requestBody = { keyword_id: id, scheduled_date, scheduled_time: time };
+                        console.log(`📤 Scheduling keyword ${i+1}/${selectedIds.length}:`, requestBody);
+
                         const response = await fetch('/api/calendar/keywords', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ keyword_id: id, scheduled_date, scheduled_time: time })
+                          body: JSON.stringify(requestBody)
                         });
 
                         if (response.ok) {
                           successCount++;
+                          console.log(`✅ Keyword ${i+1} scheduled successfully`);
                         } else {
                           failedCount++;
                           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                          console.error(`❌ Keyword ${i+1} failed (${response.status}):`, errorData);
                           errors.push(`Keyword ${id}: ${errorData.error || response.statusText}`);
                         }
                       }
@@ -1155,12 +1160,17 @@ export default function CalendarPage() {
                       console.log(`✅ Scheduled ${successCount} keywords successfully`);
                       if (failedCount > 0) {
                         console.error(`❌ Failed to schedule ${failedCount} keywords:`, errors);
-                        alert(`Scheduled ${successCount} keywords successfully, but ${failedCount} failed. Check console for details.`);
+                        // Show error details in alert for easier debugging
+                        const errorSummary = errors.slice(0, 3).join('\n'); // Show first 3 errors
+                        const moreText = errors.length > 3 ? `\n\n...and ${errors.length - 3} more errors` : '';
+                        alert(`Scheduled ${successCount} keywords successfully, but ${failedCount} failed:\n\n${errorSummary}${moreText}\n\nDO NOT CLOSE THIS - Check Network tab now!`);
+                        // Don't reload on error so user can inspect Network tab
+                      } else {
+                        // Only reload if all succeeded
+                        setShowAddModal(false);
+                        setSelectedIds([]);
+                        window.location.reload();
                       }
-
-                      setShowAddModal(false);
-                      setSelectedIds([]);
-                      window.location.reload();
                     } catch (e) {
                       console.error('Failed to schedule keywords:', e);
                       alert(`Failed to schedule keywords: ${e instanceof Error ? e.message : 'Unknown error'}`);
