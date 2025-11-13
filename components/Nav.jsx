@@ -74,7 +74,7 @@ export default function Nav({ user }) {
         <div className="hidden lg:flex items-center space-x-2">
 
           {/* Features Dropdown */}
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center group">
                 <Link href="/features" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50">
@@ -167,7 +167,7 @@ export default function Nav({ user }) {
                 </div>
               </div>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
           
           <Link href="/blog" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
             Blog
