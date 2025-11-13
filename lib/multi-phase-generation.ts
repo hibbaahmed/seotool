@@ -189,9 +189,14 @@ async function generatePhase(
 }
 
 /**
+ * Export generatePhase for use in separate Inngest steps
+ */
+export { generatePhase as generateSinglePhase };
+
+/**
  * Generate outline prompt
  */
-function getOutlinePrompt(topic: string, userInput: string): string {
+export function getOutlinePrompt(topic: string, userInput: string): string {
   return `You are creating a comprehensive article outline for a 6,000-8,500 word pillar article about: "${topic}"
 
 User requirements: ${userInput}
@@ -246,7 +251,7 @@ CRITICAL: Create at least 10 H2 sections to reach the 6,000+ word target.`;
 /**
  * Generate sections prompt
  */
-function getSectionsPrompt(
+export function getSectionsPrompt(
   topic: string,
   userInput: string,
   outline: string,
@@ -367,7 +372,7 @@ WORD COUNT TARGET: 2,000-2,500 words for this phase. If you write less, you are 
 /**
  * Generate final sections prompt
  */
-function getFinalSectionsPrompt(
+export function getFinalSectionsPrompt(
   topic: string,
   userInput: string,
   outline: string,

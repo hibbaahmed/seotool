@@ -1165,18 +1165,71 @@ export const generateKeywordContent = inngest.createFunction(
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
 
-    // Generate all content in one step (multi-phase generation handles phases internally)
-    // This runs in Inngest's infrastructure, so no Vercel timeout
-    const generatedContent = await step.run('generate-content-phases', async () => {
-      console.log('📋 Starting multi-phase content generation...');
-      return await generateMultiPhaseContent({
-        topic: keywordText,
-        userInput: contentPrompt,
-        imageUrls: uploadedImageUrls,
-        videos,
+    // Break multi-phase generation into separate steps to avoid Vercel timeouts
+    // Each step is a separate HTTP request, so Vercel doesn't timeout
+    
+    // Import helpers from multi-phase-generation
+    const { getOutlinePrompt, getSectionsPrompt, getFinalSectionsPrompt, generateSinglePhase } = await import('./multi-phase-generation');
+    
+    // Phase 1: Generate Outline
+    const outline = await step.run('generate-outline', async () => {
+      console.log('📋 Phase 1: Generating outline...');
+      return await generateSinglePhase(
+        getOutlinePrompt(keywordText, contentPrompt),
         apiKey,
-      });
+        3000
+      );
     });
+    console.log(`✅ Phase 1 complete. Outline length: ${outline.length} characters`);
+
+    // Phase 2: Generate Introduction + First 4 sections
+    const sections1to4 = await step.run('generate-sections-1-4', async () => {
+      console.log('✍️ Phase 2: Writing introduction and sections 1-4...');
+      return await generateSinglePhase(
+        getSectionsPrompt(keywordText, contentPrompt, outline, '1-4', uploadedImageUrls, videos, 'introduction and first 4 sections'),
+        apiKey,
+        5000
+      );
+    });
+    const words1to4 = sections1to4.split(/\s+/).length;
+    console.log(`✅ Phase 2 complete. ~${words1to4} words`);
+
+    // Phase 3: Generate Sections 5-8
+    const sections5to8 = await step.run('generate-sections-5-8', async () => {
+      console.log('✍️ Phase 3: Writing sections 5-8...');
+      return await generateSinglePhase(
+        getSectionsPrompt(keywordText, contentPrompt, outline, '5-8', uploadedImageUrls, videos, 'sections 5-8'),
+        apiKey,
+        5000
+      );
+    });
+    const words5to8 = sections5to8.split(/\s+/).length;
+    console.log(`✅ Phase 3 complete. ~${words5to8} words`);
+
+    // Phase 4: Generate Final Sections, FAQ, Conclusion
+    const finalSections = await step.run('generate-final-sections', async () => {
+      console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
+      return await generateSinglePhase(
+        getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos),
+        apiKey,
+        5000
+      );
+    });
+    const wordsFinal = finalSections.split(/\s+/).length;
+    console.log(`✅ Phase 4 complete. ~${wordsFinal} words`);
+
+    // Combine all phases
+    const fullContent = sections1to4 + '\n\n' + sections5to8 + '\n\n' + finalSections;
+    const totalWords = words1to4 + words5to8 + wordsFinal;
+    console.log(`🎉 Multi-phase generation complete! Total: ~${totalWords} words`);
+
+    const generatedContent = {
+      outline,
+      sections1to4,
+      sections5to8,
+      finalSections,
+      fullContent,
+    };
 
     // Step 6: Process and clean content (comprehensive cleaning like original API route)
     const processedContent = await step.run('process-content', async () => {
