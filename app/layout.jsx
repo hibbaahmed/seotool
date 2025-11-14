@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 import { cn } from "../lib/utils";
 import ClientProvider from "@/components/ClientProvider";
 import Script from "next/script";
-import { PostHogProvider } from '@/providers';
+import { PostHogProvider } from './providers';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
