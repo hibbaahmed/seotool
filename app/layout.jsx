@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { cn } from "../lib/utils";
 import ClientProvider from "@/components/ClientProvider";
 import Script from "next/script";
+import { PostHogProvider } from '@/providers';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
           geistMono.variable
         )}
       >
+        <PostHogProvider>
         {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
@@ -63,6 +65,7 @@ export default function RootLayout({ children }) {
           {children}
           <Toaster />
         </ClientProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
