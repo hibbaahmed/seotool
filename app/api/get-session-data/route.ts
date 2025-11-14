@@ -29,8 +29,13 @@ export async function GET(request: NextRequest) {
       ? await stripe.customers.retrieve(session.customer)
       : session.customer;
 
+    // Check if customer exists and is not deleted
+    const customerEmail = customer && typeof customer !== 'string' && !('deleted' in customer)
+      ? customer.email
+      : null;
+
     return NextResponse.json({
-      email: customerDetails?.email || (customer && typeof customer !== 'string' ? customer.email : null),
+      email: customerDetails?.email || customerEmail,
       firstName: customerDetails?.name?.split(' ')[0] || null,
       lastName: customerDetails?.name?.split(' ').slice(1).join(' ') || null,
       city: customerDetails?.address?.city || null,
