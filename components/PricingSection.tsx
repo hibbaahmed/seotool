@@ -75,15 +75,12 @@ const PricingSection = () => {
             </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-slate-700 mb-6 max-w-4xl mx-auto leading-relaxed font-semibold">
-            Stop wasting 8+ hours per article on manual SEO. Get traffic from Google, ChatGPT, and other search engines on autopilot.
-          </p>
-          <p className="text-base sm:text-lg md:text-lg lg:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Our platform automatically researches, writes, optimizes, and publishes articles for you 24/7. <span className="font-semibold text-slate-700">Rank on Google and get cited on ChatGPT</span>—all in one place. <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">Every hour you save is revenue gained.</span>
+            Publish SEO-optimized articles every day on autopilot. Drive traffic from Google, ChatGPT, and other search engines without lifting a finger.
           </p>
         </div>
 
-        {/* Key Feature Highlights - Centered Row */}
-        <div className="flex flex-wrap justify-center gap-8 mb-20">
+        {/* Key Feature Highlights - Responsive Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-8 max-w-3xl mx-auto">
           {keyFeatures.map((feature, index) => {
             const gradients = [
               'from-blue-50 to-indigo-50',
@@ -98,12 +95,12 @@ const PricingSection = () => {
               'bg-blue-600'
             ];
             return (
-              <div key={index} className={`bg-gradient-to-br ${gradients[index % gradients.length]} rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all max-w-[200px]`}>
-                <div className={`w-12 h-12 ${iconColors[index % iconColors.length]} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                  <feature.icon className="w-6 h-6 text-white" />
+              <div key={index} className={`bg-gradient-to-br ${gradients[index % gradients.length]} rounded-lg p-3 md:p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all aspect-square flex flex-col items-center justify-center text-center`}>
+                <div className={`w-8 h-8 md:w-10 md:h-10 ${iconColors[index % iconColors.length]} rounded-lg flex items-center justify-center mb-2 md:mb-3`}>
+                  <feature.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <h3 className="font-bold text-slate-900 mb-2 text-center">{feature.title}</h3>
-                <p className="text-sm text-slate-600 font-normal text-center">{feature.description}</p>
+                <h3 className="font-bold text-slate-900 mb-1 text-xs md:text-sm leading-tight">{feature.title}</h3>
+                <p className="text-xs text-slate-600 font-normal leading-tight px-0.5 md:px-1">{feature.description}</p>
               </div>
             );
           })}
