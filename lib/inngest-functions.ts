@@ -73,98 +73,11 @@ function addInlineSpacing(html: string): string {
   html = html.replace(/<h6>/gi, '<h6 style="margin-top: 1.5em; margin-bottom: 0.75em; font-weight: 700;">');
   
   // Add professional styling to tables
-  // Step 1: Convert markdown tables (without thead) to proper HTML structure with thead/tbody
-  // Markdown tables typically have: <table><tr><th>...</th></tr><tr><td>...</td></tr></table>
-  // We need: <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>
-  
-  // Process each table individually to ensure proper structure
-  html = html.replace(/<table[^>]*>[\s\S]*?<\/table>/gi, (tableMatch) => {
-    // Skip if table already has thead
-    if (tableMatch.includes('<thead')) {
-      return tableMatch;
-    }
-    
-    // Find first row with th elements (header row)
-    const firstThRowMatch = tableMatch.match(/<tr[^>]*>[\s\S]*?<th[^>]*>[\s\S]*?<\/tr>/i);
-    if (!firstThRowMatch) {
-      // No header row found, return as-is
-      return tableMatch;
-    }
-    
-    const firstThRow = firstThRowMatch[0];
-    const restOfTable = tableMatch.substring(tableMatch.indexOf(firstThRow) + firstThRow.length);
-    
-    // Extract table attributes
-    const tableTagMatch = tableMatch.match(/<table([^>]*)>/);
-    const tableAttrs = tableTagMatch ? tableTagMatch[1] : '';
-    
-    // Build new table structure: thead for header row, tbody for the rest
-    let newTable = `<table${tableAttrs}>`;
-    newTable += `<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">${firstThRow}</thead>`;
-    
-    // Wrap remaining rows in tbody (if any)
-    if (restOfTable.trim() && restOfTable.includes('<tr')) {
-      newTable += `<tbody>${restOfTable.replace(/<\/table>/, '').trim()}</tbody>`;
-    } else {
-      newTable += '<tbody></tbody>';
-    }
-    
-    newTable += '</table>';
-    return newTable;
-  });
-  
-  // Step 2: Apply styling to all table elements
-  // Style table container
-  html = html.replace(/<table([^>]*)>/gi, (match, attrs) => {
-    if (attrs && attrs.includes('style=')) {
-      // Merge with existing styles
-      return match.replace(/style="([^"]*)"/, 'style="$1; margin-top: 2rem; margin-bottom: 2rem; width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 15px; border: none;"');
-    }
-    return `<table${attrs} style="margin-top: 2rem; margin-bottom: 2rem; width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 15px; border: none;">`;
-  });
-  
-  // Style thead - purple gradient background
-  html = html.replace(/<thead([^>]*)>/gi, (match, attrs) => {
-    if (attrs && attrs.includes('style=') && attrs.includes('linear-gradient')) {
-      return match; // Already has gradient
-    }
-    if (attrs && attrs.includes('style=')) {
-      // Merge styles
-      return match.replace(/style="([^"]*)"/, 'style="$1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"');
-    }
-    return `<thead${attrs} style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">`;
-  });
-  
-  // Style th elements (table headers) - white text
-  html = html.replace(/<th([^>]*)>/gi, (match, attrs) => {
-    if (attrs && attrs.includes('style=')) {
-      // Merge styles if style already exists
-      return match.replace(/style="([^"]*)"/, 'style="$1; color: white; font-weight: 600; text-align: left; padding: 16px 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border: none;"');
-    }
-    return '<th' + attrs + ' style="color: white; font-weight: 600; text-align: left; padding: 16px 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border: none;">';
-  });
-  
-  // Style tbody rows with hover effect
-  html = html.replace(/<tbody([^>]*)>/gi, (match, attrs) => {
-    // Just ensure tbody exists, styling handled by tr
-    return match;
-  });
-  
-  // Style td elements (table data cells)
-  html = html.replace(/<td([^>]*)>/gi, (match, attrs) => {
-    if (attrs && attrs.includes('style=')) {
-      return match.replace(/style="([^"]*)"/, 'style="$1; padding: 16px 20px; color: #374151; line-height: 1.6; border: none; border-bottom: 1px solid #e5e7eb;"');
-    }
-    return '<td' + attrs + ' style="padding: 16px 20px; color: #374151; line-height: 1.6; border: none; border-bottom: 1px solid #e5e7eb;">';
-  });
-  
-  // Style tr elements (table rows) - transition for hover
-  html = html.replace(/<tr([^>]*)>/gi, (match, attrs) => {
-    if (attrs && attrs.includes('style=')) {
-      return match.replace(/style="([^"]*)"/, 'style="$1; transition: background-color 0.2s ease;"');
-    }
-    return '<tr' + attrs + ' style="transition: background-color 0.2s ease;">';
-  });
+  html = html.replace(/<table>/gi, '<table style="margin-top: 2rem; margin-bottom: 2rem; width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 15px; border: none;">');
+  html = html.replace(/<thead>/gi, '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">');
+  html = html.replace(/<th>/gi, '<th style="color: white; font-weight: 600; text-align: left; padding: 16px 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border: none;">');
+  html = html.replace(/<td>/gi, '<td style="padding: 16px 20px; color: #374151; line-height: 1.6; border: none; border-bottom: 1px solid #e5e7eb;">');
+  html = html.replace(/<tr>/gi, '<tr style="transition: background-color 0.2s ease;">');
   
   html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
   
