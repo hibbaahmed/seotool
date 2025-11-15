@@ -8,9 +8,9 @@ export async function middleware(request: NextRequest) {
   
   // Redirect non-www to www for consistent domain usage
   const url = new URL(request.url);
-  if (url.hostname === 'vidfix.io') {
+  if (url.hostname === 'bridgely.io') {
     const redirectUrl = new URL(request.url);
-    redirectUrl.hostname = 'www.vidfix.io';
+    redirectUrl.hostname = 'www.bridgely.io';
     return NextResponse.redirect(redirectUrl, 301);
   }
   

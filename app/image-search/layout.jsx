@@ -4,8 +4,8 @@ import Navbar from "../../components/Navbar";
 import { getNavbarData } from '../../utils/getNavbarData';
 
 export const metadata = {
-  title: 'VidFix',
-  description: 'Create Your Next AI Video',
+  title: 'Bridgely',
+  description: 'AI-Powered SEO Automation Platform - Rank on Google and Get Cited on ChatGPT',
 };
 
 export default async function RootLayout({ children }) {
