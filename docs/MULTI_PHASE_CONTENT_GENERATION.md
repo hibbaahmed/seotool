@@ -272,3 +272,4 @@ Potential improvements:
 Multi-phase generation is now the **default** for all content generation. It reliably produces comprehensive, well-structured articles that meet the 6,000-8,500 word target with consistent quality across all sections.
 
 
+

@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 		);
 		const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 		if (!error) {
-			// Check if user has completed onboarding
+			// Check if user has completed onboarding and has a subscription
 			if (data.user) {
 				const { data: onboardingProfile } = await supabase
 					.from('user_onboarding_profiles')
@@ -51,9 +51,29 @@ export async function GET(request: Request) {
 					.eq('user_id', data.user.id)
 					.single();
 				
-				// If no onboarding profile exists or it's not completed, redirect to onboarding
-				if (!onboardingProfile || onboardingProfile.onboarding_status !== 'completed') {
+				// Check if user has an active subscription
+				const { data: subscription } = await supabase
+					.from('subscriptions')
+					.select('customer_id, subscription_id')
+					.eq('user_id', data.user.id)
+					.single();
+				
+				const hasSubscription = !!subscription?.customer_id;
+				const hasCompletedOnboarding = onboardingProfile?.onboarding_status === 'completed';
+				
+				// If user has subscription but hasn't completed onboarding, redirect to onboarding
+				if (hasSubscription && !hasCompletedOnboarding) {
 					return NextResponse.redirect(`${origin}/onboarding`);
+				}
+				
+				// If user doesn't have subscription, show pricing first (before onboarding)
+				if (!hasSubscription) {
+					return NextResponse.redirect(`${origin}/price`);
+				}
+				
+				// If user has completed onboarding, proceed normally
+				if (hasCompletedOnboarding) {
+					return NextResponse.redirect(`${origin}${next}`);
 				}
 			}
 			return NextResponse.redirect(`${origin}${next}`);

@@ -63,12 +63,13 @@ function CheckoutSuccessContent() {
         });
     }
 
-    // Auto-redirect countdown
+    // Auto-redirect countdown - redirect to onboarding after purchase
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           setIsRedirecting(true);
-          router.push('/calendar');
+          // Redirect to onboarding after successful purchase
+          router.push('/onboarding');
           return 0;
         }
         return prev - 1;
@@ -80,7 +81,8 @@ function CheckoutSuccessContent() {
 
   const handleManualRedirect = () => {
     setIsRedirecting(true);
-    router.push('/calendar');
+    // Redirect to onboarding after successful purchase
+    router.push('/onboarding');
   };
 
   return (
@@ -99,7 +101,7 @@ function CheckoutSuccessContent() {
         </h1>
         
         <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-          Welcome to Bridgely {plan}! Your subscription is now active and you have full access to all our SEO tools.
+          Welcome to Bridgely {plan}! Your subscription is now active. Let's set up your account to get started.
         </p>
 
         {/* Plan Details */}
@@ -120,15 +122,15 @@ function CheckoutSuccessContent() {
           <div className="space-y-3 text-left max-w-md mx-auto">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-              <span className="text-slate-600">Schedule your content calendar</span>
+              <span className="text-slate-600">Complete your onboarding setup</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-              <span className="text-slate-600">Generate SEO-optimized content</span>
+              <span className="text-slate-600">We'll analyze your website and competitors</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-              <span className="text-slate-600">Track your keyword performance</span>
+              <span className="text-slate-600">Get your personalized keyword list</span>
             </div>
           </div>
         </div>
@@ -142,24 +144,24 @@ function CheckoutSuccessContent() {
               disabled={isRedirecting}
               className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl w-full sm:w-auto"
             >
-              {isRedirecting ? 'Redirecting...' : 'Go to Calendar'}
+              {isRedirecting ? 'Redirecting...' : 'Start Onboarding'}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             
-            <Link href="/calendar">
+            <Link href="/onboarding">
               <Button
                 size="lg"
                 variant="outline"
                 className="bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-200 w-full sm:w-auto"
               >
-                View Calendar
+                Complete Setup
               </Button>
             </Link>
           </div>
           
           <div className="text-slate-500 text-sm">
             {countdown > 0 ? (
-              <p>Redirecting to calendar in {countdown} seconds...</p>
+              <p>Redirecting to onboarding in {countdown} seconds...</p>
             ) : (
               <p>Redirecting now...</p>
             )}

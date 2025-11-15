@@ -50,11 +50,32 @@ const HomePage = () => {
                     .eq('user_id', user.id)
                     .single();
                 
-                // If no onboarding profile exists or it's not completed, redirect to onboarding
-                if (!onboardingProfile || onboardingProfile.onboarding_status !== 'completed') {
+                // Check if user has an active subscription
+                const { data: subscription } = await supabase
+                    .from('subscriptions')
+                    .select('customer_id, subscription_id')
+                    .eq('user_id', user.id)
+                    .single();
+                
+                const hasSubscription = !!subscription?.customer_id;
+                const hasCompletedOnboarding = onboardingProfile?.onboarding_status === 'completed';
+                
+                // If user has subscription but hasn't completed onboarding, redirect to onboarding
+                if (hasSubscription && !hasCompletedOnboarding) {
                     router.push('/onboarding');
-                } else {
+                    return;
+                }
+                
+                // If user doesn't have subscription, show pricing first (before onboarding)
+                if (!hasSubscription) {
+                    router.push('/price');
+                    return;
+                }
+                
+                // If user has completed onboarding, go to dashboard
+                if (hasCompletedOnboarding) {
                     router.push('/dashboard');
+                    return;
                 }
             }
         };
