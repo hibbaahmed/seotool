@@ -236,25 +236,13 @@ export default function Nav({ user }) {
 
       {/* Mobile Navigation */}
       <div
-        className={`lg:hidden fixed inset-0 bg-gradient-to-br from-white/98 via-purple-50/95 to-blue-50/95 backdrop-blur-xl z-40 transform transition-transform ease-in-out duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ top: '70px' }}
+        className={`lg:hidden fixed left-0 right-0 w-full bg-gradient-to-br from-white/98 via-purple-50/95 to-blue-50/95 backdrop-blur-xl z-40 transform transition-transform ease-in-out duration-300 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ top: '70px', height: 'calc(100vh - 70px)' }}
       >
-        <div className="px-6 py-8 h-full overflow-y-auto">
+        <div className="px-6 py-8">
           <div className="flex flex-col space-y-3">
-            <Link href="/dashboard" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Dashboard
-            </Link>
-            <Link href="/features" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Features
-            </Link>
-            <Link href="/templates" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Templates
-            </Link>
             <Link href="/blog" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
               Blog
-            </Link>
-            <Link href="/projects" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Projects
             </Link>
             <Link href="/pricing" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
               Pricing
@@ -312,7 +300,7 @@ export default function Nav({ user }) {
               </div>
               <div>
                 <p className="text-sm text-slate-500 font-medium">Need help?</p>
-                <Link href="mailto:support@bridgely.com" className="text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300">
+                <Link href="mailto:team@bridgely.io" className="text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300">
                   Contact Support
                 </Link>
               </div>

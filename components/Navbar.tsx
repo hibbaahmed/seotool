@@ -160,26 +160,16 @@ export default function AuthenticatedNavbar({ user, credits }: NavbarProps) {
 
       {/* Mobile Navigation */}
       <div
-        className={`lg:hidden fixed inset-0 bg-white/95 backdrop-blur-md z-40 transform transition-transform ease-in-out duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ top: '60px' }}
+        className={`lg:hidden fixed left-0 right-0 w-full bg-white/95 backdrop-blur-md z-40 transform transition-transform ease-in-out duration-300 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ top: '60px', height: 'calc(100vh - 60px)' }}
       >
-        <div className="px-4 py-6 h-full overflow-y-auto">
+        <div className="px-4 py-6">
           <div className="flex flex-col space-y-2">
             <Link href="/dashboard" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Dashboard
             </Link>
-            
             <Link href="/calendar" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Calendar
-            </Link>
-            <Link href="/features" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
-              Features
-            </Link>
-            <Link href="/templates" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
-              Templates
-            </Link>
-            <Link href="/projects" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
-              Projects
             </Link>
             <Link href="/price" className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200 font-medium">
               Pricing
@@ -244,7 +234,7 @@ export default function AuthenticatedNavbar({ user, credits }: NavbarProps) {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Need help?</p>
-                <Link href="mailto:support@bridgely.com" className="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                <Link href="mailto:team@bridgely.io" className="text-blue-600 hover:text-blue-500 text-sm font-medium">
                   Contact Support
                 </Link>
               </div>
