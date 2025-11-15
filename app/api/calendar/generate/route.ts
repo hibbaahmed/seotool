@@ -987,35 +987,60 @@ export async function POST(request: NextRequest) {
         // Also clean H2 headings with bold (## **Text** -> ## Text)
         extractedContent = extractedContent.replace(/^##\s+\*\*(.+?)\*\*\s*$/gmi, '## $1');
         
-        // Remove repetitive content after conclusion
-        // Find the conclusion heading and keep only the conclusion section (first substantial paragraph)
+        // Remove repetitive content after conclusion, but preserve FAQ sections
+        // Find the conclusion heading
         const conclusionRegex = /(?:^|\n)##\s+Conclusion\s*\n/i;
         const conclusionMatch = extractedContent.match(conclusionRegex);
+        
+        // Check if there's an FAQ section after conclusion (can be H2 header or Q: format)
+        const faqRegex = /(?:^|\n)(?:##\s+(?:FAQ|Frequently Asked Questions|Common Questions)\s*\n|Q:\s)/i;
+        const faqMatch = extractedContent.match(faqRegex);
         
         if (conclusionMatch && conclusionMatch.index !== undefined) {
           const conclusionStart = conclusionMatch.index;
           const afterConclusionStart = conclusionStart + conclusionMatch[0].length;
-          const afterConclusion = extractedContent.substring(afterConclusionStart);
           
-          // Find the first substantial paragraph (ending with double newline or end of string)
-          // This is the main conclusion paragraph
-          const firstParagraphMatch = afterConclusion.match(/^(.+?)(?:\n\n|\n##\s|$)/s);
-          
-          if (firstParagraphMatch && firstParagraphMatch.index !== undefined) {
-            const firstParaEnd = afterConclusionStart + firstParagraphMatch.index + firstParagraphMatch[0].length;
+          // If there's an FAQ section after conclusion, preserve it completely
+          if (faqMatch && faqMatch.index !== undefined && faqMatch.index > conclusionStart) {
+            // Keep everything from conclusion through FAQ - don't truncate FAQ content
+            // Only remove repetitive boilerplate content between conclusion and FAQ
+            const betweenConclusionAndFAQ = extractedContent.substring(afterConclusionStart, faqMatch.index);
             
-            // Check if there's repetitive content after the first paragraph
-            const afterFirstPara = afterConclusion.substring(firstParagraphMatch[0].length);
-            const repetitivePattern = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?:\n|$)/gmi;
+            // Remove repetitive boilerplate sentences between conclusion and FAQ
+            const cleanedBetween = betweenConclusionAndFAQ.replace(/(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gmi, '');
             
-            if (afterFirstPara.match(repetitivePattern)) {
-              // Remove everything after the first conclusion paragraph
-              extractedContent = extractedContent.substring(0, firstParaEnd).trim();
+            // Reconstruct: everything before conclusion + conclusion header + cleaned content + FAQ onwards
+            extractedContent = extractedContent.substring(0, afterConclusionStart) + cleanedBetween + extractedContent.substring(faqMatch.index);
+          } else {
+            // No FAQ section, clean up repetitive content after conclusion (keep conclusion paragraphs)
+            const afterConclusion = extractedContent.substring(afterConclusionStart);
+            
+            // Find paragraphs in conclusion
+            const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
+            
+            // Keep all substantial conclusion paragraphs (up to 5), but remove repetitive boilerplate
+            let keptContent = '';
+            let paragraphCount = 0;
+            for (const paraText of paragraphMatches) {
+              if (paraText && paraText.trim().length > 20) {
+                // Check if this paragraph is repetitive boilerplate
+                const isRepetitive = /^(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)/i.test(paraText.trim());
+                if (!isRepetitive || paragraphCount < 3) {
+                  // Keep non-repetitive paragraphs, or allow up to 3 even if repetitive
+                  keptContent += (keptContent ? '\n\n' : '') + paraText.trim();
+                  paragraphCount++;
+                  if (paragraphCount >= 5) break; // Keep up to 5 paragraphs
+                }
+              }
+            }
+            
+            // If we have kept content, replace conclusion section
+            if (keptContent) {
+              extractedContent = extractedContent.substring(0, afterConclusionStart) + keptContent;
             } else {
-              // Keep first 2 paragraphs if they're substantial and not repetitive
-              const paragraphMatches = afterConclusion.match(/.+?(?=\n\n|\n##\s|$)/gs) || [];
+              // Fallback: keep first 3 paragraphs regardless
               let conclusionEnd = conclusionStart + conclusionMatch[0].length;
-              for (let i = 0; i < Math.min(2, paragraphMatches.length); i++) {
+              for (let i = 0; i < Math.min(3, paragraphMatches.length); i++) {
                 const paraText = paragraphMatches[i];
                 if (paraText && paraText.trim().length > 20) {
                   const paraIndex = afterConclusion.indexOf(paraText);
@@ -1026,10 +1051,10 @@ export async function POST(request: NextRequest) {
               }
               extractedContent = extractedContent.substring(0, conclusionEnd).trim();
             }
+            
+            // Final cleanup: Remove any remaining repetitive bullet-like sentences (but preserve FAQ if it exists later)
+            extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
           }
-          
-          // Final cleanup: Remove any remaining repetitive bullet-like sentences
-          extractedContent = extractedContent.replace(/\n(?:The platform's|Integrating|Synthesia offers|Ready to|Sign up for)[^\n]*?[.!]\s*(?=\n|$)/gi, '');
         }
         
         // Remove trailing sections
