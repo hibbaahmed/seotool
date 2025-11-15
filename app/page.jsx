@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import PricingSection from "../components/PricingSection";
+import { Footer } from "../components/layout/Footer";
 
 // FAQ Item Component
 const FAQItem = ({ question, answer }) => {
@@ -870,63 +871,7 @@ const HomePage = () => {
                 </section>
 
                 {/* Footer */}
-                <footer className="py-16 px-4 sm:px-6 lg:px-8 bg-white text-slate-900 border-t border-slate-200">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-                            <div>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                                        <TrendingUp className="w-5 h-5 text-white" />
-                                    </div>
-                                    <span className="font-bold text-xl text-slate-900">Bridgely</span>
-                                </div>
-                                <p className="text-slate-600 leading-relaxed">
-                                    AI-powered SEO automation for businesses.
-                                </p>
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-semibold text-slate-900 mb-4">Product</h3>
-                                <div className="space-y-3">
-                                    <a href="#features" className="block text-slate-600 hover:text-slate-900 transition-colors">Features</a>
-                                    <a href="#pricing" className="block text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">API</a>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-semibold text-slate-900 mb-4">Company</h3>
-                                <div className="space-y-3">
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">About</a>
-                                    <Link href="/blog" className="block text-slate-600 hover:text-slate-900 transition-colors">Blog</Link>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Careers</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Contact</a>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-semibold text-slate-900 mb-4">Support</h3>
-                                <div className="space-y-3">
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Help Center</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Documentation</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Community</a>
-                                    <a href="#" className="block text-slate-600 hover:text-slate-900 transition-colors">Status</a>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-                            <p className="text-slate-500 text-sm">
-                                © 2024 Bridgely. All rights reserved.
-                            </p>
-                            <div className="flex items-center gap-6 text-sm text-slate-500">
-                                <a href="#" className="hover:text-slate-700 transition-colors">Privacy</a>
-                                <a href="#" className="hover:text-slate-700 transition-colors">Terms</a>
-                                <a href="#" className="hover:text-slate-700 transition-colors">Cookies</a>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
+                <Footer />
             </div>
         </div>
     )

@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../ui/dialog";
-import { Footer } from '@/components/layout/Footer';
 
 const keyFeatures = [
   {
@@ -346,8 +345,6 @@ export default function Price() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Footer />
     </div>
   );
 }

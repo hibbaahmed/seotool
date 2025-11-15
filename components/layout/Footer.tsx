@@ -3,29 +3,9 @@ import Link from 'next/link'
 import { RocketLaunchIcon } from '@heroicons/react/24/outline'
 
 const navigation = {
-  product: [
-    { name: 'AI SEO Writer', href: '/features/writer' },
-    { name: 'SEO Editor', href: '/features/editor' },
-    { name: 'Autoblog', href: '/features/autoblog' },
-    { name: 'Analytics', href: '/features/analytics' },
-  ],
-  company: [
-    { name: 'About', href: '/about' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Careers', href: '/careers' },
-    { name: 'Contact', href: '/contact' },
-  ],
-  resources: [
-    { name: 'Documentation', href: '/docs' },
-    { name: 'Help Center', href: '/help' },
-    { name: 'API Reference', href: '/api' },
-    { name: 'Community', href: '/community' },
-  ],
   legal: [
     { name: 'Privacy Policy', href: '/privacy' },
-    { name: 'Terms of Service', href: '/terms' },
-    { name: 'Cookie Policy', href: '/cookies' },
-    { name: 'GDPR', href: '/gdpr' },
+    { name: 'Terms of Service', href: '/terms' }
   ],
 }
 
@@ -71,44 +51,6 @@ export function Footer() {
           </div>
           <div className="mt-12 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
             <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-semibold leading-6 text-slate-900">Product</h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.product.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-slate-600 hover:text-slate-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-slate-900">Company</h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.company.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-slate-600 hover:text-slate-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-semibold leading-6 text-slate-900">Resources</h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.resources.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-slate-600 hover:text-slate-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
               <div className="mt-10 md:mt-0">
                 <h3 className="text-sm font-semibold leading-6 text-slate-900">Legal</h3>
                 <ul role="list" className="mt-6 space-y-4">
