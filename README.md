@@ -1,6 +1,6 @@
 # Bridgely - AI-Powered SEO Automation Platform
 
-**Rank Clients on Google and Get Cited on ChatGPT – In One Place**
+**Rank on Google and Get Cited on ChatGPT – In One Place**
 
 Bridgely is a comprehensive SEO automation system for agencies and marketers, featuring AI-powered tools for content creation, optimization, and syndication.
 

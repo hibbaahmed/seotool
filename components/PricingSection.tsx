@@ -78,7 +78,7 @@ const PricingSection = () => {
             Stop wasting 8+ hours per article on manual SEO. Get traffic from Google, ChatGPT, and other search engines on autopilot.
           </p>
           <p className="text-base sm:text-lg md:text-lg lg:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Our platform automatically researches, writes, optimizes, and publishes articles for you 24/7. <span className="font-semibold text-slate-700">Rank clients on Google and get cited on ChatGPT</span>—all in one place. <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">Every hour you save is revenue gained.</span>
+            Our platform automatically researches, writes, optimizes, and publishes articles for you 24/7. <span className="font-semibold text-slate-700">Rank on Google and get cited on ChatGPT</span>—all in one place. <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">Every hour you save is revenue gained.</span>
           </p>
         </div>
 

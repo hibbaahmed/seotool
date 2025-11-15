@@ -25,7 +25,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm leading-6 text-slate-600 max-w-sm">
-              Rank clients on Google and get cited on ChatGPT – all in one place. 
+              Rank on Google and get cited on ChatGPT – all in one place. 
               The ultimate SEO automation system for agencies and marketers.
             </p>
             <div className="flex space-x-5">

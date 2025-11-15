@@ -126,7 +126,7 @@ const HomePage = () => {
                         
                         <p className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
                             Our platform automatically researches, writes, optimizes, and publishes articles for you 24/7.  
-                            <span className="font-semibold text-slate-700"> Rank clients on Google and get cited on ChatGPT</span> — all in one place.
+                            <span className="font-semibold text-slate-700"> Rank on Google and get cited on ChatGPT</span> — all in one place.
                         </p>
                         
                         {/* CTA Buttons */}
