@@ -57,6 +57,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingKeywordId, setGeneratingKeywordId] = useState<string | null>(null); // Track which keyword is generating
   const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
   const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high'; starred?: boolean; scheduled_for_generation?: boolean; generation_status?: 'pending'|'generating'|'generated'|'failed' }>>([]);
   const [modalFilter, setModalFilter] = useState<'all'|'recommended'|'starred'>('all');
@@ -197,14 +198,26 @@ export default function CalendarPage() {
 
   const handleGenerateNow = async (keyword?: ScheduledKeyword, isTest = false) => {
     const keywordToGenerate = keyword || selectedKeyword;
-    if (!keywordToGenerate) return;
+    if (!keywordToGenerate) {
+      console.warn('No keyword selected for generation');
+      return;
+    }
+
+    console.log('🚀 Starting generation for keyword:', keywordToGenerate.keyword);
 
     // Both test and full generation require 1 credit
     const requiredCredits = 1;
+    console.log('💰 Checking credits...');
     const hasCredits = await (checkUserCredits as any)(requiredCredits);
-    if (!hasCredits) return; // Dialog is shown automatically by context
+    if (!hasCredits) {
+      console.warn('❌ Insufficient credits - dialog should be shown by context');
+      return; // Dialog is shown automatically by context
+    }
+    
+    console.log('✅ Credits verified, starting generation...');
 
     setIsGenerating(true);
+    setGeneratingKeywordId(keywordToGenerate.id); // Track which keyword is generating
     try {
       const response = await fetch('/api/calendar/generate', {
         method: 'POST',
@@ -245,6 +258,7 @@ export default function CalendarPage() {
       alert('Failed to generate content');
     } finally {
       setIsGenerating(false);
+      setGeneratingKeywordId(null); // Clear generating state
     }
   };
 
@@ -404,6 +418,7 @@ export default function CalendarPage() {
                 onAddPost={handleAddPost}
                 onKeywordClick={handleKeywordClick}
                 onGenerateKeyword={handleGenerateNow}
+                generatingKeywordId={generatingKeywordId}
               />
             </div>
 

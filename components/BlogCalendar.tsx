@@ -43,10 +43,11 @@ interface CalendarProps {
   onAddPost?: (date: string) => void;
   onKeywordClick?: (keyword: ScheduledKeyword) => void;
   onGenerateKeyword?: (keyword: ScheduledKeyword) => void;
+  generatingKeywordId?: string | null; // Track which keyword is currently generating
   className?: string;
 }
 
-export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, className = '' }: CalendarProps) {
+export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, className = '' }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
@@ -625,9 +626,13 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              console.log('⚡ Regenerate button clicked for keyword:', keyword.keyword);
+                              console.log('📊 Keyword status:', keyword.generation_status);
+                              console.log('🔧 Calling onGenerateKeyword...');
                               onGenerateKeyword(keyword);
                             }}
-                            className={`p-1 text-white rounded transition-all ${
+                            disabled={generatingKeywordId === keyword.id}
+                            className={`px-1.5 py-0.5 text-white rounded text-[10px] font-medium transition-all flex items-center gap-0.5 disabled:opacity-75 disabled:cursor-not-allowed ${
                               keyword.generation_status === 'generated' 
                                 ? 'bg-orange-600 hover:bg-orange-700' 
                                 : keyword.generation_status === 'failed'
@@ -636,9 +641,25 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                             }`}
                             title={keyword.generation_status === 'generated' ? 'Regenerate Content' : keyword.generation_status === 'failed' ? 'Retry Generation' : 'Generate Now'}
                           >
-                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
+                            {generatingKeywordId === keyword.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
+                                <span className="text-[10px]">Generating...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <span className="text-[10px]">
+                                  {keyword.generation_status === 'generated' 
+                                    ? 'Regenerate' 
+                                    : keyword.generation_status === 'failed'
+                                    ? 'Retry'
+                                    : 'Generate'}
+                                </span>
+                              </>
+                            )}
                           </button>
                         )}
                       </div>
