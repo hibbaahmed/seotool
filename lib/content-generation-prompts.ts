@@ -14,6 +14,8 @@ export interface ContentPromptOptions {
   imageUrls?: string[];
   youtubeVideos?: Array<{ id: string; title?: string; url?: string }>;
   isTest?: boolean; // Flag for test generation (shorter content)
+  businessName?: string; // User's business/company name for CTA
+  websiteUrl?: string; // User's website URL
 }
 
 /**
@@ -24,7 +26,9 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
     keyword = '',
     imageUrls = [],
     youtubeVideos = [],
-    isTest = false
+    isTest = false,
+    businessName = 'our company',
+    websiteUrl = ''
   } = options;
   
   const isTestMode = isTest;
@@ -94,12 +98,12 @@ ${isTestMode ? `
 1. Introduction with hook and overview (30-50 words)
 2. 2-3 main H2 sections (each 40-60 words)
 3. FAQ section (2-3 questions)
-4. Brief conclusion with key takeaways (20-30 words)
+4. Conclusion with key takeaways and Case Quota CTA (40-60 words)
 ` : `
 1. Introduction with hook and overview (200-300 words)
 2. 8-12 main H2 sections (each 400-600 words)
 3. FAQ section (10-15 questions)
-4. Conclusion with key takeaways (150-200 words)
+4. Conclusion with key takeaways and Case Quota CTA (200-300 words)
 `}
 
 CONTENT DEPTH REQUIREMENTS:
@@ -265,11 +269,32 @@ ${isTestMode ? '' : '> **Pro Tip:** [Insider advice in blockquote]'}
 
 [Answer with specific details and keywords - do NOT use bold formatting in answers]
 
-[Continue with 10-15 total questions]
+[Continue with ${isTestMode ? '2-3' : '10-15'} total questions]
 
-[Closing paragraph with 3-4 key takeaways in bullets]
+## Conclusion
 
-[Final call-to-action paragraph - encouraging and actionable]
+[Closing paragraph with ${isTestMode ? '2-3' : '3-4'} key takeaways in bullets]
+
+### Partner with ${businessName} for Success
+
+${isTestMode 
+  ? `[1-2 sentences that reference SPECIFIC strategies, tools, or challenges from this article and explain how ${businessName} helps implement them. Include a clear call to action.]`
+  : `[3-4 sentences that:
+1. Reference 2-3 SPECIFIC challenges, strategies, or pain points discussed in THIS article (use actual examples from the content)
+2. Explain how ${businessName} helps readers overcome THOSE SPECIFIC obstacles with concrete solutions
+3. Mention specific services, expertise areas, or support that directly relate to the article's topic
+4. End with a compelling, specific call-to-action]`}
+
+CRITICAL: This ${businessName} section MUST:
+- Reference SPECIFIC topics from the article (e.g., "the keyword research strategies," "the technical SEO challenges," "the content marketing approaches we covered")
+- Explain HOW ${businessName} helps with THOSE SPECIFIC things (not just generic "success" or "results")
+- Use concrete language about what ${businessName} actually does (e.g., "we handle everything from X to Y," "our team specializes in Z," "we provide A, B, and C")
+- Make it clear WHY readers would need help with the specific challenges mentioned in this article
+- Include a clear, actionable call-to-action (e.g., "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]")
+- Feel like a natural extension of the article, not a generic sales pitch
+- Use the business name "${businessName}" naturally throughout
+- Avoid vague terms like "success," "results," "growth" without specifying what kind
+- Instead use specific outcomes relevant to the article (e.g., "rank higher for competitive keywords," "reduce page load times," "build authority backlinks")
 
 CRITICAL RULES:
 - NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
@@ -278,6 +303,7 @@ CRITICAL RULES:
 - DO NOT use section labels like "Introduction:", "Call-to-Action:", or "Understanding [Topic]:" before paragraphs. Start paragraphs immediately after the main title and after subheadings.
 - Keep paragraphs short (1–3 sentences). Use blank lines between blocks.
 - Tone: professional yet conversational, 8th–10th grade, active voice.
+- MANDATORY: Every article MUST end with a "## Conclusion" section that includes a "### Partner with ${businessName} for Success" subsection with clear CTA using the business name.
 `;
 }
 
@@ -364,6 +390,12 @@ CRITICAL EXPANSION REQUIREMENTS:
 - Keep tone, headings, links, and embeds; do NOT add a Table of Contents
 - Do NOT include labels like "Title:" or "Meta Description:" anywhere
 - Keep paragraphs short (2–3 sentences), use data and tools
+
+MANDATORY CONCLUSION STRUCTURE:
+- Article MUST end with "## Conclusion" section
+- Within Conclusion, include "### Partner with Case Quota for Success" subsection
+- The Case Quota section should connect to the article topic and include a clear call-to-action
+- If the draft doesn't have this, ADD IT at the end
 
 TARGET: This should be a concise, well-structured article of 500-800 words (TESTING MODE).
 

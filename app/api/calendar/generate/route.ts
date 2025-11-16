@@ -395,6 +395,25 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Calendar image upload failed:', fallbackErr);
     }
 
+    // Fetch user's business information for personalized CTA
+    let businessName = 'our company';
+    let websiteUrl = '';
+    try {
+      const { data: profileData } = await supabase
+        .from('user_onboarding_profiles')
+        .select('business_name, website_url')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profileData) {
+        businessName = profileData.business_name || 'our company';
+        websiteUrl = profileData.website_url || '';
+        console.log(`✅ Using business name: ${businessName}`);
+      }
+    } catch (profileError) {
+      console.warn('⚠️ Could not fetch business profile, using default:', profileError);
+    }
+
     // Generate content using the content writer API with uploaded image URLs - OUTRANK STYLE
     // Use shared prompt function to avoid duplication
     const contentPrompt = generateKeywordContentPrompt({
@@ -406,7 +425,9 @@ export async function POST(request: NextRequest) {
       targetAudience: target_audience || 'General audience',
       tone,
       imageUrls: uploadedImageUrls,
-      isTest: is_test // Pass test mode flag to prompt generator
+      isTest: is_test, // Pass test mode flag to prompt generator
+      businessName, // Pass business name for personalized CTA
+      websiteUrl // Pass website URL for CTA
     });
 
     // Call the content writer API to generate content
@@ -422,6 +443,8 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
         isTest: is_test, // Pass test mode flag to content-writer API
+        businessName, // Pass business name for multi-phase generation
+        websiteUrl, // Pass website URL for multi-phase generation
       }),
     });
 

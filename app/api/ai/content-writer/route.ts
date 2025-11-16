@@ -4,7 +4,7 @@ import { generateContentSystemPrompt } from '@/lib/content-generation-prompts';
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userId, enableMultiPhase = true, isTest = false } = await request.json();
+    const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '' } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
     // Extract topic/keywords for image search
@@ -200,13 +200,16 @@ export async function POST(request: NextRequest) {
       console.log('📝 Topic:', extractedTopic);
       console.log('🖼️ Images available:', uploadedImageUrls.length);
       console.log('🎥 Videos available:', youtubeVideos.length);
+      console.log('🏢 Business name:', businessName);
       return handleMultiPhaseGeneration(
         userInput,
         extractedTopic,
         uploadedImageUrls,
         youtubeVideos,
         apiKey,
-        isTest
+        isTest,
+        businessName,
+        websiteUrl
       );
     } else {
       console.log('⚠️ Using SINGLE-PHASE generation (16,000 tokens)');
@@ -236,7 +239,9 @@ async function handleMultiPhaseGeneration(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   apiKey: string,
-  isTest: boolean = false
+  isTest: boolean = false,
+  businessName: string = 'our company',
+  websiteUrl: string = ''
 ) {
   // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
   const encoder = new TextEncoder();
@@ -257,7 +262,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 1, description: 'Generating article outline...' })}\n\n`));
         
         const outline = await generatePhase(
-          getOutlinePrompt(topic, userInput),
+          getOutlinePrompt(topic, userInput, businessName),
           apiKey,
           4000
         );
@@ -305,7 +310,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 4, description: 'Writing final sections, FAQ, and conclusion...' })}\n\n`));
         
         const finalSections = await generatePhase(
-          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos),
+          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl),
           apiKey,
           8000
         );
@@ -403,7 +408,7 @@ async function streamText(
 
 // ============= PROMPT GENERATORS =============
 
-function getOutlinePrompt(topic: string, userInput: string): string {
+function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company'): string {
   return `You are creating a comprehensive article outline for a 6,000-8,500 word pillar article about: "${topic}"
 
 User requirements: ${userInput}
@@ -445,10 +450,10 @@ Example H2 structure:
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
 
-6. **Conclusion** (target: 400-500 words)
-- Key takeaways (4-5 bullet points)
+6. **Conclusion** (target: 500-600 words)
+- Key takeaways (4-5 bullet points with specific article insights)
 - Final actionable advice
-- Call to action
+- "Partner with ${businessName} for Success" subsection that references specific article topics and explains how ${businessName} helps with those exact things
 
 FORMAT: Use markdown with ## for H2 and ### for H3. Be VERY specific with section titles - use actual descriptive titles, not placeholders.
 
@@ -578,7 +583,9 @@ function getFinalSectionsPrompt(
   userInput: string,
   outline: string,
   imageUrls: string[],
-  videos: Array<{ id: string; title: string; url: string }>
+  videos: Array<{ id: string; title: string; url: string }>,
+  businessName: string = 'our company',
+  websiteUrl: string = ''
 ): string {
   return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
 
@@ -638,7 +645,7 @@ Example questions to cover:
 - What's the future outlook (trend question)
 - How does it compare to alternatives (competitive question)
 
-PART 3: CONCLUSION (target: 400-500 words)
+PART 3: CONCLUSION (target: 500-600 words)
 
 ## Conclusion
 
@@ -659,10 +666,26 @@ Paragraph 3 (100-120 words):
 - Discuss the future potential or next evolution
 - Connect to broader trends
 
-Paragraph 4 (80-100 words):
-- Clear call-to-action
-- Encouraging final statement
-- Leave readers inspired and ready to act
+### Partner with ${businessName} for Success
+
+Paragraph 4 (150-200 words):
+- Open by referencing 2-3 SPECIFIC challenges, strategies, or topics from THIS article (use actual terms discussed)
+- Explain how ${businessName} provides SPECIFIC, CONCRETE solutions to THOSE challenges
+- Detail what ${businessName} actually does (specific services/support related to this article)
+- Use the same terminology from the article (if it mentions "local SEO," "page speed," "content clusters" - reference those)
+- Be specific about support provided (e.g., "we handle X, Y, and Z," "our team specializes in A and B")
+- End with a specific, article-relevant call-to-action
+- Example structure: "Implementing [article topics X, Y, Z] requires [specific challenge]. That's where ${businessName} comes in. We [specific services A, B, C]. ${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific outcome]."
+
+CRITICAL: The ${businessName} section MUST:
+- Reference ACTUAL strategies, challenges, or topics from this specific article by name
+- Explain HOW ${businessName} helps with THOSE SPECIFIC things (not vague "expertise")
+- Use concrete language (e.g., "handle keyword research and on-page optimization" not "help you succeed")
+- Make the connection clear: article taught X → ${businessName} helps implement X
+- Avoid generic words: "success," "results," "growth" without context
+- Use specific outcomes: "rank higher," "generate qualified leads," "reduce bounce rates," etc.
+- Feel article-specific (SEO article CTA ≠ email marketing article CTA)
+- Use the business name "${businessName}" naturally
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
@@ -675,7 +698,8 @@ CRITICAL REQUIREMENTS:
 - Write ALL remaining H2 sections from the outline
 - Write 12-15 FAQ questions (not just 5-7)
 - Each FAQ answer must be 80-100 words (not just 2-3 sentences)
-- Conclusion must be 400-500 words (not just 200-300)
+- Conclusion must be 500-600 words total (including ${businessName} section)
+- MANDATORY: Include "### Partner with ${businessName} for Success" subsection in Conclusion with clear CTA
 - Do NOT include "SEO Suggestions" or "Image suggestions" sections
 - Do NOT end with internal linking suggestions
 - Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.

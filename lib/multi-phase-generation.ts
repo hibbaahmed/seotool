@@ -9,6 +9,8 @@ export interface MultiPhaseGenerationOptions {
   imageUrls: string[];
   videos: Array<{ id: string; title: string; url: string }>;
   apiKey: string;
+  businessName?: string; // User's business/company name for CTA
+  websiteUrl?: string; // User's website URL
 }
 
 export interface MultiPhaseResult {
@@ -25,7 +27,7 @@ export interface MultiPhaseResult {
 export async function generateMultiPhaseContent(
   options: MultiPhaseGenerationOptions
 ): Promise<MultiPhaseResult> {
-  const { topic, userInput, imageUrls, videos, apiKey } = options;
+  const { topic, userInput, imageUrls, videos, apiKey, businessName = 'our company', websiteUrl = '' } = options;
 
   // PHASE 1: Generate Outline (reduced from 4000 to stay under rate limit)
   console.log('📋 Phase 1: Generating outline...');
@@ -60,7 +62,7 @@ export async function generateMultiPhaseContent(
   // Increased to 8000 tokens to ensure FAQ answers don't get cut off
   console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
   const finalSections = await generatePhase(
-    getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos),
+    getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl),
     apiKey,
     8000
   );
@@ -197,7 +199,7 @@ export { generatePhase as generateSinglePhase };
 /**
  * Generate outline prompt
  */
-export function getOutlinePrompt(topic: string, userInput: string): string {
+export function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company'): string {
   return `You are creating a comprehensive article outline for a 6,000-8,500 word pillar article about: "${topic}"
 
 User requirements: ${userInput}
@@ -239,10 +241,13 @@ Example H2 structure:
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
 
-6. **Conclusion** (target: 400-500 words)
-- Key takeaways (4-5 bullet points)
+6. **Conclusion** (target: 500-600 words)
+- Key takeaways (4-5 bullet points specific to article content)
 - Final actionable advice
-- Call to action
+- "Partner with ${businessName} for Success" subsection that:
+  * References specific article topics/challenges
+  * Explains how ${businessName} helps with THOSE specific things
+  * Includes concrete, article-relevant call-to-action
 
 FORMAT: Use markdown with ## for H2 and ### for H3. Be VERY specific with section titles - use actual descriptive titles, not placeholders.
 
@@ -378,7 +383,9 @@ export function getFinalSectionsPrompt(
   userInput: string,
   outline: string,
   imageUrls: string[],
-  videos: Array<{ id: string; title: string; url: string }>
+  videos: Array<{ id: string; title: string; url: string }>,
+  businessName: string = 'our company',
+  websiteUrl: string = ''
 ): string {
   return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
 
@@ -438,7 +445,7 @@ Example questions to cover:
 - What's the future outlook (trend question)
 - How does it compare to alternatives (competitive question)
 
-PART 3: CONCLUSION (target: 400-500 words)
+PART 3: CONCLUSION (target: 500-600 words)
 
 ## Conclusion
 
@@ -459,10 +466,26 @@ Paragraph 3 (100-120 words):
 - Discuss the future potential or next evolution
 - Connect to broader trends
 
-Paragraph 4 (80-100 words):
-- Clear call-to-action
-- Encouraging final statement
-- Leave readers inspired and ready to act
+### Partner with ${businessName} for Success
+
+Paragraph 4 (150-200 words):
+- Open by referencing 2-3 SPECIFIC challenges, strategies, or pain points from THIS article (use actual concepts discussed)
+- Explain how ${businessName} provides SPECIFIC solutions to THOSE challenges (not generic "help" or "success")
+- Detail what ${businessName} actually does (concrete services/support related to this article's topic)
+- Use specific terminology from the article (e.g., if article covers "keyword research, technical SEO, and link building" - reference those)
+- Quantify or specify the support (e.g., "handle everything from X to Y," "provide Z," "specialize in A")
+- End with a specific call-to-action tied to the article topic
+- Example CTAs: "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [implement these strategies/solve this challenge/get expert guidance on X]"
+
+CRITICAL: The ${businessName} section MUST:
+- Reference ACTUAL topics, tools, strategies, or challenges mentioned in this specific article
+- Explain HOW ${businessName} solves THOSE SPECIFIC problems (not just "provides expertise")
+- Use concrete, specific language about services (avoid vague "success," "results," "growth")
+- Make it clear what readers get (e.g., "we handle keyword research and content optimization" vs "we help you grow")
+- Connect logically: "You learned about X, Y, Z → We help with X, Y, Z → Here's how to get started"
+- Feel like the article's natural conclusion, not a bolted-on ad
+- Use the business name "${businessName}" naturally
+- Be specific to this article's content (a blog about SEO should have different CTA than one about email marketing)
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
@@ -475,7 +498,8 @@ CRITICAL REQUIREMENTS:
 - Write ALL remaining H2 sections from the outline
 - Write 12-15 FAQ questions (not just 5-7)
 - Each FAQ answer must be 80-100 words (not just 2-3 sentences)
-- Conclusion must be 400-500 words (not just 200-300)
+- Conclusion must be 500-600 words total (including ${businessName} section)
+- MANDATORY: Include "### Partner with ${businessName} for Success" subsection in Conclusion with clear CTA
 - Do NOT include "SEO Suggestions" or "Image suggestions" sections
 - Do NOT end with internal linking suggestions
 - Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.
