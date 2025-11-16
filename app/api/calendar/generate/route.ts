@@ -547,7 +547,7 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`✏️ Draft length ${plainWordCount} words < 6000. Requesting expansion to 6,000-8,500 words...`);
         // Use shared expansion prompt function
-        const expansionPrompt = generateExpansionPrompt(fullContent);
+        const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl);
 
         const expandRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
           method: 'POST',
@@ -555,7 +555,9 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({ 
             messages: [{ role: 'user', content: expansionPrompt }], 
             userId: user.id,
-            enableMultiPhase: false // Use single-phase for expansion to avoid duplicate phases
+            enableMultiPhase: false, // Use single-phase for expansion to avoid duplicate phases
+            businessName, // Pass business name for expansion
+            websiteUrl // Pass website URL for expansion
           })
         });
 

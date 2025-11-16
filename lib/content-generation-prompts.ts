@@ -98,12 +98,12 @@ ${isTestMode ? `
 1. Introduction with hook and overview (30-50 words)
 2. 2-3 main H2 sections (each 40-60 words)
 3. FAQ section (2-3 questions)
-4. Conclusion with key takeaways and Case Quota CTA (40-60 words)
+4. Conclusion with key takeaways and ${businessName} CTA (40-60 words)
 ` : `
 1. Introduction with hook and overview (200-300 words)
 2. 8-12 main H2 sections (each 400-600 words)
 3. FAQ section (10-15 questions)
-4. Conclusion with key takeaways and Case Quota CTA (200-300 words)
+4. Conclusion with key takeaways and ${businessName} CTA (200-300 words)
 `}
 
 CONTENT DEPTH REQUIREMENTS:
@@ -372,7 +372,7 @@ Follow the structure and requirements outlined in your system prompt. ${isTestMo
 /**
  * Generate expansion prompt for content that's too short
  */
-export function generateExpansionPrompt(currentContent: string): string {
+export function generateExpansionPrompt(currentContent: string, businessName: string = 'our company', websiteUrl: string = ''): string {
   return `Expand the following draft to 500-800 words while preserving structure (TESTING MODE).
 
 CRITICAL EXPANSION REQUIREMENTS:
@@ -393,8 +393,11 @@ CRITICAL EXPANSION REQUIREMENTS:
 
 MANDATORY CONCLUSION STRUCTURE:
 - Article MUST end with "## Conclusion" section
-- Within Conclusion, include "### Partner with Case Quota for Success" subsection
-- The Case Quota section should connect to the article topic and include a clear call-to-action
+- Within Conclusion, include "### Partner with ${businessName} for Success" subsection
+- The ${businessName} section should:
+  * Reference specific challenges or strategies from THIS article
+  * Explain how ${businessName} helps with THOSE specific things
+  * Include a clear call-to-action: "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]"
 - If the draft doesn't have this, ADD IT at the end
 
 TARGET: This should be a concise, well-structured article of 500-800 words (TESTING MODE).

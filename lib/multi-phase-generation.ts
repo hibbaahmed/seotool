@@ -32,7 +32,7 @@ export async function generateMultiPhaseContent(
   // PHASE 1: Generate Outline (reduced from 4000 to stay under rate limit)
   console.log('📋 Phase 1: Generating outline...');
   const outline = await generatePhase(
-    getOutlinePrompt(topic, userInput),
+    getOutlinePrompt(topic, userInput, businessName),
     apiKey,
     3000
   );

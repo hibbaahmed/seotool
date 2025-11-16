@@ -219,7 +219,9 @@ export async function POST(request: NextRequest) {
         uploadedImageUrls,
         youtubeVideos,
         apiKey,
-        isTest
+        isTest,
+        businessName,
+        websiteUrl
       );
     }
 
@@ -716,13 +718,17 @@ async function handleSinglePhaseGeneration(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   apiKey: string,
-  isTest: boolean = false
+  isTest: boolean = false,
+  businessName: string = 'our company',
+  websiteUrl: string = ''
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
     imageUrls,
     youtubeVideos: videos,
-    isTest
+    isTest,
+    businessName,
+    websiteUrl
   });
 
     const candidateModels = [

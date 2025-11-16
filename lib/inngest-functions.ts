@@ -1145,7 +1145,34 @@ export const generateKeywordContent = inngest.createFunction(
       return videoList;
     });
 
-    // Step 5: Generate content using multi-phase generation
+    // Step 5: Fetch user's business information for personalized CTA
+    const { businessName, websiteUrl } = await step.run('fetch-business-info', async () => {
+      try {
+        const { data: profileData } = await supabase
+          .from('user_onboarding_profiles')
+          .select('business_name, website_url')
+          .eq('user_id', userId)
+          .single();
+        
+        if (profileData) {
+          return {
+            businessName: profileData.business_name || 'our company',
+            websiteUrl: profileData.website_url || ''
+          };
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch business profile:', error);
+      }
+      
+      return {
+        businessName: 'our company',
+        websiteUrl: ''
+      };
+    });
+    
+    console.log(`✅ Using business name: ${businessName}`);
+
+    // Step 6: Generate content using multi-phase generation
     const { generateMultiPhaseContent } = await import('@/lib/multi-phase-generation');
     const { generateKeywordContentPrompt } = await import('@/lib/content-generation-prompts');
 
@@ -1157,7 +1184,9 @@ export const generateKeywordContent = inngest.createFunction(
       contentType: 'blog post',
       targetAudience: 'General audience',
       tone: 'professional',
-      imageUrls: uploadedImageUrls
+      imageUrls: uploadedImageUrls,
+      businessName,
+      websiteUrl
     });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1175,7 +1204,7 @@ export const generateKeywordContent = inngest.createFunction(
     const outline = await step.run('generate-outline', async () => {
       console.log('📋 Phase 1: Generating outline...');
       return await generateSinglePhase(
-        getOutlinePrompt(keywordText, contentPrompt),
+        getOutlinePrompt(keywordText, contentPrompt, businessName),
         apiKey,
         3000
       );
@@ -1210,7 +1239,7 @@ export const generateKeywordContent = inngest.createFunction(
     const finalSections = await step.run('generate-final-sections', async () => {
       console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
       return await generateSinglePhase(
-        getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos),
+        getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos, businessName, websiteUrl),
         apiKey,
         5000
       );
@@ -1286,7 +1315,7 @@ export const generateKeywordContent = inngest.createFunction(
         try {
           console.log(`✏️ Draft length ${plainWordCount} words < 6000. Requesting expansion to 6,000-8,500 words...`);
           const { generateExpansionPrompt } = await import('@/lib/content-generation-prompts');
-          const expansionPrompt = generateExpansionPrompt(fullContent);
+          const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl);
 
           // Call Claude API directly for expansion (since we're in Inngest, no timeout issues)
           const expandResponse = await fetch('https://api.anthropic.com/v1/messages', {
