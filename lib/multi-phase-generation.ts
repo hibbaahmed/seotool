@@ -56,12 +56,13 @@ export async function generateMultiPhaseContent(
   const words5to8 = sections5to8.split(/\s+/).length;
   console.log(`✅ Phase 3 complete. Length: ${sections5to8.length} chars, ~${words5to8} words`);
 
-  // PHASE 4: Generate Remaining sections, FAQ, and Conclusion (reduced from 8000 to avoid rate limit)
+  // PHASE 4: Generate Remaining sections, FAQ, and Conclusion
+  // Increased to 8000 tokens to ensure FAQ answers don't get cut off
   console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
   const finalSections = await generatePhase(
     getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos),
     apiKey,
-    5000
+    8000
   );
   const wordsFinal = finalSections.split(/\s+/).length;
   console.log(`✅ Phase 4 complete. Length: ${finalSections.length} chars, ~${wordsFinal} words`);
