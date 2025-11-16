@@ -49,6 +49,85 @@ function removeExcessiveBoldFromHTML(html: string): string {
   return html;
 }
 
+// Helper function to convert markdown tables to HTML tables
+function convertMarkdownTablesToHtml(markdown: string): string {
+  // Markdown table pattern:
+  // | Header 1 | Header 2 | Header 3 |
+  // |----------|----------|----------| (optional separator)
+  // | Cell 1   | Cell 2   | Cell 3   |
+  
+  // Split into lines for better processing
+  const lines = markdown.split('\n');
+  const result: string[] = [];
+  let i = 0;
+  
+  while (i < lines.length) {
+    const line = lines[i];
+    
+    // Check if this line looks like a table row (starts and ends with |)
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      // Collect all consecutive table rows
+      const tableRows: string[] = [];
+      let j = i;
+      
+      while (j < lines.length && lines[j].trim().startsWith('|') && lines[j].trim().endsWith('|')) {
+        const tableLine = lines[j].trim();
+        // Skip separator rows (lines that are mostly dashes, colons, and pipes)
+        if (!tableLine.match(/^\|[\s\-:|]+\|$/)) {
+          tableRows.push(tableLine);
+        }
+        j++;
+      }
+      
+      // If we have at least 2 rows (header + data), convert to HTML table
+      if (tableRows.length >= 2) {
+        // Parse all rows
+        const parsedRows = tableRows.map((row: string) => {
+          // Split by | and remove empty first/last elements
+          const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell.length > 0);
+          return cells;
+        });
+        
+        // First row is header, rest are data rows
+        const headers = parsedRows[0];
+        const dataRows = parsedRows.slice(1);
+        
+        // Build HTML table
+        let html = '\n<table>\n<thead>\n<tr>\n';
+        
+        // Add header cells
+        headers.forEach((header: string) => {
+          html += `  <th>${header}</th>\n`;
+        });
+        
+        html += '</tr>\n</thead>\n<tbody>\n';
+        
+        // Add data rows
+        dataRows.forEach((row: string[]) => {
+          html += '<tr>\n';
+          // Match columns to headers (handle cases where row has fewer cells)
+          for (let k = 0; k < headers.length; k++) {
+            html += `  <td>${row[k] || ''}</td>\n`;
+          }
+          html += '</tr>\n';
+        });
+        
+        html += '</tbody>\n</table>\n';
+        
+        result.push(html);
+        i = j; // Skip processed rows
+        continue;
+      }
+    }
+    
+    // Not a table row, add as-is
+    result.push(line);
+    i++;
+  }
+  
+  return result.join('\n');
+}
+
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
   // Add inline styles to ensure proper spacing in WordPress
@@ -97,6 +176,13 @@ function addInlineSpacing(html: string): string {
   
   // Remove top margin from first paragraph
   html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
+  
+  // Add professional styling to tables
+  html = html.replace(/<table>/gi, '<table style="margin-top: 2rem; margin-bottom: 2rem; width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 15px; border: none;">');
+  html = html.replace(/<thead>/gi, '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">');
+  html = html.replace(/<th>/gi, '<th style="color: white; font-weight: 600; text-align: left; padding: 16px 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border: none;">');
+  html = html.replace(/<td>/gi, '<td style="padding: 16px 20px; color: #374151; line-height: 1.6; border: none; border-bottom: 1px solid #e5e7eb;">');
+  html = html.replace(/<tr>/gi, '<tr style="transition: background-color 0.2s ease;">');
   
   // Restore iframes and embeds
   iframePlaceholders.forEach((iframe, index) => {
@@ -813,9 +899,20 @@ export async function POST(request: NextRequest) {
       console.log(`🔄 Converting markdown to HTML. Content length: ${postData.content.length} characters`);
       
       if (typeof postData.content === 'string' && postData.content.trim()) {
+        // First, convert markdown tables to HTML (before marked.parse in case marked doesn't handle them)
+        let contentWithTablesConverted = convertMarkdownTablesToHtml(postData.content);
+        
         // Parse markdown to HTML
-        htmlContent = marked.parse(postData.content, { async: false }) as string;
+        htmlContent = marked.parse(contentWithTablesConverted, { async: false }) as string;
         console.log(`✅ Markdown converted to HTML. HTML length: ${htmlContent.length} characters`);
+        
+        // Double-check that markdown tables were converted (check for remaining pipe characters in table-like patterns)
+        // Only check if content still has markdown table patterns (not HTML tables yet)
+        if (htmlContent.includes('|') && htmlContent.match(/\|[^\n]+\|\s*\n(?:\|[-\s:|]+\|\s*\n)?\|[^\n]+\|/m)) {
+          // If markdown tables still exist, convert them
+          htmlContent = convertMarkdownTablesToHtml(htmlContent);
+          console.log(`✅ Manually converted remaining markdown tables to HTML`);
+        }
         
         // Double-check that markdown images were converted (should be HTML <img> tags now)
         if (htmlContent.includes('![') && htmlContent.includes('](')) {
@@ -982,9 +1079,18 @@ export async function POST(request: NextRequest) {
       console.log(`🔄 Preparing content for self-hosted WordPress. Content length: ${finalContent.length} characters`);
       
       // Convert markdown to HTML if needed
-      if (typeof finalContent === 'string' && finalContent.trim() && (finalContent.includes('#') || finalContent.includes('*'))) {
+      if (typeof finalContent === 'string' && finalContent.trim() && (finalContent.includes('#') || finalContent.includes('*') || finalContent.includes('|'))) {
+        // First, convert markdown tables to HTML
+        finalContent = convertMarkdownTablesToHtml(finalContent);
+        
         finalContent = marked.parse(finalContent, { async: false }) as string;
         console.log(`✅ Markdown converted to HTML. HTML length: ${finalContent.length} characters`);
+        
+        // Double-check that markdown tables were converted (check for remaining pipe characters in table-like patterns)
+        if (finalContent.includes('|') && finalContent.match(/\|[^\n]+\|\s*\n(?:\|[-\s:|]+\|\s*\n)?\|[^\n]+\|/m)) {
+          finalContent = convertMarkdownTablesToHtml(finalContent);
+          console.log(`✅ Manually converted remaining markdown tables to HTML`);
+        }
       }
       
       // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
