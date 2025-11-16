@@ -736,26 +736,10 @@ export async function POST(request: NextRequest) {
         .eq('id', keyword_id);
     }
 
-    // Deduct credits after successful generation (both test and full generation)
-    // Use service client to ensure we have proper permissions for credit updates
-    const serviceSupabaseForCredits = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const { error: deductError } = await serviceSupabaseForCredits
-      .from('credits')
-      .update({ credits: currentCredits - requiredCredits })
-      .eq('user_id', user.id);
-
-    if (deductError) {
-      console.error('⚠️ Error deducting credits after successful generation:', deductError);
-      // This is a critical error - content was generated but credits weren't deducted
-      // Log it but don't fail the request (user already got their content)
-      // This should be monitored and fixed manually if it happens
-    } else {
-      console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${user.id} for ${is_test ? 'test' : 'full'} generation. Remaining: ${currentCredits - requiredCredits}`);
-    }
+    // CRITICAL: Credits are deducted AFTER WordPress publishing succeeds
+    // This ensures we don't charge users if publishing fails
+    let creditDeductionCompleted = false;
+    let publishingSucceeded = false;
 
     // Auto-publish to user's connected WordPress site if available
     try {
@@ -1243,10 +1227,60 @@ export async function POST(request: NextRequest) {
         });
         
         console.log('✅ Calendar content auto-published to WordPress:', publishResult);
+        publishingSucceeded = true;
       }
     } catch (autoPublishError) {
-      // Don't fail the request if auto-publish fails - content is still saved
-      console.error('⚠️ Auto-publish failed (content still saved):', autoPublishError);
+      // CRITICAL: Publishing failed - throw error to prevent credit deduction
+      console.error('❌ Auto-publish FAILED:', autoPublishError);
+      
+      // Delete the saved content since publishing failed
+      try {
+        await serviceSupabase
+          .from('content_writer_outputs')
+          .delete()
+          .eq('id', savedContent.id);
+        console.log('🗑️ Deleted saved content due to publishing failure');
+      } catch (deleteError) {
+        console.error('⚠️ Failed to delete saved content:', deleteError);
+      }
+      
+      // Update keyword status back to 'none'
+      if (keyword_id) {
+        await supabase
+          .from('discovered_keywords')
+          .update({ 
+            generation_status: 'failed',
+            generated_content_id: null,
+          })
+          .eq('id', keyword_id);
+      }
+      
+      // Throw error to prevent credit deduction and inform user
+      throw new Error(`WordPress publishing failed after ${3} retry attempts. Please try again. Error: ${autoPublishError instanceof Error ? autoPublishError.message : String(autoPublishError)}`);
+    }
+    
+    // ONLY deduct credits if publishing succeeded
+    if (publishingSucceeded) {
+      // Use service client to ensure we have proper permissions for credit updates
+      const serviceSupabaseForCredits = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      
+      const { error: deductError } = await serviceSupabaseForCredits
+        .from('credits')
+        .update({ credits: currentCredits - requiredCredits })
+        .eq('user_id', user.id);
+
+      if (deductError) {
+        console.error('⚠️ CRITICAL: Content published successfully but failed to deduct credits:', deductError);
+        // This is a critical error - content was published but credits weren't deducted
+        // Log it but don't fail the request (user already got their published content)
+        // This should be monitored and fixed manually if it happens
+      } else {
+        creditDeductionCompleted = true;
+        console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${user.id} for ${is_test ? 'test' : 'full'} generation. Remaining: ${currentCredits - requiredCredits}`);
+      }
     }
 
     return NextResponse.json({
