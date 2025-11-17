@@ -202,12 +202,10 @@ const HomePage = () => {
                                 THE REALITY CHECK
                             </div>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                                Manual SEO is killing your margins<br />
-                                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">and stealing your clients</span>
+                                Your Business Deserves to Get Traffic and Sales
                             </h2>
                             <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed font-medium">
-                                You're spending 8+ hours per article on manual research, writing, and optimization. Your margins are shrinking, your team is exhausted, and competitors who automate are winning your clients. 
-                                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold"> Every hour you waste is revenue lost.</span>
+                                You shouldn't have to spend hours writing or pay thousands to agencies just to grow. Forget juggling multiple SEO/GEO tools. Our AI agent handles everything, bringing traffic and sales to you even when you sleep.
                             </p>
                         </div>
 
