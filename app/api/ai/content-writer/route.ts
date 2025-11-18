@@ -721,7 +721,9 @@ CRITICAL: The ${businessName} section MUST:
 - Avoid generic words: "success," "results," "growth" without context
 - Use specific outcomes: "rank higher," "generate qualified leads," "reduce bounce rates," etc.
 - Feel article-specific (SEO article CTA ≠ email marketing article CTA)
-- Use the business name "${businessName}" naturally
+- Use the business name "${businessName}" naturally within this CTA section
+
+CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
@@ -844,39 +846,52 @@ async function handleSinglePhaseGeneration(
           if (!reader) throw new Error('No response body');
 
           let carry = '';
-        const safeBoundary = /[\s\n\t\r.,;:!?)]$/;
+          const decoder = new TextDecoder();
+          let buffer = '';
+          const safeBoundary = /[\s\n\t\r.,;:!?)]$/;
+
+          const processLine = (rawLine: string) => {
+            const line = rawLine.trim();
+            if (!line.startsWith('data:')) return;
+
+            const data = line.slice(5).trimStart();
+            if (data === '[DONE]') return;
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                carry += parsed.delta.text;
+                carry = sanitize(carry);
+
+                let cut = carry.length - 1;
+                while (cut >= 0 && !safeBoundary.test(carry[cut])) cut--;
+
+                if (cut >= 0) {
+                  const toEmit = carry.slice(0, cut + 1);
+                  emit(toEmit);
+                  carry = carry.slice(cut + 1);
+                }
+              }
+            } catch (e) {
+              // Ignore parsing errors for incomplete chunks; they will be retried once buffer completes
+            }
+          };
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = new TextDecoder().decode(value);
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-                  carry += parsed.delta.text;
-                  carry = sanitize(carry);
-
-                  let cut = carry.length - 1;
-                  while (cut >= 0 && !safeBoundary.test(carry[cut])) cut--;
-
-                  if (cut >= 0) {
-                    const toEmit = carry.slice(0, cut + 1);
-                    emit(toEmit);
-                    carry = carry.slice(cut + 1);
-                  }
-                }
-              } catch (e) {
-              // Ignore parsing errors
-              }
+              processLine(line);
             }
+          }
+
+          if (buffer) {
+            processLine(buffer);
           }
 
           if (carry) emit(carry);
