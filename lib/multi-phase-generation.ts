@@ -283,11 +283,11 @@ ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` 
 
 Write sections ${sectionRange} according to the outline above. Follow this structure EXACTLY:
 
-FOR EACH H2 SECTION (target: 600-800 words per H2):
+FOR EACH H2 SECTION (target: 400-550 words per H2):
 
 ## [H2 Title from Outline]
 
-Opening paragraph (100-150 words):
+Opening paragraph (70-100 words):
 - Introduce the concept
 - Explain why it matters
 - What readers will learn in this section
@@ -296,7 +296,7 @@ Opening paragraph (100-150 words):
 
 **Bold opening sentence that summarizes this subsection**
 
-Write 150-200 words covering:
+Write 100-130 words covering:
 - Step-by-step explanation or detailed breakdown
 - Specific example with real numbers (e.g., "increases engagement by 45%")
 - Tool names, metrics, data points
@@ -306,7 +306,7 @@ Write 150-200 words covering:
 
 **Bold opening sentence**
 
-Write 150-200 words covering:
+Write 100-130 words covering:
 - Build on previous subsection
 - More detailed guidance
 - Another specific example with data
@@ -316,7 +316,7 @@ Write 150-200 words covering:
 
 **Bold opening sentence**
 
-Write 150-200 words covering:
+Write 100-130 words covering:
 - Advanced technique or alternative approach
 - Case study or real-world application
 - Pro tip in blockquote: > **Pro Tip:** [advice]
@@ -325,7 +325,7 @@ Write 150-200 words covering:
 
 **Bold opening sentence**
 
-Write 150-200 words covering:
+Write 100-130 words covering:
 - Common mistakes to avoid
 - Best practices
 - Troubleshooting advice
@@ -334,7 +334,7 @@ Write 150-200 words covering:
 
 **Bold opening sentence**
 
-Write 150-200 words covering:
+Write 100-130 words covering:
 - Expert insights or industry trends
 - Future outlook or emerging techniques
 - Actionable takeaway
@@ -349,7 +349,7 @@ Write 150-200 words covering:
 | Option 2 | Medium | 3-5 hours | $50-100 | Professionals | Advanced features |
 | Option 3 | High | 1-2 days | $200+ | Enterprises | Full customization |
 
-Transition paragraph (50-75 words) connecting to the next section.
+Transition paragraph (30-50 words) connecting to the next section.
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for key terms on first mention
@@ -362,8 +362,8 @@ FORMATTING REQUIREMENTS:
 
 CRITICAL REQUIREMENTS:
 - Write ALL sections indicated in the range (${sectionRange})
-- Each H2 MUST be 600-800 words minimum
-- Each H3 MUST be 150-200 words minimum
+- Each H2 MUST be 400-550 words (not more)
+- Each H3 MUST be 100-130 words (not more)
 - Include specific numbers, metrics, and examples in every subsection
 - Do NOT include labels like "Title:", "Meta Description:", "Introduction:", "Section 1:", "Content:", etc.
 - Start directly with ## headings from the outline or paragraph text
@@ -371,8 +371,9 @@ CRITICAL REQUIREMENTS:
 - Do NOT include instruction markers like "[Write...]", "[Add...]", "[Insert...]", etc.
 - Do NOT include orphaned table headers without data rows - every table must be complete
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
+- STAY WITHIN 1,500-1,800 word limit for this phase
 
-WORD COUNT TARGET: 2,000-2,500 words for this phase. If you write less, you are failing the requirement.`;
+WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 
 /**
@@ -389,7 +390,7 @@ export function getFinalSectionsPrompt(
 ): string {
   return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
 
-TARGET LENGTH FOR THIS PHASE: 2,000-2,500 words minimum
+TARGET LENGTH FOR THIS PHASE: 1,500-1,800 words (not more)
 
 User requirements: ${userInput}
 
@@ -408,20 +409,20 @@ PART 1: REMAINING H2 SECTIONS (if sections 9-12 exist in outline)
 
 For each remaining H2 section, follow the same structure:
 - H2 heading (from outline)
-- Opening paragraph (100-150 words)
-- 4-5 H3 subsections (150-200 words each)
+- Opening paragraph (70-100 words)
+- 4-5 H3 subsections (100-130 words each)
 - Each H3 starts with a **bold summary sentence**
 - Include specific examples, data, metrics
 - Add comparison tables where indicated
 - Use > blockquotes for pro tips
 
-Target: 600-800 words per H2 section
+Target: 400-550 words per H2 section
 
-PART 2: FAQ SECTION (target: 1,200-1,500 words)
+PART 2: FAQ SECTION (target: 800-1,000 words)
 
 ## FAQ
 
-Write 12-15 comprehensive questions and answers. Format:
+Write 10-12 comprehensive questions and answers. Format:
 
 **Q: How do [specific action] for [specific outcome]?**
 
@@ -429,9 +430,7 @@ Write 12-15 comprehensive questions and answers. Format:
 
 [Second paragraph with more detail, specific examples, and data]
 
-[Third paragraph with pro tip, best practice, or warning]
-
-Target: 80-100 words per FAQ answer
+Target: 50-70 words per FAQ answer
 
 Example questions to cover:
 - How to get started (beginner question)
@@ -445,30 +444,30 @@ Example questions to cover:
 - What's the future outlook (trend question)
 - How does it compare to alternatives (competitive question)
 
-PART 3: CONCLUSION (target: 500-600 words)
+PART 3: CONCLUSION (target: 350-450 words)
 
 ## Conclusion
 
 Write a comprehensive conclusion with:
 
-Paragraph 1 (100-120 words):
+Paragraph 1 (70-90 words):
 - Recap the main transformation or value proposition
 - Emphasize the impact discussed in the article
 
-Paragraph 2 (80-100 words):
+Paragraph 2 (60-80 words):
 - Key takeaways in bullet format:
   - Takeaway 1 with specific metric or insight
   - Takeaway 2 with actionable advice
   - Takeaway 3 with forward-looking perspective
   - Takeaway 4 with practical next step
 
-Paragraph 3 (100-120 words):
+Paragraph 3 (70-90 words):
 - Discuss the future potential or next evolution
 - Connect to broader trends
 
 ### Partner with ${businessName} for Success
 
-Paragraph 4 (150-200 words):
+Paragraph 4 (120-150 words):
 - Open by referencing 2-3 SPECIFIC challenges, strategies, or pain points from THIS article (use actual concepts discussed)
 - Explain how ${businessName} provides SPECIFIC solutions to THOSE challenges (not generic "help" or "success")
 - Detail what ${businessName} actually does (concrete services/support related to this article's topic)
@@ -496,16 +495,17 @@ FORMATTING REQUIREMENTS:
 
 CRITICAL REQUIREMENTS:
 - Write ALL remaining H2 sections from the outline
-- Write 12-15 FAQ questions (not just 5-7)
-- Each FAQ answer must be 80-100 words (not just 2-3 sentences)
-- Conclusion must be 500-600 words total (including ${businessName} section)
+- Write 10-12 FAQ questions (not more)
+- Each FAQ answer must be 50-70 words (not more)
+- Conclusion must be 350-450 words total (including ${businessName} section)
 - MANDATORY: Include "### Partner with ${businessName} for Success" subsection in Conclusion with clear CTA
 - Do NOT include "SEO Suggestions" or "Image suggestions" sections
 - Do NOT end with internal linking suggestions
 - Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.
 - Do NOT include orphaned table headers without data rows
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
+- STAY WITHIN 1,500-1,800 word limit for this phase
 
-WORD COUNT TARGET: 2,000-2,500 words for this phase minimum. Count carefully and ensure you meet this target.`;
+WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 
