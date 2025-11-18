@@ -197,7 +197,13 @@ export function normalizeContentSpacing(content: string): string {
   normalized = normalized.replace(/\n{4,}/g, '\n\n\n');
 
   // Ensure proper spacing around tables
-  normalized = normalized.replace(/([^\n])\n(\|[^\n]+\|)/g, '$1\n\n$2');
+  normalized = normalized.replace(/([^\n])\n(\|[^\n]+\|)/g, (match, prevChar: string, row: string) => {
+    // If previous line is another table row (ends with "|"), keep single newline to avoid breaking tables
+    if (prevChar === '|') {
+      return `${prevChar}\n${row}`;
+    }
+    return `${prevChar}\n\n${row}`;
+  });
   normalized = normalized.replace(/(\|[^\n]+\|)\n([^\n|])/g, '$1\n\n$2');
 
   // Ensure proper spacing around blockquotes

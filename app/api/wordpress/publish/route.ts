@@ -177,19 +177,126 @@ function addInlineSpacing(html: string): string {
   // Remove top margin from first paragraph
   html = html.replace(/^(<p style="[^"]*">)/, '<p style="margin-top: 0; margin-bottom: 1.5em; line-height: 1.75;">');
   
-  // Add professional styling to tables
-  html = html.replace(/<table>/gi, '<table style="margin-top: 2rem; margin-bottom: 2rem; width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 15px; border: none;">');
-  html = html.replace(/<thead>/gi, '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">');
-  html = html.replace(/<th>/gi, '<th style="color: white; font-weight: 600; text-align: left; padding: 16px 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border: none;">');
-  html = html.replace(/<td>/gi, '<td style="padding: 16px 20px; color: #374151; line-height: 1.6; border: none; border-bottom: 1px solid #e5e7eb;">');
-  html = html.replace(/<tr>/gi, '<tr style="transition: background-color 0.2s ease;">');
+  // Add professional styling to tables (gradient header + rounded corners)
+  html = html.replace(
+    /<table>/gi,
+    '<table style="margin-top: 2.5rem; margin-bottom: 2.5rem; width: 100%; border-collapse: separate; border-spacing: 0; background: #ffffff; border-radius: 22px; overflow: hidden; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12); font-size: 15px; border: 1px solid rgba(226, 232, 240, 0.9);">'
+  );
+  html = html.replace(
+    /<thead>/gi,
+    '<thead style="background: linear-gradient(120deg, #5561ff 0%, #8c4bff 55%, #b44bff 100%);">'
+  );
+  html = html.replace(
+    /<th>/gi,
+    '<th style="color: #f8fafc; font-weight: 600; text-align: left; padding: 18px 26px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; border: none;">'
+  );
+  html = html.replace(
+    /<td>/gi,
+    '<td style="padding: 20px 26px; color: #0f172a; line-height: 1.6; border: none; font-weight: 500; border-bottom: 1px solid rgba(226, 232, 240, 0.9);">'
+  );
+  html = html.replace(
+    /<tr>/gi,
+    '<tr style="transition: transform 0.15s ease, box-shadow 0.15s ease;">'
+  );
+
+  html = ensureWordPressTableStyles(html);
   
   // Restore iframes and embeds
   iframePlaceholders.forEach((iframe, index) => {
     html = html.replace(`__IFRAME_PLACEHOLDER_${index}__`, iframe);
   });
   
-  return html;
+  return ensureWordPressTableStyles(html);
+}
+
+const WORDPRESS_TABLE_STYLE_BLOCK = `
+<style id="ai-gradient-table-style">
+.ai-gradient-table {
+  margin: 2.5rem 0;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  font-size: 0.95rem;
+}
+.ai-gradient-table thead {
+  background: linear-gradient(120deg, #5561ff 0%, #8c4bff 55%, #b44bff 100%);
+  color: #f8fafc;
+}
+.ai-gradient-table th {
+  padding: 18px 26px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+}
+.ai-gradient-table tbody tr {
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: #ffffff;
+}
+.ai-gradient-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+.ai-gradient-table tbody tr:hover {
+  box-shadow: inset 0 0 0 999px rgba(79, 70, 229, 0.04);
+  transform: translateY(-1px);
+}
+.ai-gradient-table td {
+  padding: 20px 26px;
+  color: #0f172a;
+  font-weight: 500;
+  border: none;
+}
+.ai-gradient-table td:first-child {
+  font-weight: 600;
+  color: #111827;
+}
+.ai-gradient-table td:last-child {
+  color: #4c1d95;
+  font-weight: 600;
+}
+@media (max-width: 768px) {
+  .ai-gradient-table {
+    display: block;
+    overflow-x: auto;
+  }
+  .ai-gradient-table thead {
+    display: table-header-group;
+  }
+}
+</style>
+`;
+
+function ensureWordPressTableStyles(html: string): string {
+  if (!html.includes('<table')) {
+    return html;
+  }
+
+  let processed = html.replace(/<table([^>]*)>/gi, (_match, attrs: string) => {
+    if (/class=/i.test(attrs)) {
+      if (/\bai-gradient-table\b/i.test(attrs)) {
+        return `<table${attrs}>`;
+      }
+      const updatedAttrs = attrs.replace(
+        /class="([^"]*)"/i,
+        (_full, classes: string) => ` class="${classes} ai-gradient-table"`
+      );
+      return `<table${updatedAttrs}>`;
+    }
+    return `<table class="ai-gradient-table"${attrs}>`;
+  });
+
+  if (!processed.includes('ai-gradient-table-style')) {
+    processed = `${WORDPRESS_TABLE_STYLE_BLOCK}${processed}`;
+  }
+
+  return processed;
 }
 
 // Helper function to extract clean content from AI output
