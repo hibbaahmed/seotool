@@ -1166,13 +1166,39 @@ export async function POST(request: NextRequest) {
           extractedContent = extractedContent.replace(new RegExp(`^#\\s+${esc}\\s*$`, 'gmi'), '');
         }
         
-        // Convert markdown to HTML
-        let htmlContent = marked.parse(extractedContent, { async: false }) as string;
+        // Convert markdown to HTML with proper table handling
+        const { 
+          convertMarkdownTablesToHtml, 
+          convertHtmlPipeTablesToHtml, 
+          ensureWordPressTableStyles,
+          stripLeadingHeading,
+          insertHeaderImage
+        } = await import('@/lib/wordpress/content-formatting');
+        
+        // Strip leading heading first (title is already extracted)
+        let contentForConversion = stripLeadingHeading(extractedContent);
+        
+        // Convert markdown tables to HTML before parsing
+        contentForConversion = convertMarkdownTablesToHtml(contentForConversion);
+        
+        // Parse markdown to HTML
+        let htmlContent = marked.parse(contentForConversion, { async: false }) as string;
+        
+        // Convert any remaining pipe tables that were wrapped in <p> tags
+        htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+        
+        // Ensure all tables have proper WordPress styling
+        htmlContent = ensureWordPressTableStyles(htmlContent);
+        
         if (htmlContent.includes('![') && htmlContent.includes('](')) {
           htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
         }
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
+        
+        // Insert header image if available
+        const headerImageUrl = imageUrls && imageUrls.length > 0 ? imageUrls[0] : null;
+        htmlContent = insertHeaderImage(htmlContent, headerImageUrl, extractedTitle);
         
         // Add automatic internal links to content before publishing
         try {

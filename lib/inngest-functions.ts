@@ -1311,9 +1311,9 @@ export const generateKeywordContent = inngest.createFunction(
 
       // Expansion pass: if word count is too low, ask the writer to expand
       const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;
-      if (plainWordCount < 6000) {
+      if (plainWordCount < 3800) {
         try {
-          console.log(`✏️ Draft length ${plainWordCount} words < 6000. Requesting expansion to 6,000-8,500 words...`);
+          console.log(`✏️ Draft length ${plainWordCount} words < 3800. Requesting expansion to 3,800-4,200 words...`);
           const { generateExpansionPrompt } = await import('@/lib/content-generation-prompts');
           const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl);
 
@@ -1526,8 +1526,29 @@ export const generateKeywordContent = inngest.createFunction(
             keywordText
           );
 
-          // Convert markdown to HTML
-          const htmlContent = marked.parse(extractedContent, { async: false }) as string;
+          // Convert markdown to HTML with proper table handling
+          const { 
+            convertMarkdownTablesToHtml, 
+            convertHtmlPipeTablesToHtml, 
+            ensureWordPressTableStyles,
+            stripLeadingHeading,
+            insertHeaderImage
+          } = await import('@/lib/wordpress/content-formatting');
+          
+          // Strip leading heading first (title is already extracted)
+          let contentForConversion = stripLeadingHeading(extractedContent);
+          
+          // Convert markdown tables to HTML before parsing
+          contentForConversion = convertMarkdownTablesToHtml(contentForConversion);
+          
+          // Parse markdown to HTML
+          let htmlContent = marked.parse(contentForConversion, { async: false }) as string;
+          
+          // Convert any remaining pipe tables that were wrapped in <p> tags
+          htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+          
+          // Ensure all tables have proper WordPress styling
+          htmlContent = ensureWordPressTableStyles(htmlContent);
           
           // Fix image markdown that wasn't converted
           let finalHtml = htmlContent;
@@ -1540,6 +1561,10 @@ export const generateKeywordContent = inngest.createFunction(
           
           // Add inline spacing styles
           finalHtml = addInlineSpacing(finalHtml);
+          
+          // Insert header image if available
+          const headerImageUrl = uploadedImageUrls && uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null;
+          finalHtml = insertHeaderImage(finalHtml, headerImageUrl, extractedTitle);
           
           // Add automatic internal links to content before publishing
           try {
