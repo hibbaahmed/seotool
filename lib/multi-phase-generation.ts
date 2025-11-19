@@ -200,32 +200,35 @@ export { generatePhase as generateSinglePhase };
  * Generate outline prompt
  */
 export function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company'): string {
-  return `You are creating a comprehensive article outline for a 7,000-8,000 word pillar article about: "${topic}"
+  return `You are creating a comprehensive article outline for a 3,800-4,200 word article about: "${topic}"
 
 User requirements: ${userInput}
 
 Generate a detailed outline with:
 
 1. **Title**
-SEO-optimized title (55-65 characters with primary keyword "${topic}")
+Create an engaging, benefit-driven title (55-65 characters) that includes "${topic}" naturally but is NOT just the keyword alone.
+Add value with numbers, outcomes, year, or authority terms.
+Examples: "10 ${topic} That Drive Real Results", "${topic}: Complete 2024 Guide", "Proven ${topic} for Maximum Impact"
+AVOID: Just using "${topic}" as the title
 DO NOT write "Title:" as a label in the output - just write the title text itself.
 
 2. **Meta Description**
 150-160 characters with primary keyword
 DO NOT write "Meta Description:" as a label in the output - just write the description text itself.
 
-3. **Introduction Structure** (target: 300-400 words)
+3. **Introduction Structure** (target: 200-250 words)
 - Hook paragraph
 - Why this topic matters
 - What readers will learn
 
-4. **Main Content: 10-12 H2 Sections** (target: 5,500-6,500 words total)
+4. **Main Content: 6-8 H2 Sections** (target: 3,000-3,400 words total)
 For EACH H2 section:
 - Create a descriptive H2 title with secondary keywords
-- List 4-5 specific H3 subsections
-- Note: Each H2 should yield 400-550 words
-- Note: Each H3 should yield 100-130 words
-- Indicate where to place HTML comparison tables (need 3-5 total across all sections)
+- List 2-4 specific H3 subsections
+- Note: Each H2 should yield 400-500 words
+- Note: Each H3 should yield 100-150 words
+- Indicate where to place HTML comparison tables (need 3-4 total across all sections)
 - Indicate where to place images/videos
 - IMPORTANT: Tables must be in HTML format, not Markdown
 
@@ -237,12 +240,12 @@ Example H2 structure:
 ### [H3: Common mistakes]
 ### [H3: Best practices]
 
-5. **FAQ Section** (target: 800-1,000 words)
-- List 10-12 specific questions
+5. **FAQ Section** (target: 400-500 words)
+- List 8-10 specific questions
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
 
-6. **Conclusion** (target: 350-450 words)
+6. **Conclusion** (target: 200-250 words)
 - Key takeaways (4-5 bullet points specific to article content)
 - Final actionable advice
 - "Partner with ${businessName} for Success" subsection that:

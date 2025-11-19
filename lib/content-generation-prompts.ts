@@ -59,7 +59,7 @@ ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title || 'Video'} - Video ID: ${v.i
 
 Your articles follow this proven structure:
 
-1. **Engaging Title**: Include the main keyword naturally, make it benefit-driven
+1. **Engaging Title**: Create a compelling, benefit-driven title with the keyword PLUS value proposition (e.g., numbers, outcomes, years). NEVER just use the keyword alone.
 2. **Hook Introduction**: Start with a pain point or surprising fact
 3. **Hierarchical Content**: H2 sections with 3-5 H3 subsections each
 4. **Data-Driven Examples**: Include specific numbers, tool names, real scenarios
@@ -203,7 +203,12 @@ ${isTestMode
 
 STRICT OUTPUT FORMAT:
 1. **Title**
-[SEO-optimized title with primary keyword, 55-65 characters]
+[Create an engaging, benefit-driven title (55-65 characters) that:
+- Includes the primary keyword naturally (not just the keyword alone)
+- Promises a specific benefit, number, or outcome
+- Uses power words like "Proven", "Ultimate", "Complete", "Essential", etc.
+- Examples: "10 Proven SEO Tips to Boost Your Sales by 40%", "The Complete Guide to SEO Tips That Actually Boost Sales", "SEO Tips to Boost Your Sales: 2024 Expert Strategies"
+- AVOID: Just using the keyword as-is (e.g., "seo tips to boost your sales")]
 
 2. **Meta Description**
 [150-160 characters with primary keyword]
@@ -367,6 +372,17 @@ KEYWORD INTEGRATION:
 - Variations: Use semantic variations in H2/H3 headings
 - LSI keywords: Naturally sprinkle related terms throughout
 - Avoid exact-match repetition (sounds robotic)
+
+TITLE REQUIREMENTS (CRITICAL):
+- DO NOT just use the keyword as the title (e.g., avoid: "${keyword}")
+- Instead, create an engaging title that includes the keyword PLUS value:
+  * Add numbers: "10 ${keyword} That Actually Work"
+  * Add year/timeframe: "${keyword}: 2024 Expert Guide"
+  * Add benefit/outcome: "${keyword} to Increase Revenue by 40%"
+  * Add authority: "The Ultimate Guide to ${keyword}"
+  * Add specificity: "Proven ${keyword} for Small Businesses"
+- Keep title between 55-65 characters
+- Make it click-worthy while maintaining SEO value
 
 Follow the structure and requirements outlined in your system prompt. ${isTestMode 
   ? 'For test mode: Create 2-3 H2 sections, each with 1-2 H3 subsections, optionally include 1 comparison table, and create a FAQ section with 2-3 questions. Keep everything concise.'
