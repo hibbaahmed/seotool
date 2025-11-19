@@ -122,6 +122,26 @@ function cleanBlogContent(html: string): string {
   return cleaned.trim();
 }
 
+function cleanBlogExcerpt(excerpt: string | null | undefined, title?: string): string {
+  if (!excerpt) return '';
+
+  let cleaned = cleanBlogContent(excerpt);
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  if (title) {
+    const normalizedTitle = title.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (normalizedTitle && cleaned.toLowerCase().startsWith(normalizedTitle)) {
+      cleaned = cleaned.slice(normalizedTitle.length).trim();
+    }
+  }
+
+  // Remove lingering punctuation or separators left behind
+  cleaned = cleaned.replace(/^[:\-–—,\s]+/, '').trim();
+
+  return cleaned;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -151,6 +171,11 @@ export async function GET(
         if (post.content) {
           post.content = cleanBlogContent(post.content);
         }
+      if (post.excerpt) {
+        post.excerpt = cleanBlogExcerpt(post.excerpt, post.title);
+      } else if (post.content) {
+        post.excerpt = cleanBlogExcerpt(post.content, post.title).substring(0, 220);
+      }
         // Decode HTML entities in title
         if (post.title) {
           post.title = decodeHtmlEntitiesServer(post.title);
@@ -176,7 +201,7 @@ export async function GET(
         id: post.ID,
         title: decodeHtmlEntitiesServer(post.title || 'Untitled'),
         content: cleanBlogContent(post.content),
-        excerpt: (post.excerpt || '').replace(/<[^>]*>/g, ''),
+        excerpt: cleanBlogExcerpt(post.excerpt, post.title || ''),
         slug: post.slug,
         date: post.date,
         modified: post.modified,
@@ -205,7 +230,7 @@ export async function GET(
       id: post.id,
       title: decodeHtmlEntitiesServer(post.title?.rendered || 'Untitled'),
       content: cleanBlogContent(post.content.rendered),
-      excerpt: post.excerpt.rendered?.replace(/<[^>]*>/g, '') || '',
+      excerpt: cleanBlogExcerpt(post.excerpt.rendered, post.title?.rendered),
       slug: post.slug,
       date: post.date,
       modified: post.modified,

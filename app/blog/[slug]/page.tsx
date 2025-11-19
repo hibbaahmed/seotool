@@ -73,10 +73,10 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     
     return {
       title: post.seo?.title || post.title,
-      description: post.seo?.metaDesc || post.excerpt.replace(/<[^>]*>/g, ''),
+      description: post.seo?.metaDesc || post.excerpt,
       openGraph: {
         title: post.seo?.opengraphTitle || post.title,
-        description: post.seo?.opengraphDescription || post.excerpt.replace(/<[^>]*>/g, ''),
+        description: post.seo?.opengraphDescription || post.excerpt,
         images: post.seo?.opengraphImage?.sourceUrl || post.featuredImage?.node.sourceUrl ? [
           {
             url: post.seo?.opengraphImage?.sourceUrl || post.featuredImage?.node.sourceUrl || '',
@@ -172,10 +172,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </h1>
 
                 {/* Excerpt */}
-                <div 
-                  className="text-xl text-slate-600 mb-8 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: post.excerpt }}
-                />
+                {post.excerpt && (
+                  <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+                    {post.excerpt}
+                  </p>
+                )}
 
                 {/* Meta Info */}
                 <div className="flex flex-wrap items-center gap-6 text-slate-500 mb-8 pb-8 border-b border-slate-200">
