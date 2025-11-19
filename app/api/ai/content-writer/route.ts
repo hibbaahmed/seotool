@@ -611,9 +611,9 @@ CRITICAL REQUIREMENTS:
 - Do NOT include instruction markers like "[Write...]", "[Add...]", "[Insert...]", etc.
 - Do NOT include orphaned table headers without data rows - every table must be complete
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
-- STAY WITHIN 1,500-1,800 word limit for this phase
+- STAY WITHIN 1,200-1,400 word limit for this phase
 
-WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
+WORD COUNT TARGET: 1,200-1,400 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 
 function getFinalSectionsPrompt(
@@ -744,9 +744,9 @@ CRITICAL REQUIREMENTS:
 - Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.
 - Do NOT include orphaned table headers without data rows
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
-- STAY WITHIN 1,500-1,800 word limit for this phase
+- STAY WITHIN 1,200-1,400 word limit for this phase
 
-WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
+WORD COUNT TARGET: 1,200-1,400 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 
 // ============= SINGLE-PHASE GENERATION (Original) =============

@@ -200,7 +200,7 @@ export { generatePhase as generateSinglePhase };
  * Generate outline prompt
  */
 export function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company'): string {
-  return `You are creating a comprehensive article outline for a 6,000-8,500 word pillar article about: "${topic}"
+  return `You are creating a comprehensive article outline for a 7,000-8,000 word pillar article about: "${topic}"
 
 User requirements: ${userInput}
 
@@ -214,19 +214,20 @@ DO NOT write "Title:" as a label in the output - just write the title text itsel
 150-160 characters with primary keyword
 DO NOT write "Meta Description:" as a label in the output - just write the description text itself.
 
-3. **Introduction Structure** (target: 400-600 words)
+3. **Introduction Structure** (target: 300-400 words)
 - Hook paragraph
 - Why this topic matters
 - What readers will learn
 
-4. **Main Content: 10-12 H2 Sections** (target: 6,000-7,000 words total)
+4. **Main Content: 10-12 H2 Sections** (target: 5,500-6,500 words total)
 For EACH H2 section:
 - Create a descriptive H2 title with secondary keywords
 - List 4-5 specific H3 subsections
-- Note: Each H2 should yield 600-800 words
-- Note: Each H3 should yield 150-200 words
-- Indicate where to place comparison tables (need 4-6 total across all sections)
+- Note: Each H2 should yield 400-550 words
+- Note: Each H3 should yield 100-130 words
+- Indicate where to place HTML comparison tables (need 3-5 total across all sections)
 - Indicate where to place images/videos
+- IMPORTANT: Tables must be in HTML format, not Markdown
 
 Example H2 structure:
 ## [H2 Title]
@@ -236,12 +237,12 @@ Example H2 structure:
 ### [H3: Common mistakes]
 ### [H3: Best practices]
 
-5. **FAQ Section** (target: 1,200-1,500 words)
-- List 12-15 specific questions
+5. **FAQ Section** (target: 800-1,000 words)
+- List 10-12 specific questions
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
 
-6. **Conclusion** (target: 500-600 words)
+6. **Conclusion** (target: 350-450 words)
 - Key takeaways (4-5 bullet points specific to article content)
 - Final actionable advice
 - "Partner with ${businessName} for Success" subsection that:
@@ -251,7 +252,7 @@ Example H2 structure:
 
 FORMAT: Use markdown with ## for H2 and ### for H3. Be VERY specific with section titles - use actual descriptive titles, not placeholders.
 
-CRITICAL: Create at least 10 H2 sections to reach the 6,000+ word target.`;
+CRITICAL: Create at least 10 H2 sections to reach the 7,000-8,000 word target.`;
 }
 
 /**
@@ -343,11 +344,44 @@ Write 100-130 words covering:
 
 ### 5-Point Comparison: [Descriptive Title]
 
-| Approach/Method | Complexity | Time Required | Cost | Best For | Key Benefit |
-|-----------------|------------|---------------|------|----------|-------------|
-| Option 1 | Low | 1-2 hours | Free | Beginners | Quick setup |
-| Option 2 | Medium | 3-5 hours | $50-100 | Professionals | Advanced features |
-| Option 3 | High | 1-2 days | $200+ | Enterprises | Full customization |
+<table>
+<thead>
+<tr>
+<th>Approach/Method</th>
+<th>Complexity</th>
+<th>Time Required</th>
+<th>Cost</th>
+<th>Best For</th>
+<th>Key Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Option 1</td>
+<td>Low</td>
+<td>1-2 hours</td>
+<td>Free</td>
+<td>Beginners</td>
+<td>Quick setup</td>
+</tr>
+<tr>
+<td>Option 2</td>
+<td>Medium</td>
+<td>3-5 hours</td>
+<td>$50-100</td>
+<td>Professionals</td>
+<td>Advanced features</td>
+</tr>
+<tr>
+<td>Option 3</td>
+<td>High</td>
+<td>1-2 days</td>
+<td>$200+</td>
+<td>Enterprises</td>
+<td>Full customization</td>
+</tr>
+</tbody>
+</table>
 
 Transition paragraph (30-50 words) connecting to the next section.
 
@@ -356,6 +390,7 @@ FORMATTING REQUIREMENTS:
 - Use bullet points for lists of 3+ items
 - Embed images: ![descriptive alt](URL)
 - Embed videos: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+- Use HTML tables (with <table>, <thead>, <tbody>, <tr>, <th>, <td> tags) - NEVER use Markdown pipe tables
 - Keep paragraphs 3-4 sentences max
 - Use second-person ("you", "your")
 - Conversational but authoritative tone
@@ -371,9 +406,9 @@ CRITICAL REQUIREMENTS:
 - Do NOT include instruction markers like "[Write...]", "[Add...]", "[Insert...]", etc.
 - Do NOT include orphaned table headers without data rows - every table must be complete
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
-- STAY WITHIN 1,500-1,800 word limit for this phase
+- STAY WITHIN 1,200-1,400 word limit for this phase
 
-WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
+WORD COUNT TARGET: 1,200-1,400 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 
 /**
@@ -483,11 +518,14 @@ CRITICAL: The ${businessName} section MUST:
 - Make it clear what readers get (e.g., "we handle keyword research and content optimization" vs "we help you grow")
 - Connect logically: "You learned about X, Y, Z → We help with X, Y, Z → Here's how to get started"
 - Feel like the article's natural conclusion, not a bolted-on ad
-- Use the business name "${businessName}" naturally
+- Use the business name "${businessName}" naturally within this CTA section
 - Be specific to this article's content (a blog about SEO should have different CTA than one about email marketing)
+
+CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
+- Use HTML tables (with <table>, <thead>, <tbody>, <tr>, <th>, <td> tags) - NEVER use Markdown pipe tables
 - Keep paragraphs 3-4 sentences max
 - Second-person tone ("you", "your")
 - No section labels like "Title:", "Meta Description:", "Introduction:", "Section 1:" - start with ## headings or paragraph text directly
@@ -504,8 +542,8 @@ CRITICAL REQUIREMENTS:
 - Do NOT include instruction markers like "# Remaining H2 Sections", "[Write...]", "[Add...]", etc.
 - Do NOT include orphaned table headers without data rows
 - Do NOT include TODO, NOTE, PLACEHOLDER, or similar meta-comments
-- STAY WITHIN 1,500-1,800 word limit for this phase
+- STAY WITHIN 1,200-1,400 word limit for this phase
 
-WORD COUNT TARGET: 1,500-1,800 words for this phase (not more). Count carefully and ensure you stay within this target.`;
+WORD COUNT TARGET: 1,200-1,400 words for this phase (not more). Count carefully and ensure you stay within this target.`;
 }
 

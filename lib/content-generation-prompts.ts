@@ -84,13 +84,13 @@ ${isTestMode ? `
 - Use > blockquotes for 1-2 pro tips
 - Word count: 200-300 words (TEST MODE - Quick Preview)
 ` : `
-- 8-12 H2 sections (major topics)
-- Each H2 MUST contain 3-5 H3 subsections
-- Include at least 10-15 specific examples with real numbers
-- Add 4-6 professional comparison tables (REQUIRED)
-- Create FAQ section with 10-15 questions
-- Use > blockquotes for pro tips (at least 5-8 throughout)
-- Word count: 6,000-8,500 words (FULL GENERATION)
+- 6-8 H2 sections (major topics)
+- Each H2 MUST contain 2-4 H3 subsections
+- Include at least 10-12 specific examples with real numbers
+- Add 3-4 professional comparison tables (REQUIRED)
+- Create FAQ section with 8-10 questions
+- Use > blockquotes for pro tips (at least 4-6 throughout)
+- Word count: 3,800-4,200 words (FULL GENERATION)
 `}
 
 MANDATORY SECTIONS:
@@ -100,10 +100,10 @@ ${isTestMode ? `
 3. FAQ section (2-3 questions)
 4. Conclusion with key takeaways and ${businessName} CTA (40-60 words)
 ` : `
-1. Introduction with hook and overview (200-300 words)
-2. 8-12 main H2 sections (each 400-600 words)
-3. FAQ section (10-15 questions)
-4. Conclusion with key takeaways and ${businessName} CTA (200-300 words)
+1. Introduction with hook and overview (200-250 words)
+2. 6-8 main H2 sections (each 400-500 words)
+3. FAQ section (8-10 questions)
+4. Conclusion with key takeaways and ${businessName} CTA (200-250 words)
 `}
 
 CONTENT DEPTH REQUIREMENTS:
@@ -292,9 +292,11 @@ CRITICAL: This ${businessName} section MUST:
 - Make it clear WHY readers would need help with the specific challenges mentioned in this article
 - Include a clear, actionable call-to-action (e.g., "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]")
 - Feel like a natural extension of the article, not a generic sales pitch
-- Use the business name "${businessName}" naturally throughout
+- Use the business name "${businessName}" naturally within this CTA section
 - Avoid vague terms like "success," "results," "growth" without specifying what kind
 - Instead use specific outcomes relevant to the article (e.g., "rank higher for competitive keywords," "reduce page load times," "build authority backlinks")
+
+CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
 
 CRITICAL RULES:
 - NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
@@ -335,7 +337,7 @@ PRIMARY KEYWORD: "${keyword}"
 CONTENT TYPE: ${contentType}
 TARGET AUDIENCE: ${targetAudience}
 TONE: ${tone}
-WORD COUNT: ${targetWordCount}${isTestMode ? ' (TEST MODE - Quick Preview)' : ' (FULL GENERATION)'}
+WORD COUNT: ${isTestMode ? '200-300' : '3,800-4,200'}${isTestMode ? ' (TEST MODE - Quick Preview)' : ' (FULL GENERATION)'}
 
 TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
 ${isTestMode 
