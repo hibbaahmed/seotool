@@ -8,6 +8,7 @@ import {
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
   insertHeaderImage,
+  ensureWordPressTableStyles,
   stripLeadingHeading,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
@@ -54,10 +55,12 @@ async function prepareContentForWordPress(rawContent: string, title: string) {
     const markdownWithTables = convertMarkdownTablesToHtml(contentWithoutHeading);
     htmlContent = marked.parse(markdownWithTables, { async: false }) as string;
     htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+    htmlContent = ensureWordPressTableStyles(htmlContent);
   }
 
   htmlContent = removeExcessiveBoldFromHTML(htmlContent);
   htmlContent = addInlineSpacing(htmlContent);
+  htmlContent = ensureWordPressTableStyles(htmlContent);
   htmlContent = insertHeaderImage(htmlContent, initialHeroImage, title, { fallbackToExisting: true });
 
   try {

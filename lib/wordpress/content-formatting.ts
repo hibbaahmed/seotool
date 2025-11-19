@@ -169,7 +169,7 @@ const WORDPRESS_TABLE_STYLE_BLOCK = `
 </style>
 `;
 
-function ensureWordPressTableStyles(html: string): string {
+export function ensureWordPressTableStyles(html: string): string {
   if (!html.includes('<table')) {
     return html;
   }

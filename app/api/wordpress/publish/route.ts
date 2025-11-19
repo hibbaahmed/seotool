@@ -7,6 +7,7 @@ import {
   addInlineSpacing,
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
+  ensureWordPressTableStyles,
   insertHeaderImage,
   stripLeadingHeading,
   removeExcessiveBoldFromHTML,
@@ -731,6 +732,7 @@ export async function POST(request: NextRequest) {
         // Parse markdown to HTML
         htmlContent = marked.parse(contentWithTablesConverted, { async: false }) as string;
         htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+        htmlContent = ensureWordPressTableStyles(htmlContent);
         console.log(`✅ Markdown converted to HTML. HTML length: ${htmlContent.length} characters`);
         
         // Double-check that markdown images were converted (should be HTML <img> tags now)
@@ -744,6 +746,7 @@ export async function POST(request: NextRequest) {
         
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
+        htmlContent = ensureWordPressTableStyles(htmlContent);
         htmlContent = insertHeaderImage(htmlContent, headerImageUrl, postData.title);
         
         // Add automatic internal links AFTER converting to HTML
@@ -900,25 +903,19 @@ export async function POST(request: NextRequest) {
       let finalContent = postData.content;
       console.log(`🔄 Preparing content for self-hosted WordPress. Content length: ${finalContent.length} characters`);
       
-      // Convert markdown to HTML if needed
-      if (typeof finalContent === 'string' && finalContent.trim() && (finalContent.includes('#') || finalContent.includes('*') || finalContent.includes('|'))) {
-        finalContent = stripLeadingHeading(finalContent);
-        // First, convert markdown tables to HTML
-        finalContent = convertMarkdownTablesToHtml(finalContent);
-        
-        finalContent = marked.parse(finalContent, { async: false }) as string;
-        finalContent = convertHtmlPipeTablesToHtml(finalContent);
-        console.log(`✅ Markdown converted to HTML. HTML length: ${finalContent.length} characters`);
+      if (typeof finalContent === 'string' && finalContent.trim()) {
+        if (finalContent.includes('|')) {
+          finalContent = convertMarkdownTablesToHtml(finalContent);
+        }
+        if (finalContent.includes('#') || finalContent.includes('*')) {
+          finalContent = marked.parse(stripLeadingHeading(finalContent), { async: false }) as string;
+        }
       }
-      
-      // Ensure leading HTML <h1> is removed even if original content was already HTML
+
       finalContent = stripLeadingHeading(finalContent);
-      
-      // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
       finalContent = removeExcessiveBoldFromHTML(finalContent);
-      
-      // Add inline spacing
       finalContent = addInlineSpacing(finalContent);
+      finalContent = ensureWordPressTableStyles(finalContent);
       finalContent = insertHeaderImage(finalContent, headerImageUrl, postData.title);
       
       // Add internal links
