@@ -130,75 +130,17 @@ export function removeExcessiveBoldFromHTML(html: string): string {
   return html;
 }
 
-const WORDPRESS_TABLE_STYLE_BLOCK = `
-<style id="ai-gradient-table-style">
-.ai-gradient-table {
-  margin: 2.5rem 0;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 22px;
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  font-size: 0.95rem;
-}
-.ai-gradient-table thead {
-  background: linear-gradient(120deg, #5561ff 0%, #8c4bff 55%, #b44bff 100%);
-  color: #f8fafc;
-}
-.ai-gradient-table th {
-  padding: 18px 26px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: none;
-}
-.ai-gradient-table tbody tr {
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  background: #ffffff;
-}
-.ai-gradient-table tbody tr:nth-child(even) {
-  background: #f8fafc;
-}
-.ai-gradient-table tbody tr:hover {
-  box-shadow: inset 0 0 0 999px rgba(79, 70, 229, 0.04);
-  transform: translateY(-1px);
-}
-.ai-gradient-table td {
-  padding: 20px 26px;
-  color: #0f172a;
-  font-weight: 500;
-  border: none;
-}
-.ai-gradient-table td:first-child {
-  font-weight: 600;
-  color: #111827;
-}
-.ai-gradient-table td:last-child {
-  color: #4c1d95;
-  font-weight: 600;
-}
-@media (max-width: 768px) {
-  .ai-gradient-table {
-    display: block;
-    overflow-x: auto;
-  }
-  .ai-gradient-table thead {
-    display: table-header-group;
-  }
-}
-</style>
-`;
+// Note: We no longer inject <style> blocks as WordPress often strips the tags
+// leaving raw CSS visible. Instead, we rely on inline styles applied by addInlineSpacing()
+// and the ai-gradient-table class (which WordPress themes can optionally style)
 
 export function ensureWordPressTableStyles(html: string): string {
   if (!html.includes('<table')) {
     return html;
   }
 
+  // Just add the class to tables - inline styles will be applied by addInlineSpacing()
+  // We don't add <style> blocks as WordPress often strips them, leaving raw CSS visible
   let processed = html.replace(/<table([^>]*)>/gi, (_match, attrs: string) => {
     if (/class=/i.test(attrs)) {
       if (/\bai-gradient-table\b/i.test(attrs)) {
@@ -212,10 +154,6 @@ export function ensureWordPressTableStyles(html: string): string {
     }
     return `<table class="ai-gradient-table"${attrs}>`;
   });
-
-  if (!processed.includes('ai-gradient-table-style')) {
-    processed = `${WORDPRESS_TABLE_STYLE_BLOCK}${processed}`;
-  }
 
   return processed;
 }
