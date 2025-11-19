@@ -259,4 +259,53 @@ export function addInlineSpacing(html: string): string {
   return ensureWordPressTableStyles(html);
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function sanitizeHeaderImageUrl(url?: string | null): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+  return trimmed.replace(/"/g, '&quot;');
+}
+
+export function insertHeaderImage(
+  html: string,
+  imageUrl?: string | null,
+  altText?: string,
+  options: { fallbackToExisting?: boolean } = {}
+): string {
+  let resolvedUrl = sanitizeHeaderImageUrl(imageUrl);
+
+  if (!resolvedUrl && options.fallbackToExisting) {
+    const existingMatch = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    if (existingMatch && existingMatch[1]) {
+      resolvedUrl = sanitizeHeaderImageUrl(existingMatch[1]);
+    }
+  }
+
+  if (!resolvedUrl || html.includes('ai-header-image')) {
+    return html;
+  }
+
+  const safeAlt = escapeHtmlAttribute(altText?.trim() || 'Featured article image');
+  const headerBlock = `
+<figure class="ai-header-image" style="margin: 0 0 2.5rem 0; width: 100%; border-radius: 28px; overflow: hidden; box-shadow: 0 25px 45px rgba(15, 23, 42, 0.18); background: linear-gradient(120deg, rgba(79, 70, 229, 0.08), rgba(236, 72, 153, 0.06));">
+  <img src="${resolvedUrl}" alt="${safeAlt}" style="display: block; width: 100%; height: auto; max-height: 520px; object-fit: cover;" loading="lazy" decoding="async" />
+</figure>
+`.trim();
+
+  if (/<h1[^>]*>[\s\S]*?<\/h1>/.test(html)) {
+    return html.replace(/(<h1[^>]*>[\s\S]*?<\/h1>)/i, `$1\n${headerBlock}\n`);
+  }
+
+  return `${headerBlock}\n${html}`;
+}
+
 

@@ -7,6 +7,7 @@ import {
   addInlineSpacing,
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
+  insertHeaderImage,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
 
@@ -497,6 +498,7 @@ export async function POST(request: NextRequest) {
       tags: any[];
       meta: any;
     } | null = null;
+    let headerImageUrl: string | null = null;
     
     switch (contentType) {
       case 'content':
@@ -504,6 +506,10 @@ export async function POST(request: NextRequest) {
         const contentOutput = (content as any).content_output || '';
         const topic = (content as any).topic || 'Generated Article';
         let extractedTitle = null;
+        const generatedImageUrls = Array.isArray((content as any).image_urls)
+          ? (content as any).image_urls.filter((url: string | null) => typeof url === 'string' && url.trim().startsWith('http'))
+          : [];
+        headerImageUrl = generatedImageUrls[0] || headerImageUrl;
         
         // Check if content has old-style markers or is already cleaned
         const hasMarkers = /(?:^|\n)(?:\d+\.?\s*)?\*\*(?:Title|Content)\*\*/i.test(contentOutput);
@@ -736,6 +742,7 @@ export async function POST(request: NextRequest) {
         
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
+        htmlContent = insertHeaderImage(htmlContent, headerImageUrl, postData.title);
         
         // Add automatic internal links AFTER converting to HTML
         try {
@@ -795,6 +802,8 @@ export async function POST(request: NextRequest) {
         
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+        htmlContent = addInlineSpacing(htmlContent);
+        htmlContent = insertHeaderImage(htmlContent, headerImageUrl, postData.title);
         
         // Add links even for non-markdown content
         try {
@@ -904,6 +913,7 @@ export async function POST(request: NextRequest) {
       
       // Add inline spacing
       finalContent = addInlineSpacing(finalContent);
+      finalContent = insertHeaderImage(finalContent, headerImageUrl, postData.title);
       
       // Add internal links
       const { linkedContent } = await addInternalLinksToContent(

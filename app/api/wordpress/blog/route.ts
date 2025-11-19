@@ -7,6 +7,7 @@ import {
   addInlineSpacing,
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
+  insertHeaderImage,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
 
@@ -20,17 +21,42 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-async function prepareContentForWordPress(rawContent: string, title: string) {
-  let htmlContent = rawContent;
+const MARKDOWN_IMAGE_REGEX = /!\[[^\]]*?\]\(([^)]+)\)/;
+const HTML_IMAGE_REGEX = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
 
-  if (!isLikelyHtml(rawContent.trim())) {
-    const markdownWithTables = convertMarkdownTablesToHtml(rawContent);
+function extractHeaderImageCandidate(content: string) {
+  let workingContent = content;
+
+  const markdownMatch = workingContent.match(MARKDOWN_IMAGE_REGEX);
+  if (markdownMatch && markdownMatch[1]) {
+    const url = markdownMatch[1].trim();
+    workingContent = workingContent.replace(MARKDOWN_IMAGE_REGEX, '');
+    return { content: workingContent, imageUrl: url };
+  }
+
+  const htmlMatch = workingContent.match(HTML_IMAGE_REGEX);
+  if (htmlMatch && htmlMatch[1]) {
+    const url = htmlMatch[1].trim();
+    workingContent = workingContent.replace(HTML_IMAGE_REGEX, '');
+    return { content: workingContent, imageUrl: url };
+  }
+
+  return { content: workingContent, imageUrl: undefined };
+}
+
+async function prepareContentForWordPress(rawContent: string, title: string) {
+  const { content: strippedContent, imageUrl: initialHeroImage } = extractHeaderImageCandidate(rawContent);
+  let htmlContent = strippedContent;
+
+  if (!isLikelyHtml(strippedContent.trim())) {
+    const markdownWithTables = convertMarkdownTablesToHtml(strippedContent);
     htmlContent = marked.parse(markdownWithTables, { async: false }) as string;
     htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
   }
 
   htmlContent = removeExcessiveBoldFromHTML(htmlContent);
   htmlContent = addInlineSpacing(htmlContent);
+  htmlContent = insertHeaderImage(htmlContent, initialHeroImage, title, { fallbackToExisting: true });
 
   try {
     const { linkedContent } = await addInternalLinksToContent(htmlContent, title);
