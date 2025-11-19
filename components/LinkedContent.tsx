@@ -8,6 +8,20 @@ interface LinkedContentProps {
   className?: string;
 }
 
+function stripHtmlTags(text: string): string {
+  return text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function isTitleLikeText(text: string): boolean {
+  const normalized = stripHtmlTags(text);
+  if (!normalized) return false;
+  if (normalized.length > 150) return false;
+  if (normalized.includes('. ') || normalized.includes('? ') || normalized.includes('! ')) {
+    return false;
+  }
+  return /^[A-Z0-9]/.test(normalized);
+}
+
 // Helper function to remove "Title:" and "Meta Description:" labels
 function removeTitleAndMetaLabels(html: string): string {
   let cleaned = html;
@@ -70,76 +84,64 @@ function removeTitleAndMetaLabels(html: string): string {
 
 // Helper function to remove duplicate titles at the start of content
 function removeDuplicateTitles(html: string): string {
-  // Remove duplicate H1 tags at the start
-  // Pattern: <h1>Title</h1> appearing multiple times at the start
-  let cleaned = html;
-  
-  // Extract all H1 tags at the start
-  const h1Matches = cleaned.match(/^<h1[^>]*>(.+?)<\/h1>/gi);
-  if (h1Matches && h1Matches.length > 1) {
-    // Get the first H1 text
-    const firstH1Text = h1Matches[0].replace(/<[^>]+>/g, '').trim();
-    // Remove all subsequent duplicate H1s
-    let seenFirst = false;
-    cleaned = cleaned.replace(/<h1[^>]*>(.+?)<\/h1>/gi, (match, content) => {
-      const text = content.replace(/<[^>]+>/g, '').trim();
-      if (!seenFirst) {
-        seenFirst = true;
-        return ''; // Remove first occurrence too (title is shown in header)
+  if (!html) return html;
+
+  let cleaned = html.trimStart();
+  let removedTitleText = '';
+
+  const leadingH1Regex = /^<h1[^>]*>([\s\S]*?)<\/h1>/i;
+  const firstH1Match = cleaned.match(leadingH1Regex);
+  if (firstH1Match) {
+    removedTitleText = stripHtmlTags(firstH1Match[1]).toLowerCase();
+    cleaned = cleaned.replace(leadingH1Regex, '').trimStart();
+  }
+
+  if (!removedTitleText) {
+    const firstParagraphMatch = cleaned.match(/^<p[^>]*>([\s\S]*?)<\/p>/i);
+    if (firstParagraphMatch && isTitleLikeText(firstParagraphMatch[1])) {
+      removedTitleText = stripHtmlTags(firstParagraphMatch[1]).toLowerCase();
+      cleaned = cleaned.replace(firstParagraphMatch[0], '').trimStart();
+    } else {
+      const leadingTextMatch = cleaned.match(/^([^<\n]+)(\n|$)/);
+      if (leadingTextMatch && isTitleLikeText(leadingTextMatch[1])) {
+        removedTitleText = stripHtmlTags(leadingTextMatch[1]).toLowerCase();
+        cleaned = cleaned.slice(leadingTextMatch[0].length).trimStart();
       }
-      // If it's a duplicate of the first, remove it
-      if (text === firstH1Text || text.toLowerCase() === firstH1Text.toLowerCase()) {
-        return '';
-      }
-      // If it's a different title-like text, remove it too
-      if (text.length > 10 && text.length < 150) {
+    }
+  }
+
+  if (removedTitleText) {
+    cleaned = cleaned.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (match, content) => {
+      const normalized = stripHtmlTags(content).toLowerCase();
+      if (normalized === removedTitleText) {
         return '';
       }
       return match;
     });
   }
-  
-  // Also handle plain text titles that appear at the start
-  // Remove consecutive title-like lines (short lines without sentence structure)
+
   const lines = cleaned.split('\n');
   let startIndex = 0;
-  let foundContent = false;
-  
   for (let i = 0; i < Math.min(10, lines.length); i++) {
     const line = lines[i].trim();
-    const lineHtml = line.replace(/<[^>]+>/g, '').trim();
-    
-    // Skip H1 tags (already handled)
-    if (line.match(/^<h1[^>]*>/)) {
+    if (!line) {
       startIndex = i + 1;
       continue;
     }
-    
-    // If we find a paragraph with actual content (starts with lowercase, has sentence structure)
-    if (line.match(/^<p[^>]*>/) && (lineHtml.match(/^[a-z]/) || lineHtml.includes('. ') || lineHtml.length > 100)) {
-      foundContent = true;
-      startIndex = i;
+    if (line.match(/^<p[^>]*>/) && !isTitleLikeText(line)) {
       break;
     }
-    
-    // If we find standalone text that looks like a title (not a paragraph)
-    if (lineHtml && !line.match(/^<p/) && !line.match(/^<h/)) {
-      if (lineHtml.length > 10 && lineHtml.length < 150 && !lineHtml.includes('. ') && !lineHtml.match(/^[a-z]/)) {
-        startIndex = i + 1;
-        continue;
-      }
+    if (isTitleLikeText(line)) {
+      startIndex = i + 1;
+      continue;
     }
+    break;
   }
-  
-  // Skip blank lines
-  while (startIndex < lines.length && lines[startIndex].trim() === '') {
-    startIndex++;
+
+  if (startIndex > 0) {
+    cleaned = lines.slice(startIndex).join('\n').trimStart();
   }
-  
-  if (foundContent || startIndex > 0) {
-    cleaned = lines.slice(startIndex).join('\n');
-  }
-  
+
   return cleaned;
 }
 
