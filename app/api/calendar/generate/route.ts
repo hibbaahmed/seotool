@@ -1197,7 +1197,7 @@ export async function POST(request: NextRequest) {
         htmlContent = addInlineSpacing(htmlContent);
         
         // Insert header image if available
-        const headerImageUrl = imageUrls && imageUrls.length > 0 ? imageUrls[0] : null;
+        const headerImageUrl = uploadedImageUrls && uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null;
         htmlContent = insertHeaderImage(htmlContent, headerImageUrl, extractedTitle);
         
         // Add automatic internal links to content before publishing

@@ -276,8 +276,10 @@ User requirements: ${userInput}
 Article outline to follow:
 ${outline}
 
-AVAILABLE IMAGES (embed 1-2 per section):
+AVAILABLE IMAGES (YOU MUST USE ALL - distribute throughout this phase):
 ${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+- Embed images at relevant points in your sections using: ![descriptive alt text](URL)
+- Distribute images evenly - do not cluster them all in one section
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed if relevant):
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
@@ -432,8 +434,10 @@ User requirements: ${userInput}
 Article outline to follow:
 ${outline}
 
-AVAILABLE IMAGES:
+AVAILABLE IMAGES (YOU MUST USE ALL remaining images in this final phase):
 ${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+- Embed images at relevant points using: ![descriptive alt text](URL)
+- Use any images not yet used in previous phases
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}

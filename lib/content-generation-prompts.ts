@@ -32,10 +32,10 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
   } = options;
   
   const isTestMode = isTest;
-  const targetWordCount = isTestMode ? '200-300 words' : '6,000-8,500 words';
+  const targetWordCount = isTestMode ? '200-300 words' : '3,800-4,200 words';
   const wordCountDescription = isTestMode 
     ? 'concise test article (200-300 words) for quick preview'
-    : 'comprehensive, in-depth article (6,000-8,500 words)';
+    : 'comprehensive, in-depth article (3,800-4,200 words)';
 
   return `You are an expert SEO content writer who creates comprehensive, engaging articles that rank well in search engines.
 
@@ -44,13 +44,15 @@ ${keyword ? `PRIMARY KEYWORD/TOPIC: "${keyword}" - You MUST optimize the title a
 AVAILABLE IMAGES (embed using Markdown):
 ${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
-IMAGE AND VIDEO PLACEMENT RULES:
+IMAGE AND VIDEO PLACEMENT RULES (CRITICAL - MUST FOLLOW):
+- YOU MUST USE ALL PROVIDED IMAGES - distribute them evenly throughout the article
+- Place images after relevant H2 sections or within H3 subsections where contextually appropriate
+- DO NOT place all images at the beginning - spread them across the entire article
 - DO NOT place images and videos directly next to each other
 - Always include at least 2-3 paragraphs of text between any image and video
-- Distribute images and videos throughout the article, not clustered together
-- Place images after relevant H2 sections or within H3 subsections
-- Place videos after relevant H2 sections or key paragraphs where they add value
 - Ensure substantial content (100+ words) between media elements
+- Format: ![descriptive alt text](IMAGE_URL)
+- If you have 4 images and 8 sections, aim to place images in sections 1, 3, 5, and 7
 
 ${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
 ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title || 'Video'} - Video ID: ${v.id}`).join('\n')}` : ''}
@@ -326,10 +328,10 @@ export function generateKeywordContentPrompt(options: ContentPromptOptions): str
   } = options;
 
   const isTestMode = isTest;
-  const targetWordCount = isTestMode ? '200-300 words' : '6,000-8,500 words';
+  const targetWordCount = isTestMode ? '200-300 words' : '3,800-4,200 words';
   const wordCountDescription = isTestMode 
     ? 'concise test article (200-300 words) for quick preview'
-    : 'comprehensive, in-depth article (6,000-8,500 words)';
+    : 'comprehensive, in-depth article (3,800-4,200 words)';
 
   return `Write ${isTestMode ? 'a brief test' : 'a comprehensive, SEO-optimized'} blog post about: "${keyword}"
 
