@@ -301,8 +301,10 @@ export function insertHeaderImage(
 </figure>
 `.trim();
 
+  // If there's an H1 at the start, REMOVE it and replace with header image
+  // (WordPress theme already displays the title, we don't want it duplicated in content)
   if (/<h1[^>]*>[\s\S]*?<\/h1>/.test(html)) {
-    return html.replace(/(<h1[^>]*>[\s\S]*?<\/h1>)/i, `$1\n${headerBlock}\n`);
+    return html.replace(/^(\s*)<h1[^>]*>[\s\S]*?<\/h1>\s*/i, `$1${headerBlock}\n\n`);
   }
 
   return `${headerBlock}\n${html}`;
