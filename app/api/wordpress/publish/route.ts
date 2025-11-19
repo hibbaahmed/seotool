@@ -727,11 +727,15 @@ export async function POST(request: NextRequest) {
       if (typeof postData.content === 'string' && postData.content.trim()) {
         // First, convert markdown tables to HTML (before marked.parse in case marked doesn't handle them)
         const markdownWithoutHeading = stripLeadingHeading(postData.content);
+        console.log(`📊 Content before table conversion (first 500 chars): ${markdownWithoutHeading.substring(0, 500)}`);
         let contentWithTablesConverted = convertMarkdownTablesToHtml(markdownWithoutHeading);
+        console.log(`📊 After convertMarkdownTablesToHtml: ${contentWithTablesConverted.includes('<table>') ? 'Tables found!' : 'No tables yet'}`);
         
         // Parse markdown to HTML
         htmlContent = marked.parse(contentWithTablesConverted, { async: false }) as string;
+        console.log(`📊 After marked.parse: ${htmlContent.includes('<table>') ? 'Tables found!' : 'No tables yet'}`);
         htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+        console.log(`📊 After convertHtmlPipeTablesToHtml: ${htmlContent.includes('<table>') ? 'Tables found!' : 'Still no tables!'}`);
         htmlContent = ensureWordPressTableStyles(htmlContent);
         console.log(`✅ Markdown converted to HTML. HTML length: ${htmlContent.length} characters`);
         

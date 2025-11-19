@@ -58,9 +58,10 @@ export function convertMarkdownTablesToHtml(markdown: string): string {
 }
 
 export function convertHtmlPipeTablesToHtml(html: string): string {
+  // Pattern 1: Tables wrapped in a single <p> tag with <br> separators
   const paragraphTableRegex = /<p>(\s*\|[^<]+?\|\s*(?:<br\s*\/?>\s*\|[^<]+?\|\s*)+)\s*<\/p>/gi;
 
-  return html.replace(paragraphTableRegex, (match, tableContent: string) => {
+  html = html.replace(paragraphTableRegex, (match, tableContent: string) => {
     const normalized = tableContent.replace(/<br\s*\/?>/gi, '\n');
     const rows = normalized
       .split('\n')
@@ -72,6 +73,30 @@ export function convertHtmlPipeTablesToHtml(html: string): string {
 
     return tableHtml ?? match;
   });
+
+  // Pattern 2: Tables as consecutive <p> tags with pipe delimiters
+  // Match sequences like: <p>| col1 | col2 |</p><p>| --- | --- |</p><p>| val1 | val2 |</p>
+  const consecutivePipeRegex = /(?:<p>\s*\|[^<]+\|\s*<\/p>\s*){2,}/gi;
+  
+  html = html.replace(consecutivePipeRegex, (match) => {
+    // Extract all pipe rows from the consecutive <p> tags
+    const rows: string[] = [];
+    const pTagRegex = /<p>\s*(\|[^<]+\|)\s*<\/p>/gi;
+    let pMatch;
+    
+    while ((pMatch = pTagRegex.exec(match)) !== null) {
+      rows.push(pMatch[1].trim());
+    }
+    
+    if (rows.length < 2) return match;
+    
+    const parsed = parseMarkdownTableRows(rows);
+    const tableHtml = buildHtmlTableFromRows(parsed);
+    
+    return tableHtml ?? match;
+  });
+
+  return html;
 }
 
 export function removeExcessiveBoldFromHTML(html: string): string {
