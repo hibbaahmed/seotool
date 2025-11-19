@@ -8,6 +8,7 @@ import {
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
   insertHeaderImage,
+  stripLeadingHeading,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
 
@@ -46,10 +47,11 @@ function extractHeaderImageCandidate(content: string) {
 
 async function prepareContentForWordPress(rawContent: string, title: string) {
   const { content: strippedContent, imageUrl: initialHeroImage } = extractHeaderImageCandidate(rawContent);
-  let htmlContent = strippedContent;
+  const contentWithoutHeading = stripLeadingHeading(strippedContent);
+  let htmlContent = contentWithoutHeading;
 
-  if (!isLikelyHtml(strippedContent.trim())) {
-    const markdownWithTables = convertMarkdownTablesToHtml(strippedContent);
+  if (!isLikelyHtml(contentWithoutHeading.trim())) {
+    const markdownWithTables = convertMarkdownTablesToHtml(contentWithoutHeading);
     htmlContent = marked.parse(markdownWithTables, { async: false }) as string;
     htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
   }

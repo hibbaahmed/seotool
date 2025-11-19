@@ -308,4 +308,21 @@ export function insertHeaderImage(
   return `${headerBlock}\n${html}`;
 }
 
+export function stripLeadingHeading(content: string): string {
+  if (!content) return content;
+  let working = content.replace(/^\uFEFF/, '').trimStart();
+
+  const markdownHeadingMatch = working.match(/^#\s+[^\n]+(\n|$)/);
+  if (markdownHeadingMatch) {
+    return working.slice(markdownHeadingMatch[0].length).trimStart();
+  }
+
+  const htmlHeadingMatch = working.match(/^<h1[^>]*>[\s\S]*?<\/h1>/i);
+  if (htmlHeadingMatch) {
+    return working.slice(htmlHeadingMatch[0].length).trimStart();
+  }
+
+  return content;
+}
+
 

@@ -8,6 +8,7 @@ import {
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
   insertHeaderImage,
+  stripLeadingHeading,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
 
@@ -724,7 +725,8 @@ export async function POST(request: NextRequest) {
       
       if (typeof postData.content === 'string' && postData.content.trim()) {
         // First, convert markdown tables to HTML (before marked.parse in case marked doesn't handle them)
-        let contentWithTablesConverted = convertMarkdownTablesToHtml(postData.content);
+        const markdownWithoutHeading = stripLeadingHeading(postData.content);
+        let contentWithTablesConverted = convertMarkdownTablesToHtml(markdownWithoutHeading);
         
         // Parse markdown to HTML
         htmlContent = marked.parse(contentWithTablesConverted, { async: false }) as string;
@@ -798,7 +800,7 @@ export async function POST(request: NextRequest) {
         // (This shouldn't happen, but being extra safe)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
       } else {
-        htmlContent = String(postData.content);
+        htmlContent = stripLeadingHeading(String(postData.content));
         
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
@@ -900,6 +902,7 @@ export async function POST(request: NextRequest) {
       
       // Convert markdown to HTML if needed
       if (typeof finalContent === 'string' && finalContent.trim() && (finalContent.includes('#') || finalContent.includes('*') || finalContent.includes('|'))) {
+        finalContent = stripLeadingHeading(finalContent);
         // First, convert markdown tables to HTML
         finalContent = convertMarkdownTablesToHtml(finalContent);
         
@@ -907,6 +910,9 @@ export async function POST(request: NextRequest) {
         finalContent = convertHtmlPipeTablesToHtml(finalContent);
         console.log(`✅ Markdown converted to HTML. HTML length: ${finalContent.length} characters`);
       }
+      
+      // Ensure leading HTML <h1> is removed even if original content was already HTML
+      finalContent = stripLeadingHeading(finalContent);
       
       // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
       finalContent = removeExcessiveBoldFromHTML(finalContent);
