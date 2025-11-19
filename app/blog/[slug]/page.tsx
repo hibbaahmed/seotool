@@ -54,6 +54,41 @@ interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
+const namedEntities: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: '\'',
+  nbsp: ' ',
+  hellip: '',
+};
+
+function decodeHtmlEntities(text: string) {
+  return text
+    .replace(/&#(\d+);/g, (_, code: string) => {
+      const codePoint = Number(code);
+      if (Number.isNaN(codePoint)) {
+        return _;
+      }
+      if (codePoint === 8230) {
+        return '';
+      }
+      return String.fromCharCode(codePoint);
+    })
+    .replace(/&([a-z]+);/gi, (match, entity: string) => {
+      const replacement = namedEntities[entity.toLowerCase()];
+      return typeof replacement !== 'undefined' ? replacement : match;
+    });
+}
+
+function cleanExcerpt(excerpt?: string) {
+  if (!excerpt) return '';
+  const withoutTags = excerpt.replace(/<[^>]+>/g, ' ');
+  const decoded = decodeHtmlEntities(withoutTags);
+  return decoded.replace(/[\u2026.]+$/u, '').replace(/\s+/g, ' ').trim();
+}
+
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   
@@ -122,6 +157,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       return Math.ceil(wordCount / wordsPerMinute);
     };
 
+    const excerptText = cleanExcerpt(post.excerpt);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
         <div className="pt-20 px-4 sm:px-6 lg:px-8">
@@ -172,9 +209,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </h1>
 
                 {/* Excerpt */}
-                {post.excerpt && (
+                {excerptText && (
                   <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-                    {post.excerpt}
+                    {excerptText}
                   </p>
                 )}
 

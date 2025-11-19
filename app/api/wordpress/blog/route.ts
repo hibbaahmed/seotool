@@ -1,7 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { marked } from 'marked';
 import { createClient } from '@/utils/supabase/server';
 import { WordPressAPI } from '@/lib/wordpress/api';
 import { addInternalLinksToContent } from '@/lib/add-links-to-content';
+import {
+  addInlineSpacing,
+  convertHtmlPipeTablesToHtml,
+  convertMarkdownTablesToHtml,
+  removeExcessiveBoldFromHTML,
+} from '@/lib/wordpress/content-formatting';
+
+const HTML_TAG_REGEX = /<\/?[a-z][\s\S]*>/i;
+
+function isLikelyHtml(content: string) {
+  return HTML_TAG_REGEX.test(content);
+}
+
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function prepareContentForWordPress(rawContent: string, title: string) {
+  let htmlContent = rawContent;
+
+  if (!isLikelyHtml(rawContent.trim())) {
+    const markdownWithTables = convertMarkdownTablesToHtml(rawContent);
+    htmlContent = marked.parse(markdownWithTables, { async: false }) as string;
+    htmlContent = convertHtmlPipeTablesToHtml(htmlContent);
+  }
+
+  htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+  htmlContent = addInlineSpacing(htmlContent);
+
+  try {
+    const { linkedContent } = await addInternalLinksToContent(htmlContent, title);
+    return linkedContent;
+  } catch (error) {
+    console.error('Error adding internal links to WordPress blog content:', error);
+    return htmlContent;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -137,17 +175,17 @@ export async function POST(request: NextRequest) {
       updatedAt: (site as any).updated_at,
     });
 
-    // Add automatic internal links to content before publishing
-    const { linkedContent, linksAdded } = await addInternalLinksToContent(
-      content,
-      title
-    );
+    const preparedContent = await prepareContentForWordPress(content, title);
+    const fallbackExcerptSource = stripHtmlTags(preparedContent);
+    const fallbackExcerpt = fallbackExcerptSource.substring(0, 160);
+    const excerptText = excerpt?.trim().length
+      ? excerpt
+      : `${fallbackExcerpt}${fallbackExcerptSource.length > 160 ? '...' : ''}`;
 
-    // Prepare post data with linked content
     const postData = {
       title,
-      content: linkedContent,
-      excerpt: excerpt || linkedContent.substring(0, 160) + '...',
+      content: preparedContent,
+      excerpt: excerptText,
       status,
       categories,
       tags,
