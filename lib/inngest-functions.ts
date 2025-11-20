@@ -1553,7 +1553,7 @@ export const generateKeywordContent = inngest.createFunction(
           // Fix image markdown that wasn't converted
           let finalHtml = htmlContent;
           if (finalHtml.includes('![') && finalHtml.includes('](')) {
-            finalHtml = finalHtml.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+            finalHtml = finalHtml.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="width: 100%; height: auto; margin: 2rem 0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" loading="lazy" />');
           }
           
           // Remove excessive bold formatting (keep only FAQ questions bold)

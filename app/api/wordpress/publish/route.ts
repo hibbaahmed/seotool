@@ -741,8 +741,8 @@ export async function POST(request: NextRequest) {
         
         // Double-check that markdown images were converted (should be HTML <img> tags now)
         if (htmlContent.includes('![') && htmlContent.includes('](')) {
-          // If markdown images still exist, manually convert them
-          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+          // If markdown images still exist, manually convert them with styling
+          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="width: 100%; height: auto; margin: 2rem 0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" loading="lazy" />');
         }
         
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)

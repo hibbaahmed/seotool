@@ -1191,7 +1191,7 @@ export async function POST(request: NextRequest) {
         htmlContent = ensureWordPressTableStyles(htmlContent);
         
         if (htmlContent.includes('![') && htmlContent.includes('](')) {
-          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+          htmlContent = htmlContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="width: 100%; height: auto; margin: 2rem 0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" loading="lazy" />');
         }
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
