@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import ClientProvider from "@/components/ClientProvider";
 import Script from "next/script";
 import { PostHogProvider } from './providers';
+import { CreditsProvider } from './context/CreditsContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,8 +63,10 @@ export default function RootLayout({ children }) {
         </noscript>
         {/* End Meta Pixel Code */}
         <ClientProvider>
-          {children}
-          <Toaster />
+          <CreditsProvider>
+            {children}
+            <Toaster />
+          </CreditsProvider>
         </ClientProvider>
         </PostHogProvider>
       </body>
