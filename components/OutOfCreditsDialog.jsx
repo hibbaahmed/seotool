@@ -18,6 +18,11 @@ import { Coins } from 'lucide-react';
 export default function OutOfCreditsDialog({ open, onOpenChange, requiredCredits = 1 }) {
     const router = useRouter();
 
+    // Debug logging
+    React.useEffect(() => {
+        console.log('OutOfCreditsDialog - open prop:', open, 'requiredCredits:', requiredCredits);
+    }, [open, requiredCredits]);
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogPortal>

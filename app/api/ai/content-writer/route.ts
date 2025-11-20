@@ -1,9 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateContentSystemPrompt } from '@/lib/content-generation-prompts';
+import { createClient as createServerClient } from '@/utils/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check credits before proceeding
+    const requiredCredits = 1;
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('credits')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (creditsError || !creditsData) {
+      return NextResponse.json(
+        { error: 'Could not fetch user credits' },
+        { status: 500 }
+      );
+    }
+
+    const currentCredits = creditsData.credits || 0;
+
+    if (currentCredits < requiredCredits) {
+      return NextResponse.json(
+        { error: `Insufficient credits. You need ${requiredCredits} credit(s) to generate content. You currently have ${currentCredits} credit(s).` },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
     const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '' } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
@@ -209,7 +242,10 @@ export async function POST(request: NextRequest) {
         apiKey,
         isTest,
         businessName,
-        websiteUrl
+        websiteUrl,
+        user.id,
+        currentCredits,
+        requiredCredits
       );
     } else {
       console.log('⚠️ Using SINGLE-PHASE generation (16,000 tokens)');
@@ -221,7 +257,10 @@ export async function POST(request: NextRequest) {
         apiKey,
         isTest,
         businessName,
-        websiteUrl
+        websiteUrl,
+        user.id,
+        currentCredits,
+        requiredCredits
       );
     }
 
@@ -243,7 +282,10 @@ async function handleMultiPhaseGeneration(
   apiKey: string,
   isTest: boolean = false,
   businessName: string = 'our company',
-  websiteUrl: string = ''
+  websiteUrl: string = '',
+  userId: string,
+  currentCredits: number,
+  requiredCredits: number
 ) {
   // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
   const encoder = new TextEncoder();
@@ -326,6 +368,28 @@ async function handleMultiPhaseGeneration(
         
         await streamText(finalSections, controller, encoder);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase_complete', phase: 4 })}\n\n`));
+
+        // Deduct credits after successful generation
+        try {
+          const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+          const serviceSupabase = createServiceClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+          
+          const { error: deductError } = await serviceSupabase
+            .from('credits')
+            .update({ credits: currentCredits - requiredCredits })
+            .eq('user_id', userId);
+
+          if (deductError) {
+            console.error('⚠️ CRITICAL: Content generated successfully but failed to deduct credits:', deductError);
+          } else {
+            console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${userId} for content generation. Remaining: ${currentCredits - requiredCredits}`);
+          }
+        } catch (creditError) {
+          console.error('⚠️ Error deducting credits:', creditError);
+        }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
         controller.close();
@@ -758,7 +822,10 @@ async function handleSinglePhaseGeneration(
   apiKey: string,
   isTest: boolean = false,
   businessName: string = 'our company',
-  websiteUrl: string = ''
+  websiteUrl: string = '',
+  userId: string,
+  currentCredits: number,
+  requiredCredits: number
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
@@ -895,6 +962,28 @@ async function handleSinglePhaseGeneration(
           }
 
           if (carry) emit(carry);
+
+          // Deduct credits after successful generation
+          try {
+            const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+            const serviceSupabase = createServiceClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+            
+            const { error: deductError } = await serviceSupabase
+              .from('credits')
+              .update({ credits: currentCredits - requiredCredits })
+              .eq('user_id', userId);
+
+            if (deductError) {
+              console.error('⚠️ CRITICAL: Content generated successfully but failed to deduct credits:', deductError);
+            } else {
+              console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${userId} for content generation. Remaining: ${currentCredits - requiredCredits}`);
+            }
+          } catch (creditError) {
+            console.error('⚠️ Error deducting credits:', creditError);
+          }
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();

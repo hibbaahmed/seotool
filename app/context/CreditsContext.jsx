@@ -56,6 +56,11 @@ export function CreditsProvider({ children }) {
             console.log('Not enough credits, showing upgrade dialog');
             setRequiredCredits(required);
             setShowOutOfCreditsDialog(true);
+            console.log('Dialog state set to true, should show OutOfCreditsDialog');
+            // Force a small delay to ensure state update
+            setTimeout(() => {
+                console.log('Dialog should now be visible');
+            }, 100);
             return false;
         }
 

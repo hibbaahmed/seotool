@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { PenTool, FileText, ArrowRight, Eye, Download, Save, Calendar, Clock } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
+import { useCredits } from '@/app/context/CreditsContext';
 
 interface StreamMessage {
   type: 'model' | 'images' | 'videos' | 'token' | 'done' | 'error';
@@ -17,6 +18,7 @@ interface StreamMessage {
 
 // Custom hook for content generation with proper streaming
 function useContentWriter() {
+  const { checkUserCredits, refreshCredits } = useCredits();
   const [content, setContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -33,6 +35,20 @@ function useContentWriter() {
   };
 
   const generateContent = useCallback(async (userInput: string, userId?: string) => {
+    // Check credits before generating
+    const requiredCredits = 1;
+    console.log('🔒 Checking credits before generation...');
+    const hasCredits = await checkUserCredits(requiredCredits);
+    console.log('🔒 Credit check result:', hasCredits);
+    
+    if (!hasCredits) {
+      console.log('❌ Insufficient credits - stopping generation');
+      setError('Insufficient credits. Please upgrade to generate content.');
+      setIsStreaming(false);
+      return; // Early return - do not proceed with generation
+    }
+
+    console.log('✅ Credits verified, starting generation...');
     setIsStreaming(true);
     setError(null);
     setContent('');
@@ -52,6 +68,12 @@ function useContentWriter() {
       });
 
       if (!response.ok) {
+        if (response.status === 402) {
+          const errorData = await response.json().catch(() => ({ error: 'Insufficient credits' }));
+          setError(errorData.error || 'Insufficient credits. Please upgrade to generate content.');
+          await refreshCredits();
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -108,6 +130,8 @@ function useContentWriter() {
                 case 'done':
                   console.log('Content generation complete');
                   setIsStreaming(false);
+                  // Refresh credits after successful generation
+                  await refreshCredits();
                   break;
                 
                 case 'error':
@@ -126,7 +150,7 @@ function useContentWriter() {
     } finally {
       setIsStreaming(false);
     }
-  }, []);
+  }, [checkUserCredits, refreshCredits]);
 
   return {
     content,
@@ -261,6 +285,7 @@ async function streamContentWriter(
 
 export default function ContentWriterPage() {
   const { content, images, videos, isStreaming, error, generateContent } = useContentWriter();
+  const { credits, checkUserCredits } = useCredits();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -501,6 +526,14 @@ export default function ContentWriterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveMessage(''); // Clear previous save messages
+
+    // Check credits before proceeding
+    const requiredCredits = 1;
+    const hasCredits = await checkUserCredits(requiredCredits);
+    if (!hasCredits) {
+      setSaveMessage('Insufficient credits. Please upgrade to generate content.');
+      return; // Stop here - do not proceed
+    }
 
     // Get user ID for image uploads
     const supabase = supabaseBrowser();
@@ -901,7 +934,7 @@ Please provide high-quality, engaging content that meets these requirements.`;
               <button
                 type="submit"
                 className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                disabled={isStreaming}
+                disabled={isStreaming || credits < 1}
               >
                 {isStreaming ? (
                   <>
@@ -910,6 +943,11 @@ Please provide high-quality, engaging content that meets these requirements.`;
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Writing Content...
+                  </>
+                ) : credits < 1 ? (
+                  <>
+                    <PenTool className="h-5 w-5" />
+                    Insufficient Credits
                   </>
                 ) : (
                   <>
