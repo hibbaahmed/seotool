@@ -1241,7 +1241,7 @@ export const generateKeywordContent = inngest.createFunction(
       return await generateSinglePhase(
         getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos, businessName, websiteUrl),
         apiKey,
-        5000
+        8000
       );
     });
     const wordsFinal = finalSections.split(/\s+/).length;
