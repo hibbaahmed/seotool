@@ -80,8 +80,11 @@ function cleanBlogContent(html: string): string {
   cleaned = cleaned.replace(/<h1[^>]*>[^<]*Meta Description[^<]*<\/h1>/gi, '');
   
   // Remove broken/incomplete image tags
+  // Remove images with # placeholder URLs
   cleaned = cleaned.replace(/<img\s+src="[^"]*#[^"]*"[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<img\s+src="[^"]*"(?!\s*\/?>)[^>]*/gi, '');
+  // Remove incomplete img tags that are missing the closing > (truly malformed HTML)
+  // This matches <img src="..." without a closing > at the end of the tag
+  cleaned = cleaned.replace(/<img\s+[^>]*src="[^"]*"[^>]*(?!>)[^<]*$/gim, '');
   
   // Remove "Post-Processing and Enhancement" and similar markers
   cleaned = cleaned.replace(/<p>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/p>/gi, '');
