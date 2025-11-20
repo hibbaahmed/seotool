@@ -207,14 +207,16 @@ export default function CalendarPage() {
 
     // Both test and full generation require 1 credit
     const requiredCredits = 1;
-    console.log('💰 Checking credits...');
-    const hasCredits = await (checkUserCredits as any)(requiredCredits);
+    console.log('💰 Checking credits before generation...');
+    
+    // Check credits BEFORE making API call - show modal if insufficient
+    const hasCredits = await checkUserCredits(requiredCredits);
     if (!hasCredits) {
-      console.warn('❌ Insufficient credits - dialog should be shown by context');
-      return; // Dialog is shown automatically by context
+      console.warn('❌ Insufficient credits - OutOfCreditsDialog should be shown by CreditsContext');
+      return; // CreditsContext automatically shows the modal when checkUserCredits returns false
     }
     
-    console.log('✅ Credits verified, starting generation...');
+    console.log('✅ Credits verified, proceeding with generation...');
 
     setIsGenerating(true);
     setGeneratingKeywordId(keywordToGenerate.id); // Track which keyword is generating
