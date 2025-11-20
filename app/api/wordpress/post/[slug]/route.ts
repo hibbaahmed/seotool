@@ -79,9 +79,9 @@ function cleanBlogContent(html: string): string {
   // Remove H1 tags containing "Meta Description"
   cleaned = cleaned.replace(/<h1[^>]*>[^<]*Meta Description[^<]*<\/h1>/gi, '');
   
-  // Remove broken/incomplete image tags
+  // Remove broken/incomplete image tags (only those with # in URL - truly broken)
   cleaned = cleaned.replace(/<img\s+src="[^"]*#[^"]*"[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<img\s+src="[^"]*"(?!\s*\/?>)[^>]*/gi, '');
+  // DON'T remove valid images with multiple attributes - the negative lookahead was too aggressive
   
   // Remove "Post-Processing and Enhancement" and similar markers
   cleaned = cleaned.replace(/<p>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/p>/gi, '');
@@ -118,6 +118,11 @@ function cleanBlogContent(html: string): string {
   cleaned = cleaned.replace(/^\s+|\s+$/gm, ''); // Trim each line
   cleaned = cleaned.replace(/^(\s*<p>\s*<\/p>\s*)+/gi, ''); // Remove leading empty paragraphs
   cleaned = cleaned.replace(/(<br\s*\/?>){3,}/gi, '<br><br>'); // Clean up multiple line breaks
+  
+  // Remove standalone > characters (leftover from blockquotes or markdown)
+  cleaned = cleaned.replace(/<p>\s*>\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/^\s*>\s*$/gm, '');
+  cleaned = cleaned.replace(/(<p>)?\s*>\s*(<\/p>)?/gi, '');
   
   return cleaned.trim();
 }
