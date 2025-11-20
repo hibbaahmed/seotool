@@ -761,9 +761,25 @@ export async function POST(request: NextRequest) {
         .eq('id', keyword_id);
     }
 
-    // CRITICAL: Credits are deducted AFTER WordPress publishing succeeds
-    // This ensures we don't charge users if publishing fails
-    let creditDeductionCompleted = false;
+    // CRITICAL: Deduct credits immediately after successful content generation
+    // Credits are deducted for generation, not publishing (user pays for content generation)
+    const serviceSupabaseForCredits = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { error: deductError } = await serviceSupabaseForCredits
+      .from('credits')
+      .update({ credits: currentCredits - requiredCredits })
+      .eq('user_id', user.id);
+
+    if (deductError) {
+      console.error('⚠️ CRITICAL: Content generated successfully but failed to deduct credits:', deductError);
+      // Log error but don't fail - content was already generated and saved
+    } else {
+      console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${user.id} for ${is_test ? 'test' : 'full'} blog post generation. Remaining: ${currentCredits - requiredCredits}`);
+    }
+
     let publishingSucceeded = false;
 
     // Auto-publish to user's connected WordPress site if available
@@ -1310,29 +1326,8 @@ export async function POST(request: NextRequest) {
       throw new Error(`WordPress publishing failed after ${3} retry attempts. Please try again. Error: ${autoPublishError instanceof Error ? autoPublishError.message : String(autoPublishError)}`);
     }
     
-    // ONLY deduct credits if publishing succeeded
-    if (publishingSucceeded) {
-      // Use service client to ensure we have proper permissions for credit updates
-      const serviceSupabaseForCredits = createServiceClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      
-      const { error: deductError } = await serviceSupabaseForCredits
-        .from('credits')
-        .update({ credits: currentCredits - requiredCredits })
-        .eq('user_id', user.id);
-
-      if (deductError) {
-        console.error('⚠️ CRITICAL: Content published successfully but failed to deduct credits:', deductError);
-        // This is a critical error - content was published but credits weren't deducted
-        // Log it but don't fail the request (user already got their published content)
-        // This should be monitored and fixed manually if it happens
-      } else {
-        creditDeductionCompleted = true;
-        console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${user.id} for ${is_test ? 'test' : 'full'} generation. Remaining: ${currentCredits - requiredCredits}`);
-      }
-    }
+    // Credits are already deducted after content generation (see above)
+    // Publishing status is tracked for logging purposes only
 
     return NextResponse.json({
       success: true,
