@@ -207,16 +207,20 @@ export default function CalendarPage() {
 
     // Both test and full generation require 1 credit
     const requiredCredits = 1;
-    console.log('💰 Checking credits before generation...');
+    console.log('💰 Calendar: Checking credits before generation...');
     
     // Check credits BEFORE making API call - show modal if insufficient
     const hasCredits = await checkUserCredits(requiredCredits);
+    console.log('💰 Calendar: Credit check result:', hasCredits);
+    
     if (!hasCredits) {
-      console.warn('❌ Insufficient credits - OutOfCreditsDialog should be shown by CreditsContext');
+      console.warn('❌ Calendar: Insufficient credits - BLOCKED. OutOfCreditsDialog should be shown by CreditsContext');
+      setIsGenerating(false);
+      setGeneratingKeywordId(null);
       return; // CreditsContext automatically shows the modal when checkUserCredits returns false
     }
     
-    console.log('✅ Credits verified, proceeding with generation...');
+    console.log('✅ Calendar: Credits verified, proceeding with generation...');
 
     setIsGenerating(true);
     setGeneratingKeywordId(keywordToGenerate.id); // Track which keyword is generating
@@ -1065,8 +1069,17 @@ export default function CalendarPage() {
                         }
 
                         // Check if user has enough credits
-                        const hasCredits = await (checkUserCredits as any)(1);
-                        if (!hasCredits) return; // Dialog is shown automatically by context
+                        console.log('💰 Calendar (test): Checking credits before generation...');
+                        const hasCredits = await checkUserCredits(1);
+                        console.log('💰 Calendar (test): Credit check result:', hasCredits);
+                        
+                        if (!hasCredits) {
+                          console.warn('❌ Calendar (test): Insufficient credits - BLOCKED. OutOfCreditsDialog should be shown');
+                          setIsGenerating(false);
+                          return; // Dialog is shown automatically by context
+                        }
+                        
+                        console.log('✅ Calendar (test): Credits verified, proceeding...');
 
                         setIsGenerating(true);
                         try {

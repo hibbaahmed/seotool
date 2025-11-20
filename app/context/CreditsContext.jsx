@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { checkCredits } from '../utils/creditCheck';
 import OutOfCreditsDialog from '../../components/OutOfCreditsDialog';
 
@@ -25,6 +25,11 @@ export function CreditsProvider({ children }) {
         fetchCredits();
     }, []);
 
+    // Debug: Track dialog state changes
+    useEffect(() => {
+        console.log('🔔 Dialog state changed:', showOutOfCreditsDialog, 'requiredCredits:', requiredCredits);
+    }, [showOutOfCreditsDialog, requiredCredits]);
+
     const fetchCredits = async () => {
         setLoading(true);
         const result = await checkCredits(1);
@@ -35,7 +40,7 @@ export function CreditsProvider({ children }) {
         setLoading(false);
     };
 
-    const checkUserCredits = async (required = 1) => {
+    const checkUserCredits = useCallback(async (required = 1) => {
         console.log(`Checking credits: required=${required}`);
         const result = await checkCredits(required);
         
@@ -53,20 +58,20 @@ export function CreditsProvider({ children }) {
         console.log(`User has ${result.credits} credits, needs ${required}, hasEnough: ${result.hasEnoughCredits}`);
 
         if (!result.hasEnoughCredits) {
-            console.log('Not enough credits, showing upgrade dialog');
+            console.log('❌ Not enough credits - setting dialog to show');
             setRequiredCredits(required);
-            setShowOutOfCreditsDialog(true);
-            console.log('Dialog state set to true, should show OutOfCreditsDialog');
-            // Force a small delay to ensure state update
-            setTimeout(() => {
-                console.log('Dialog should now be visible');
-            }, 100);
+            // Use functional update to ensure state is set immediately
+            setShowOutOfCreditsDialog((prev) => {
+                console.log('Setting dialog open from', prev, 'to true');
+                return true;
+            });
+            console.log('✅ Dialog state update queued');
             return false;
         }
 
-        console.log('User has enough credits, proceeding');
+        console.log('✅ User has enough credits, proceeding');
         return true;
-    };
+    }, []);
 
     const deductCredits = (amount = 1) => {
         setCredits(prev => Math.max(0, prev - amount));
@@ -81,12 +86,18 @@ export function CreditsProvider({ children }) {
         deductCredits
     };
 
+    // Wrap onOpenChange to add logging
+    const handleDialogChange = useCallback((open) => {
+        console.log('🔔 Dialog onOpenChange called with:', open);
+        setShowOutOfCreditsDialog(open);
+    }, []);
+
     return (
         <CreditsContext.Provider value={value}>
             {children}
             <OutOfCreditsDialog 
                 open={showOutOfCreditsDialog}
-                onOpenChange={setShowOutOfCreditsDialog}
+                onOpenChange={handleDialogChange}
                 requiredCredits={requiredCredits}
             />
         </CreditsContext.Provider>

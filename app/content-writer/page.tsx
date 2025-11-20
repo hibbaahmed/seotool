@@ -288,6 +288,11 @@ export default function ContentWriterPage() {
   const { credits, checkUserCredits } = useCredits();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  
+  // Debug: Log credits state
+  useEffect(() => {
+    console.log('📊 ContentWriterPage - Current credits:', credits);
+  }, [credits]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleData, setScheduleData] = useState({
     scheduled_date: '',
@@ -527,13 +532,19 @@ export default function ContentWriterPage() {
     e.preventDefault();
     setSaveMessage(''); // Clear previous save messages
 
-    // Check credits before proceeding
+    // Check credits before proceeding - CRITICAL CHECK
     const requiredCredits = 1;
+    console.log('🚦 handleSubmit: Checking credits before generation...');
     const hasCredits = await checkUserCredits(requiredCredits);
+    console.log('🚦 handleSubmit: Credit check result:', hasCredits);
+    
     if (!hasCredits) {
+      console.log('🚦 handleSubmit: BLOCKED - Insufficient credits, stopping execution');
       setSaveMessage('Insufficient credits. Please upgrade to generate content.');
-      return; // Stop here - do not proceed
+      return; // CRITICAL: Stop here - do not proceed with generation
     }
+
+    console.log('🚦 handleSubmit: Credits OK, proceeding with generation');
 
     // Get user ID for image uploads
     const supabase = supabaseBrowser();
