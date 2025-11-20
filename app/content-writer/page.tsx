@@ -6,6 +6,8 @@ import { PenTool, FileText, ArrowRight, Eye, Download, Save, Calendar, Clock } f
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
 import { useCredits } from '@/app/context/CreditsContext';
+import { checkCredits } from '@/app/utils/creditCheck';
+import OutOfCreditsDialog from '@/components/OutOfCreditsDialog';
 
 interface StreamMessage {
   type: 'model' | 'images' | 'videos' | 'token' | 'done' | 'error';
@@ -18,7 +20,7 @@ interface StreamMessage {
 
 // Custom hook for content generation with proper streaming
 function useContentWriter() {
-  const { checkUserCredits, refreshCredits } = useCredits();
+  const { refreshCredits } = useCredits();
   const [content, setContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -35,20 +37,7 @@ function useContentWriter() {
   };
 
   const generateContent = useCallback(async (userInput: string, userId?: string) => {
-    // Check credits before generating
-    const requiredCredits = 1;
-    console.log('🔒 Checking credits before generation...');
-    const hasCredits = await checkUserCredits(requiredCredits);
-    console.log('🔒 Credit check result:', hasCredits);
-    
-    if (!hasCredits) {
-      console.log('❌ Insufficient credits - stopping generation');
-      setError('Insufficient credits. Please upgrade to generate content.');
-      setIsStreaming(false);
-      return; // Early return - do not proceed with generation
-    }
-
-    console.log('✅ Credits verified, starting generation...');
+    // No credit check here - check in component before calling this
     setIsStreaming(true);
     setError(null);
     setContent('');
@@ -150,7 +139,7 @@ function useContentWriter() {
     } finally {
       setIsStreaming(false);
     }
-  }, [checkUserCredits, refreshCredits]);
+  }, [refreshCredits]);
 
   return {
     content,
@@ -285,14 +274,11 @@ async function streamContentWriter(
 
 export default function ContentWriterPage() {
   const { content, images, videos, isStreaming, error, generateContent } = useContentWriter();
-  const { credits, checkUserCredits } = useCredits();
+  const { credits } = useCredits();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-  
-  // Debug: Log credits state
-  useEffect(() => {
-    console.log('📊 ContentWriterPage - Current credits:', credits);
-  }, [credits]);
+  const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
+  const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(1);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleData, setScheduleData] = useState({
     scheduled_date: '',
@@ -530,21 +516,16 @@ export default function ContentWriterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveMessage(''); // Clear previous save messages
+    setSaveMessage('');
 
-    // Check credits before proceeding - CRITICAL CHECK
-    const requiredCredits = 1;
-    console.log('🚦 handleSubmit: Checking credits before generation...');
-    const hasCredits = await checkUserCredits(requiredCredits);
-    console.log('🚦 handleSubmit: Credit check result:', hasCredits);
+    // Check credits directly - simple and straightforward
+    const creditResult = await checkCredits(1);
     
-    if (!hasCredits) {
-      console.log('🚦 handleSubmit: BLOCKED - Insufficient credits, stopping execution');
-      setSaveMessage('Insufficient credits. Please upgrade to generate content.');
-      return; // CRITICAL: Stop here - do not proceed with generation
+    if (!creditResult.hasEnoughCredits) {
+      setRequiredCreditsForDialog(1);
+      setShowOutOfCreditsDialog(true);
+      return; // STOP - do not proceed
     }
-
-    console.log('🚦 handleSubmit: Credits OK, proceeding with generation');
 
     // Get user ID for image uploads
     const supabase = supabaseBrowser();
@@ -1340,6 +1321,13 @@ Please provide high-quality, engaging content that meets these requirements.`;
           </div>
         </div>
       )}
+
+      {/* Out of Credits Dialog */}
+      <OutOfCreditsDialog 
+        open={showOutOfCreditsDialog}
+        onOpenChange={setShowOutOfCreditsDialog}
+        requiredCredits={requiredCreditsForDialog}
+      />
     </div>
   );
 }

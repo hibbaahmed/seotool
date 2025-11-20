@@ -203,6 +203,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check credits before allowing scheduling
+    const requiredCredits = 1;
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('credits')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (creditsError || !creditsData) {
+      console.error('❌ Error fetching credits:', creditsError);
+      return NextResponse.json(
+        { error: 'Could not fetch user credits' },
+        { status: 500 }
+      );
+    }
+
+    const currentCredits = creditsData.credits || 0;
+
+    if (currentCredits < requiredCredits) {
+      console.warn(`❌ BLOCKED: User has ${currentCredits} credits, needs ${requiredCredits} to schedule generation`);
+      return NextResponse.json(
+        { error: `Insufficient credits. You need ${requiredCredits} credit(s) to schedule content generation. You currently have ${currentCredits} credit(s).` },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
+    console.log(`✅ Credits OK: ${currentCredits} >= ${requiredCredits}, allowing scheduling`);
+
     const body = await request.json();
     console.log('📦 Request body parsed:', JSON.stringify(body, null, 2));
     

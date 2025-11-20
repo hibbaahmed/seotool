@@ -5,6 +5,8 @@ import { Calendar, Plus, Edit, Trash2, Eye, Clock, Globe, FileText, BarChart3, T
 import BlogCalendar from '@/components/BlogCalendar';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { useCredits } from '@/app/context/CreditsContext';
+import OutOfCreditsDialog from '@/components/OutOfCreditsDialog';
+import { checkCredits } from '@/app/utils/creditCheck';
 
 interface KeywordStats {
   totalKeywords: number;
@@ -78,6 +80,13 @@ export default function CalendarPage() {
     generated: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
+  const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(1);
+
+  // Debug: Track dialog state changes
+  useEffect(() => {
+    console.log('📊 Calendar - Dialog state changed:', showOutOfCreditsDialog, 'requiredCredits:', requiredCreditsForDialog);
+  }, [showOutOfCreditsDialog, requiredCreditsForDialog]);
 
   const to24Hour = (h12: string, period: 'AM' | 'PM') => {
     let h = parseInt(h12, 10) % 12;
@@ -207,24 +216,38 @@ export default function CalendarPage() {
 
     // Both test and full generation require 1 credit
     const requiredCredits = 1;
-    console.log('💰 Calendar: Checking credits before generation...');
     
-    // Check credits BEFORE making API call - show modal if insufficient
-    const hasCredits = await checkUserCredits(requiredCredits);
-    console.log('💰 Calendar: Credit check result:', hasCredits);
+    // Check credits directly - simple and straightforward
+    console.log('🔍 Checking credits before generation...');
+    const creditResult = await checkCredits(requiredCredits);
+    console.log('🔍 Credit check result:', creditResult);
     
-    if (!hasCredits) {
-      console.warn('❌ Calendar: Insufficient credits - BLOCKED. OutOfCreditsDialog should be shown by CreditsContext');
-      setIsGenerating(false);
-      setGeneratingKeywordId(null);
-      return; // CreditsContext automatically shows the modal when checkUserCredits returns false
+    // Defensive check - ensure we have a valid result
+    if (!creditResult || creditResult.error) {
+      console.error('❌ Error checking credits:', creditResult?.error);
+      setRequiredCreditsForDialog(requiredCredits);
+      setShowOutOfCreditsDialog(true);
+      return;
     }
     
-    console.log('✅ Calendar: Credits verified, proceeding with generation...');
+    // Check if user has enough credits
+    if (!creditResult.hasEnoughCredits) {
+      console.warn('❌ BLOCKED: User has', creditResult.credits, 'credits, needs', requiredCredits);
+      setRequiredCreditsForDialog(requiredCredits);
+      setShowOutOfCreditsDialog(true);
+      setIsGenerating(false);
+      setGeneratingKeywordId(null);
+      console.log('✅ Dialog state set to true, returning early - API call will NOT happen');
+      return; // STOP - do not proceed - this return MUST prevent API call
+    }
+    
+    console.log('✅ Credits OK:', creditResult.credits, '>=', requiredCredits);
+    console.log('✅ Proceeding with API call...');
 
     setIsGenerating(true);
     setGeneratingKeywordId(keywordToGenerate.id); // Track which keyword is generating
     try {
+      console.log('📡 Making API call to /api/calendar/generate...');
       const response = await fetch('/api/calendar/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1068,18 +1091,29 @@ export default function CalendarPage() {
                           return;
                         }
 
-                        // Check if user has enough credits
-                        console.log('💰 Calendar (test): Checking credits before generation...');
-                        const hasCredits = await checkUserCredits(1);
-                        console.log('💰 Calendar (test): Credit check result:', hasCredits);
+                        // Check credits directly - simple and straightforward
+                        console.log('🔍 (Test) Checking credits before generation...');
+                        const creditResult = await checkCredits(1);
+                        console.log('🔍 (Test) Credit check result:', creditResult);
                         
-                        if (!hasCredits) {
-                          console.warn('❌ Calendar (test): Insufficient credits - BLOCKED. OutOfCreditsDialog should be shown');
+                        if (!creditResult || creditResult.error) {
+                          console.error('❌ (Test) Error checking credits:', creditResult?.error);
+                          setRequiredCreditsForDialog(1);
+                          setShowOutOfCreditsDialog(true);
                           setIsGenerating(false);
-                          return; // Dialog is shown automatically by context
+                          return;
                         }
                         
-                        console.log('✅ Calendar (test): Credits verified, proceeding...');
+                        if (!creditResult.hasEnoughCredits) {
+                          console.warn('❌ (Test) BLOCKED: User has', creditResult.credits, 'credits, needs 1');
+                          setRequiredCreditsForDialog(1);
+                          setShowOutOfCreditsDialog(true);
+                          setIsGenerating(false);
+                          console.log('✅ (Test) Dialog state set to true, returning early');
+                          return; // STOP - do not proceed
+                        }
+                        
+                        console.log('✅ (Test) Credits OK:', creditResult.credits, '>= 1');
 
                         setIsGenerating(true);
                         try {
@@ -1150,6 +1184,27 @@ export default function CalendarPage() {
                   disabled={selectedIds.length===0}
                   onClick={async ()=>{
                     try {
+                      // Check credits before scheduling
+                      console.log('🔍 Checking credits before scheduling keywords...');
+                      const creditResult = await checkCredits(1);
+                      console.log('🔍 Credit check result:', creditResult);
+                      
+                      if (!creditResult || creditResult.error) {
+                        console.error('❌ Error checking credits:', creditResult?.error);
+                        setRequiredCreditsForDialog(1);
+                        setShowOutOfCreditsDialog(true);
+                        return;
+                      }
+                      
+                      if (!creditResult.hasEnoughCredits) {
+                        console.warn('❌ BLOCKED: User has', creditResult.credits, 'credits, needs 1 to schedule');
+                        setRequiredCreditsForDialog(1);
+                        setShowOutOfCreditsDialog(true);
+                        return; // STOP - do not proceed with scheduling
+                      }
+                      
+                      console.log('✅ Credits OK:', creditResult.credits, '>= 1, proceeding with scheduling');
+
                       const baseTime = `${to24Hour(timeHour, timePeriod)}:${timeMinute}:00`;
                       const addDays = (ymd: string, days: number) => {
                         const d = new Date(ymd);
@@ -1188,6 +1243,14 @@ export default function CalendarPage() {
                           failedCount++;
                           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                           console.error(`❌ Keyword ${i+1} failed (${response.status}):`, errorData);
+                          
+                          // If it's a credit error, show the dialog
+                          if (response.status === 402) {
+                            setRequiredCreditsForDialog(1);
+                            setShowOutOfCreditsDialog(true);
+                            await refreshCredits();
+                          }
+                          
                           errors.push(`Keyword ${id}: ${errorData.error || response.statusText}`);
                         }
                       }
@@ -1218,6 +1281,13 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* Out of Credits Dialog */}
+      <OutOfCreditsDialog 
+        open={showOutOfCreditsDialog}
+        onOpenChange={setShowOutOfCreditsDialog}
+        requiredCredits={requiredCreditsForDialog}
+      />
     </div>
   );
 }

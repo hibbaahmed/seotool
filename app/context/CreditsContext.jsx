@@ -41,13 +41,13 @@ export function CreditsProvider({ children }) {
     };
 
     const checkUserCredits = useCallback(async (required = 1) => {
-        console.log(`Checking credits: required=${required}`);
+        console.log(`🔍 checkUserCredits called with required=${required}`);
         const result = await checkCredits(required);
         
-        console.log('Credit check result:', result);
+        console.log('🔍 checkUserCredits - Credit check result:', result);
         
         if (result.error) {
-            console.error('Error checking credits:', result.error);
+            console.error('❌ checkUserCredits - Error checking credits:', result.error);
             return false;
         }
 
@@ -55,21 +55,25 @@ export function CreditsProvider({ children }) {
         setCredits(result.credits);
         setIsFreeTrial(result.isFreeTrial);
 
-        console.log(`User has ${result.credits} credits, needs ${required}, hasEnough: ${result.hasEnoughCredits}`);
+        console.log(`🔍 checkUserCredits - User has ${result.credits} credits, needs ${required}, hasEnough: ${result.hasEnoughCredits}`);
 
         if (!result.hasEnoughCredits) {
-            console.log('❌ Not enough credits - setting dialog to show');
+            console.log('❌ checkUserCredits - NOT ENOUGH CREDITS! Setting dialog to show...');
             setRequiredCredits(required);
             // Use functional update to ensure state is set immediately
             setShowOutOfCreditsDialog((prev) => {
-                console.log('Setting dialog open from', prev, 'to true');
+                console.log('🔍 checkUserCredits - Setting dialog open from', prev, 'to true');
                 return true;
             });
-            console.log('✅ Dialog state update queued');
+            console.log('✅ checkUserCredits - Dialog state update queued (should be true now)');
+            // Force a re-render check
+            setTimeout(() => {
+                console.log('🔍 checkUserCredits - After timeout, checking if dialog state updated');
+            }, 0);
             return false;
         }
 
-        console.log('✅ User has enough credits, proceeding');
+        console.log('✅ checkUserCredits - User has enough credits, proceeding');
         return true;
     }, []);
 
