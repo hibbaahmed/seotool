@@ -40,9 +40,10 @@ function removeTitleAndMetaLabels(html: string): string {
   // Remove H1 tags containing "Meta Description"
   cleaned = cleaned.replace(/<h1[^>]*>[^<]*Meta Description[^<]*<\/h1>/gi, '');
 
-  // Remove broken/incomplete image tags
+  // Remove broken/incomplete image tags (only those with # in URL or truly malformed)
   cleaned = cleaned.replace(/<img\s+src="[^"]*#[^"]*"[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<img\s+src="[^"]*"(?!\s*\/?>)[^>]*/gi, '');
+  // Don't remove valid img tags - only remove ones that are truly incomplete (missing closing >)
+  // The negative lookahead was too aggressive and removed valid images with multiple attributes
   
   // Remove "Post-Processing and Enhancement" and similar markers
   cleaned = cleaned.replace(/<p>\s*(?:Post-Processing and Enhancement|Enhancement and Optimization|Processing Steps)\s*<\/p>/gi, '');
