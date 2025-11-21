@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.wordpress.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.wp.com',
+        pathname: '/**',
+      },
+    ],
+  },
   // Disable webpack filesystem cache in dev to avoid ENOENT pack.gz errors
   webpack: (config, { dev }) => {
     if (dev) {
