@@ -930,6 +930,28 @@ export const generateKeywordContent = inngest.createFunction(
 
     const keywordText = keywordData.keyword || keyword;
 
+    // Step 1.5: Check credits before generation
+    const requiredCredits = 1;
+    const { currentCredits } = await step.run('check-credits', async () => {
+      const { data: creditsData, error: creditsError } = await supabase
+        .from('credits')
+        .select('credits')
+        .eq('user_id', userId)
+        .single();
+
+      if (creditsError || !creditsData) {
+        throw new Error('Could not fetch user credits');
+      }
+
+      const currentCredits = creditsData.credits || 0;
+
+      if (currentCredits < requiredCredits) {
+        throw new Error(`Insufficient credits. You need ${requiredCredits} credit(s) to generate content. You currently have ${currentCredits} credit(s).`);
+      }
+
+      return { currentCredits };
+    });
+
     // Step 2: Fetch related keywords
     const { primaryKeywords, secondaryKeywords, longTailKeywords } = await step.run('fetch-related-keywords', async () => {
       let primary: string[] = [];
@@ -1507,7 +1529,22 @@ export const generateKeywordContent = inngest.createFunction(
         .eq('id', keywordId);
     });
 
-    // Step 9: Auto-publish to WordPress if configured (optional, non-blocking)
+    // Step 9: Deduct credits after successful content generation
+    await step.run('deduct-credits', async () => {
+      const { error: deductError } = await supabase
+        .from('credits')
+        .update({ credits: currentCredits - requiredCredits })
+        .eq('user_id', userId);
+
+      if (deductError) {
+        console.error('⚠️ CRITICAL: Content generated successfully but failed to deduct credits:', deductError);
+        throw deductError;
+      } else {
+        console.log(`✅ Deducted ${requiredCredits} credit(s) from user ${userId} for blog post generation. Remaining: ${currentCredits - requiredCredits}`);
+      }
+    });
+
+    // Step 10: Auto-publish to WordPress if configured (optional, non-blocking)
     try {
       await step.run('auto-publish-wordpress', async () => {
         const { data: site } = await supabase
