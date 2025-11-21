@@ -5,6 +5,40 @@
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+const STOP_WORDS = new Set([
+  'the','and','that','with','from','this','than','then','when','where','which',
+  'your','you','for','are','was','were','have','has','into','onto','over','more',
+  'less','most','while','after','before','since','because','within','without',
+  'about','across','between','among','through','every','other','some','many',
+  'such','like','also','very','much','just','even','make','makes','made','does',
+  'did','doing','can','could','should','would','might','must','need','needs',
+  'those','these','their','there','here','them','they','our','ours','per',
+  'using','use','used','due','each','both','instead','however','overall',
+  'including','within','beyond','against','around','toward','towards','rather',
+  'than','because','though','although','across','always','often','still','into',
+  'every','never','during','before','after','while','once','until','whose','ourselves'
+]);
+
+function cleanWord(word: string): string {
+  return word.replace(/[^\w]/g, '').toLowerCase();
+}
+
+function isMeaningfulPhrase(words: string[]): boolean {
+  if (words.length === 0) return false;
+  const meaningfulWords = words.filter(
+    word => word.length >= 3 && !STOP_WORDS.has(word)
+  );
+  if (meaningfulWords.length === 0) {
+    return false;
+  }
+  // Avoid phrases made of the same short connector repeated
+  const uniqueMeaningful = new Set(meaningfulWords);
+  if (uniqueMeaningful.size === 1 && meaningfulWords[0].length < 4) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Extract key topics and phrases from article content
  */
@@ -16,25 +50,26 @@ function extractKeyTopics(content: string, title: string): string[] {
   const textOnly = fullText.replace(/<[^>]*>/g, ' ');
   
   // Extract multi-word phrases (2-3 words) that might be good topics
-  const words = textOnly.toLowerCase().split(/\s+/);
+  const words = textOnly
+    .toLowerCase()
+    .split(/\s+/)
+    .map(cleanWord)
+    .filter(Boolean);
   const phrases: string[] = [];
   
   // Extract 2-word phrases
   for (let i = 0; i < words.length - 1; i++) {
-    const word1 = words[i].replace(/[^\w]/g, '');
-    const word2 = words[i + 1].replace(/[^\w]/g, '');
-    if (word1.length > 3 && word2.length > 3) {
-      phrases.push(`${word1} ${word2}`);
+    const phraseWords = [words[i], words[i + 1]];
+    if (isMeaningfulPhrase(phraseWords)) {
+      phrases.push(phraseWords.join(' '));
     }
   }
   
   // Extract 3-word phrases
   for (let i = 0; i < words.length - 2; i++) {
-    const word1 = words[i].replace(/[^\w]/g, '');
-    const word2 = words[i + 1].replace(/[^\w]/g, '');
-    const word3 = words[i + 2].replace(/[^\w]/g, '');
-    if (word1.length > 3 && word2.length > 3 && word3.length > 3) {
-      phrases.push(`${word1} ${word2} ${word3}`);
+    const phraseWords = [words[i], words[i + 1], words[i + 2]];
+    if (isMeaningfulPhrase(phraseWords)) {
+      phrases.push(phraseWords.join(' '));
     }
   }
   
@@ -555,151 +590,41 @@ export async function addBusinessPromotionToContent(
     
     let linkedContent = content;
     let mentionsAdded = 0;
-    
-    // Find strategic insertion points in paragraphs
-    // Look for patterns like: "solution", "tool", "platform", "service", etc.
-    const insertionPatterns = [
-      {
-        pattern: /\b(solution|tool|platform|service|software|system)\s+(that|which|to)\s+/gi,
-        variant: (name: string, desc: string) => desc 
-          ? `${name} (${desc.split('.')[0]}) provides`
-          : `${name} provides`
-      },
-      {
-        pattern: /\b(many|some|several)\s+(companies|businesses|platforms|tools)\s+/gi,
-        variant: (name: string) => `Companies like ${name} offer`
-      },
-      {
-        pattern: /\b(enable|allows|helps?|provides?|offers?)\s+/gi,
-        variant: (name: string) => `Platforms such as ${name} enable`
-      },
-      {
-        pattern: /\b(consider|recommend|suggest|using|utilize)\s+/gi,
-        variant: (name: string) => `Tools like ${name} help`
-      }
-    ];
-    
-    // Find insertion points by looking for specific patterns in the content
-    // We'll insert mentions in strategic locations throughout the article
-    
-    const insertionPoints: Array<{ position: number; variant: string }> = [];
-    
-    // Search through content for insertion opportunities
-    for (const { pattern, variant } of insertionPatterns) {
-      if (insertionPoints.length >= maxMentions) break;
-      
-      pattern.lastIndex = 0;
-      const textContent = linkedContent.replace(/<[^>]*>/g, ' '); // Get text-only version for matching
-      const matches = [...textContent.matchAll(pattern)];
-      
-      for (const match of matches) {
-        if (insertionPoints.length >= maxMentions) break;
-        
-        const matchIndex = match.index!;
-        
-        // Map text position back to HTML position (approximate)
-        // Count HTML tags before this position
-        const textBefore = textContent.substring(0, matchIndex);
-        const htmlBefore = linkedContent.substring(0, linkedContent.length - textContent.length + matchIndex);
-        
-        // Find the actual HTML position by counting characters in text vs HTML
-        let htmlPosition = 0;
-        let textPos = 0;
-        for (let i = 0; i < linkedContent.length && textPos < matchIndex; i++) {
-          if (linkedContent[i] === '<') {
-            // Skip HTML tag
-            const tagEnd = linkedContent.indexOf('>', i);
-            if (tagEnd !== -1) {
-              i = tagEnd;
-              continue;
-            }
-          } else {
-            if (textPos === matchIndex) {
-              htmlPosition = i;
-              break;
-            }
-            textPos++;
-          }
-        }
-        
-        if (htmlPosition === 0 && matchIndex > 0) {
-          // Fallback: approximate position
-          htmlPosition = Math.floor(matchIndex * 1.2); // Rough estimate accounting for HTML tags
-        }
-        
-        const beforeMatch = linkedContent.substring(0, htmlPosition);
-        
-        // Check if we're inside HTML tags or links
-        const lastLinkOpen = beforeMatch.lastIndexOf('<a ');
-        const lastLinkClose = beforeMatch.lastIndexOf('</a>');
-        const lastTagOpen = beforeMatch.lastIndexOf('<');
-        const lastTagClose = beforeMatch.lastIndexOf('>');
-        const isInsideTag = lastTagOpen > lastTagClose;
-        const isInsideLink = lastLinkOpen > lastLinkClose;
-        
-        // Also check if we're near the beginning or end (avoid intro/conclusion)
-        const contentLength = linkedContent.length;
-        const positionPercent = (htmlPosition / contentLength) * 100;
-        
-        if (!isInsideTag && !isInsideLink && positionPercent > 15 && positionPercent < 80) {
-          // Check spacing from other mentions (at least 20% of content apart)
-          const minGap = contentLength * 0.20;
-          const tooClose = insertionPoints.some(point => 
-            Math.abs(point.position - htmlPosition) < minGap
-          );
-          
-          if (!tooClose) {
-            insertionPoints.push({
-              position: htmlPosition + match[0].length + 10, // Add some space after match
-              variant: variant(businessName, businessDescription)
-            });
-          }
-        }
-      }
+
+    const desiredMentions = Math.min(Math.max(maxMentions, 0), 3);
+    const mentionBlocks = buildBusinessMentionBlocks({
+      businessName,
+      businessDescription,
+      websiteUrl,
+      maxCount: desiredMentions,
+    });
+
+    if (mentionBlocks.length === 0) {
+      console.log('⚠️ No business mention blocks generated');
+      return { linkedContent: content, mentionsAdded };
     }
-    
-    // Sort by position (reverse order for safe insertion)
-    insertionPoints.sort((a, b) => b.position - a.position);
-    
-    // Insert mentions
-    for (const point of insertionPoints.slice(0, maxMentions)) {
-      // Ensure we're inserting at a safe position (after a word boundary)
-      let insertPos = point.position;
-      
-      // Find the nearest space or punctuation for safe insertion
-      for (let i = insertPos; i < Math.min(insertPos + 50, linkedContent.length); i++) {
-        if (linkedContent[i] === ' ' || linkedContent[i] === ',' || linkedContent[i] === '.') {
-          insertPos = i + 1;
-          break;
-        }
-      }
-      
-      // If we're still inside a tag, skip this mention
-      const beforeInsert = linkedContent.substring(0, insertPos);
-      const lastTagOpen = beforeInsert.lastIndexOf('<');
-      const lastTagClose = beforeInsert.lastIndexOf('>');
-      if (lastTagOpen > lastTagClose) {
-        continue; // Skip - we're inside a tag
-      }
-      
-      let businessMention: string;
-      
-      if (websiteUrl) {
-        // Create mention with link
-        const mentionText = point.variant;
-        // Extract just the action part (e.g., "provides", "offers") after business name
-        const actionPart = mentionText.replace(businessName, '').trim();
-        businessMention = ` <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer" class="business-promotion-link" style="font-weight: 600 !important; color: #059669 !important; text-decoration: none !important; border-bottom: 1px solid #059669 !important;">${businessName}</a>`;
-        if (actionPart) {
-          businessMention = `${businessMention} ${actionPart}`;
-        }
-      } else {
-        businessMention = ` ${point.variant}`;
-      }
-      
-      linkedContent = linkedContent.substring(0, insertPos) + businessMention + linkedContent.substring(insertPos);
+
+    const insertionPositions = findBusinessMentionPositions(linkedContent, mentionBlocks.length);
+
+    if (insertionPositions.length === 0) {
+      console.log('⚠️ No suitable insertion points for business mentions');
+      return { linkedContent: content, mentionsAdded };
+    }
+
+    const inserts = insertionPositions
+      .slice(0, mentionBlocks.length)
+      .map((position, index) => ({
+        position,
+        block: mentionBlocks[index],
+      }))
+      .sort((a, b) => b.position - a.position);
+
+    for (const { position, block } of inserts) {
+      const safePosition = adjustPositionToParagraph(linkedContent, position);
+      linkedContent =
+        linkedContent.slice(0, safePosition) + `\n\n${block}\n\n` + linkedContent.slice(safePosition);
       mentionsAdded++;
-      console.log(`✅ Added business mention for "${businessName}"`);
+      console.log(`✅ Inserted business mention for "${businessName}" at position ${safePosition}`);
     }
     
     console.log(`💼 Business promotion complete. Added ${mentionsAdded} mentions`);
@@ -708,5 +633,107 @@ export async function addBusinessPromotionToContent(
     console.error('Error adding business promotion to content:', error);
     return { linkedContent: content, mentionsAdded: 0 };
   }
+}
+
+function extractFirstSentence(text?: string | null): string {
+  if (!text) return '';
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
+  const match = cleaned.match(/[^.!?]+[.!?]?/);
+  return match ? match[0].trim() : cleaned;
+}
+
+function ensureSentence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function normalizeSentenceWithBusinessName(name: string, sentence: string): string {
+  const cleaned = sentence.replace(/\s+/g, ' ').trim();
+  if (!cleaned) {
+    return `${name} helps clients implement these strategies without adding more work to their internal team.`;
+  }
+  if (cleaned.toLowerCase().startsWith(name.toLowerCase())) {
+    return ensureSentence(cleaned);
+  }
+  const lowerFirst =
+    cleaned.length > 0 ? cleaned.charAt(0).toLowerCase() + cleaned.slice(1) : cleaned;
+  return ensureSentence(`${name} ${lowerFirst}`);
+}
+
+function buildBusinessMentionBlocks({
+  businessName,
+  businessDescription,
+  websiteUrl,
+  maxCount,
+}: {
+  businessName: string;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  maxCount: number;
+}): string[] {
+  if (maxCount <= 0) return [];
+  const firstSentence = extractFirstSentence(businessDescription);
+  const baseSentence = firstSentence
+    ? normalizeSentenceWithBusinessName(businessName, firstSentence)
+    : `${businessName} helps clients implement these strategies without adding more work to their internal team.`;
+  const supportingSentences = [
+    baseSentence,
+    `${businessName} can tailor these playbooks to your workflows, caseload, and goals.`,
+    `${businessName} keeps execution moving so your team can stay focused on high-value client work.`,
+  ];
+  const intros = [
+    'Need help putting this into action?',
+    'Want a partner to execute these ideas?',
+    'Ready to accelerate your results?',
+  ];
+  const mentionCount = Math.min(maxCount, supportingSentences.length);
+  const blocks: string[] = [];
+  for (let i = 0; i < mentionCount; i++) {
+    const intro = intros[i] || intros[intros.length - 1];
+    const sentence = ensureSentence(supportingSentences[i]);
+    const cta = websiteUrl ? ` [Learn more](${websiteUrl}).` : '';
+    blocks.push(`> **${intro}** ${sentence}${cta}`);
+  }
+  return blocks;
+}
+
+function findBusinessMentionPositions(content: string, desiredCount: number): number[] {
+  if (desiredCount <= 0) return [];
+  const headingMatches = [...content.matchAll(/^##\s+[^\n]+/gm)];
+  const positions: number[] = [];
+
+  if (headingMatches.length > 1) {
+    const usableMatches = headingMatches.slice(1); // Skip first section to avoid intro
+    if (usableMatches.length > 0) {
+      const step = Math.max(1, Math.floor(usableMatches.length / desiredCount));
+      for (let i = 0; i < usableMatches.length && positions.length < desiredCount; i += step) {
+        const match = usableMatches[i];
+        if (typeof match.index === 'number') {
+          positions.push(match.index + match[0].length);
+        }
+      }
+    }
+  }
+
+  if (positions.length === 0) {
+    const fallbackFractions =
+      desiredCount === 1 ? [0.6] : desiredCount === 2 ? [0.45, 0.75] : [0.35, 0.6, 0.8];
+    fallbackFractions.slice(0, desiredCount).forEach((fraction) => {
+      positions.push(Math.min(content.length, Math.floor(content.length * fraction)));
+    });
+  }
+
+  return positions.slice(0, desiredCount);
+}
+
+function adjustPositionToParagraph(content: string, position: number): number {
+  if (position <= 0) return 0;
+  const ahead = content.indexOf('\n\n', position);
+  if (ahead === -1) {
+    return content.length;
+  }
+  return ahead + 2;
 }
 
