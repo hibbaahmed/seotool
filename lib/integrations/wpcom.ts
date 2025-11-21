@@ -1,3 +1,4 @@
+import { uploadFeaturedImageToWPCom } from '../wordpress/featured-image';
 import { PublisherAdapter, PublishInput } from './publisher';
 
 type WPComConfig = {
@@ -74,6 +75,21 @@ export class WPComAdapter implements PublisherAdapter {
       date: input.when,
       tags: input.tags,
     };
+    
+    if (input.imageUrl) {
+      const uploadedFeatured = await uploadFeaturedImageToWPCom(
+        {
+          accessToken: this.config.accessToken,
+          siteId: this.config.siteId,
+        },
+        input.imageUrl,
+        input.title
+      );
+      if (uploadedFeatured?.id) {
+        payload.featured_image = uploadedFeatured.id;
+        console.log('✅ Uploaded featured image via WordPress.com adapter');
+      }
+    }
     
     const expectedContentLength = input.html.length;
     const maxRetries = 3;

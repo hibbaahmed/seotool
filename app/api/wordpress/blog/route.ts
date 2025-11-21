@@ -7,7 +7,6 @@ import {
   addInlineSpacing,
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
-  insertHeaderImage,
   ensureWordPressTableStyles,
   stripLeadingHeading,
   removeExcessiveBoldFromHTML,
@@ -23,32 +22,8 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-const MARKDOWN_IMAGE_REGEX = /!\[[^\]]*?\]\(([^)]+)\)/;
-const HTML_IMAGE_REGEX = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
-
-function extractHeaderImageCandidate(content: string) {
-  let workingContent = content;
-
-  const markdownMatch = workingContent.match(MARKDOWN_IMAGE_REGEX);
-  if (markdownMatch && markdownMatch[1]) {
-    const url = markdownMatch[1].trim();
-    workingContent = workingContent.replace(MARKDOWN_IMAGE_REGEX, '');
-    return { content: workingContent, imageUrl: url };
-  }
-
-  const htmlMatch = workingContent.match(HTML_IMAGE_REGEX);
-  if (htmlMatch && htmlMatch[1]) {
-    const url = htmlMatch[1].trim();
-    workingContent = workingContent.replace(HTML_IMAGE_REGEX, '');
-    return { content: workingContent, imageUrl: url };
-  }
-
-  return { content: workingContent, imageUrl: undefined };
-}
-
 async function prepareContentForWordPress(rawContent: string, title: string) {
-  const { content: strippedContent, imageUrl: initialHeroImage } = extractHeaderImageCandidate(rawContent);
-  const contentWithoutHeading = stripLeadingHeading(strippedContent);
+  const contentWithoutHeading = stripLeadingHeading(rawContent);
   let htmlContent = contentWithoutHeading;
 
   if (!isLikelyHtml(contentWithoutHeading.trim())) {
@@ -61,7 +36,6 @@ async function prepareContentForWordPress(rawContent: string, title: string) {
   htmlContent = removeExcessiveBoldFromHTML(htmlContent);
   htmlContent = addInlineSpacing(htmlContent);
   htmlContent = ensureWordPressTableStyles(htmlContent);
-  htmlContent = insertHeaderImage(htmlContent, initialHeroImage, title, { fallbackToExisting: true });
 
   try {
     const { linkedContent } = await addInternalLinksToContent(htmlContent, title);

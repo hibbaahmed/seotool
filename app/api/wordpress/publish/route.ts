@@ -8,10 +8,13 @@ import {
   convertHtmlPipeTablesToHtml,
   convertMarkdownTablesToHtml,
   ensureWordPressTableStyles,
-  insertHeaderImage,
   stripLeadingHeading,
   removeExcessiveBoldFromHTML,
 } from '@/lib/wordpress/content-formatting';
+import {
+  uploadFeaturedImageToSelfHosted,
+  uploadFeaturedImageToWPCom,
+} from '@/lib/wordpress/featured-image';
 
 // Helper function to extract clean content from AI output
 function extractContentFromAIOutput(fullOutput: string): string {
@@ -499,6 +502,7 @@ export async function POST(request: NextRequest) {
       categories: any[];
       tags: any[];
       meta: any;
+      featured_media?: number;
     } | null = null;
     let headerImageUrl: string | null = null;
     
@@ -716,6 +720,19 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
+      let featuredImageId: number | null = null;
+      if (headerImageUrl) {
+        const uploadedFeatured = await uploadFeaturedImageToWPCom(
+          { accessToken, siteId: siteIdNum },
+          headerImageUrl,
+          postData.title
+        );
+        if (uploadedFeatured?.id) {
+          featuredImageId = uploadedFeatured.id;
+          console.log('✅ Uploaded featured image to WordPress.com media library');
+        }
+      }
+
       // WordPress.com API endpoint
       const endpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${siteIdNum}/posts/new`;
       
@@ -751,7 +768,6 @@ export async function POST(request: NextRequest) {
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
         htmlContent = ensureWordPressTableStyles(htmlContent);
-        htmlContent = insertHeaderImage(htmlContent, headerImageUrl, postData.title);
         
         // Add automatic internal links AFTER converting to HTML
         try {
@@ -812,7 +828,6 @@ export async function POST(request: NextRequest) {
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
         htmlContent = addInlineSpacing(htmlContent);
-        htmlContent = insertHeaderImage(htmlContent, headerImageUrl, postData.title);
         
         // Add links even for non-markdown content
         try {
@@ -868,21 +883,27 @@ export async function POST(request: NextRequest) {
       console.log(`🚀 Publishing to WordPress.com. Final HTML content length: ${htmlContent.length} characters`);
       console.log(`📋 Post title: ${postData.title}`);
       
+      const payload: Record<string, any> = {
+        title: postData.title,
+        content: htmlContent,
+        excerpt: publishOptions.excerpt || postData.excerpt,
+        status: publishOptions.status || 'publish',
+        tags: publishOptions.tags || [],
+        categories: publishOptions.categories || [],
+        date: publishOptions.publishDate || undefined,
+      };
+
+      if (featuredImageId) {
+        payload.featured_image = featuredImageId;
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: postData.title,
-          content: htmlContent,
-          excerpt: publishOptions.excerpt || postData.excerpt,
-          status: publishOptions.status || 'publish',
-          tags: publishOptions.tags || [],
-          categories: publishOptions.categories || [],
-          date: publishOptions.publishDate || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -902,6 +923,22 @@ export async function POST(request: NextRequest) {
       if (!wpAPI) {
         return NextResponse.json({ error: 'WordPress API not initialized' }, { status: 500 });
       }
+
+      if (headerImageUrl) {
+        const uploadedFeatured = await uploadFeaturedImageToSelfHosted(
+          {
+            url: (site as any).url,
+            username: (site as any).username,
+            password: (site as any).password,
+          },
+          headerImageUrl,
+          postData.title
+        );
+        if (uploadedFeatured?.id) {
+          postData.featured_media = uploadedFeatured.id;
+          console.log('✅ Uploaded featured image to self-hosted WordPress media library');
+        }
+      }
       
       // Add automatic internal links to content before publishing (for self-hosted)
       let finalContent = postData.content;
@@ -920,7 +957,6 @@ export async function POST(request: NextRequest) {
       finalContent = removeExcessiveBoldFromHTML(finalContent);
       finalContent = addInlineSpacing(finalContent);
       finalContent = ensureWordPressTableStyles(finalContent);
-      finalContent = insertHeaderImage(finalContent, headerImageUrl, postData.title);
       
       // Add internal links
       const { linkedContent } = await addInternalLinksToContent(

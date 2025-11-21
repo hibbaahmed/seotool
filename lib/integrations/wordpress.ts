@@ -1,3 +1,4 @@
+import { uploadFeaturedImageToSelfHosted } from '../wordpress/featured-image';
 import { PublisherAdapter, PublishInput } from './publisher';
 
 type WPConfig = {
@@ -91,6 +92,23 @@ export class WordPressAdapter implements PublisherAdapter {
     // Tags: expects term IDs by default. As a simple approach, pass names and rely on plugins/filters.
     if (input.tags && input.tags.length) {
       body.tags = input.tags; // may need mapping names -> ids via taxonomy endpoints
+    }
+
+    if (input.imageUrl) {
+      const uploadedFeatured = await uploadFeaturedImageToSelfHosted(
+        {
+          url: this.baseUrl,
+          username: this.username,
+          password: this.password,
+        },
+        input.imageUrl,
+        input.title
+      );
+
+      if (uploadedFeatured?.id) {
+        body.featured_media = uploadedFeatured.id;
+        console.log('✅ Uploaded featured image via WordPress adapter');
+      }
     }
 
     // Featured image: if provided and is an absolute URL accessible by WP, many setups auto-download.
