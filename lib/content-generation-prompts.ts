@@ -3,6 +3,8 @@
  * Used by both /api/ai/content-writer and /api/calendar/generate
  */
 
+export type ContentLength = 'short' | 'medium' | 'long';
+
 export interface ContentPromptOptions {
   keyword?: string;
   primaryKeywords?: string[];
@@ -16,6 +18,92 @@ export interface ContentPromptOptions {
   isTest?: boolean; // Flag for test generation (shorter content)
   businessName?: string; // User's business/company name for CTA
   websiteUrl?: string; // User's website URL
+  contentLength?: ContentLength; // User's preferred content length: 'short', 'medium', or 'long'
+}
+
+// Helper function to get word count and structure based on content length
+function getContentLengthConfig(contentLength: ContentLength, isTest: boolean) {
+  if (isTest) {
+    return {
+      targetWordCount: '200-300 words',
+      wordCountDescription: 'concise test article (200-300 words) for quick preview',
+      minWords: 200,
+      maxWords: 300,
+      h2Sections: '2-3',
+      h3PerH2: '1-2',
+      examplesCount: '1-2',
+      tablesCount: '0-1 (optional)',
+      faqCount: '2-3',
+      proTipsCount: '1-2',
+      introWords: '30-50',
+      h2Words: '40-60',
+      conclusionWords: '40-60',
+      h3Words: '20-40',
+      expansionMinWords: 200,
+      expansionMaxWords: 300
+    };
+  }
+
+  switch (contentLength) {
+    case 'short':
+      return {
+        targetWordCount: '1,000-1,500 words',
+        wordCountDescription: 'concise, snackable article (1,000-1,500 words) perfect for quick engagement',
+        minWords: 1000,
+        maxWords: 1500,
+        h2Sections: '4-5',
+        h3PerH2: '2-3',
+        examplesCount: '4-6',
+        tablesCount: '1-2 (optional)',
+        faqCount: '5-7',
+        proTipsCount: '2-3',
+        introWords: '100-150',
+        h2Words: '150-250',
+        conclusionWords: '100-150',
+        h3Words: '50-80',
+        expansionMinWords: 1000,
+        expansionMaxWords: 1500
+      };
+    case 'medium':
+      return {
+        targetWordCount: '2,000-3,000 words',
+        wordCountDescription: 'balanced, well-structured article (2,000-3,000 words) with good depth',
+        minWords: 2000,
+        maxWords: 3000,
+        h2Sections: '5-6',
+        h3PerH2: '2-3',
+        examplesCount: '6-8',
+        tablesCount: '2-3',
+        faqCount: '6-8',
+        proTipsCount: '3-4',
+        introWords: '150-200',
+        h2Words: '250-350',
+        conclusionWords: '150-200',
+        h3Words: '80-120',
+        expansionMinWords: 2000,
+        expansionMaxWords: 3000
+      };
+    case 'long':
+    default:
+      return {
+        targetWordCount: '3,800-4,200 words',
+        wordCountDescription: 'comprehensive, in-depth article (3,800-4,200 words) optimized for SEO ranking',
+        minWords: 3800,
+        maxWords: 4200,
+        h2Sections: '6-8',
+        h3PerH2: '2-4',
+        examplesCount: '10-12',
+        tablesCount: '3-4 (REQUIRED)',
+        faqCount: '8-10',
+        proTipsCount: '4-6',
+        introWords: '200-250',
+        h2Words: '400-500',
+        conclusionWords: '200-250',
+        h3Words: '100-200',
+        expansionMinWords: 3800,
+        expansionMaxWords: 4200
+      };
+  }
 }
 
 /**
@@ -28,14 +116,14 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
     youtubeVideos = [],
     isTest = false,
     businessName = 'our company',
-    websiteUrl = ''
+    websiteUrl = '',
+    contentLength = 'long'
   } = options;
   
   const isTestMode = isTest;
-  const targetWordCount = isTestMode ? '200-300 words' : '3,800-4,200 words';
-  const wordCountDescription = isTestMode 
-    ? 'concise test article (200-300 words) for quick preview'
-    : 'comprehensive, in-depth article (3,800-4,200 words)';
+  const config = getContentLengthConfig(contentLength, isTestMode);
+  const targetWordCount = config.targetWordCount;
+  const wordCountDescription = config.wordCountDescription;
 
   return `You are an expert SEO content writer who creates comprehensive, engaging articles that rank well in search engines.
 
@@ -78,45 +166,57 @@ Writing style:
 
 CRITICAL STRUCTURE REQUIREMENTS:
 ${isTestMode ? `
-- 2-3 H2 sections (major topics) - simplified for test
-- Each H2 should contain 1-2 H3 subsections
-- Include 1-2 specific examples with real numbers
-- Optional: 1 comparison table (not required for test)
-- Create FAQ section with 2-3 questions
-- Use > blockquotes for 1-2 pro tips
-- Word count: 200-300 words (TEST MODE - Quick Preview)
+- ${config.h2Sections} H2 sections (major topics) - simplified for test
+- Each H2 should contain ${config.h3PerH2} H3 subsections
+- Include ${config.examplesCount} specific examples with real numbers
+- Optional: ${config.tablesCount} comparison table (not required for test)
+- Create FAQ section with ${config.faqCount} questions
+- Use > blockquotes for ${config.proTipsCount} pro tips
+- Word count: ${targetWordCount} (TEST MODE - Quick Preview)
 ` : `
-- 6-8 H2 sections (major topics)
-- Each H2 MUST contain 2-4 H3 subsections
-- Include at least 10-12 specific examples with real numbers
-- Add 3-4 professional comparison tables (REQUIRED)
-- Create FAQ section with 8-10 questions
-- Use > blockquotes for pro tips (at least 4-6 throughout)
-- Word count: 3,800-4,200 words (FULL GENERATION)
+- ${config.h2Sections} H2 sections (major topics)
+- Each H2 MUST contain ${config.h3PerH2} H3 subsections
+- Include at least ${config.examplesCount} specific examples with real numbers
+- Add ${config.tablesCount} professional comparison tables
+- Create FAQ section with ${config.faqCount} questions
+- Use > blockquotes for pro tips (at least ${config.proTipsCount} throughout)
+- Word count: ${targetWordCount} (FULL GENERATION)
 `}
 
 MANDATORY SECTIONS:
 ${isTestMode ? `
-1. Introduction with hook and overview (30-50 words)
-2. 2-3 main H2 sections (each 40-60 words)
-3. FAQ section (2-3 questions)
-4. Conclusion with key takeaways and ${businessName} CTA (40-60 words)
+1. Introduction with hook and overview (${config.introWords} words)
+2. ${config.h2Sections} main H2 sections (each ${config.h2Words} words)
+3. FAQ section (${config.faqCount} questions)
+4. Conclusion with key takeaways and ${businessName} CTA (${config.conclusionWords} words)
 ` : `
-1. Introduction with hook and overview (200-250 words)
-2. 6-8 main H2 sections (each 400-500 words)
-3. FAQ section (8-10 questions)
-4. Conclusion with key takeaways and ${businessName} CTA (200-250 words)
+1. Introduction with hook and overview (${config.introWords} words)
+2. ${config.h2Sections} main H2 sections (each ${config.h2Words} words)
+3. FAQ section (${config.faqCount} questions)
+4. Conclusion with key takeaways and ${businessName} CTA (${config.conclusionWords} words)
 `}
 
 CONTENT DEPTH REQUIREMENTS:
 ${isTestMode ? `
-- Each H3 subsection should be 20-40 words minimum
+- Each H3 subsection should be ${config.h3Words} words minimum
 - Include brief step-by-step guides with 2-3 steps where applicable
 - Add 1 real-world example
 - Include some statistical data where relevant
 - Keep sections very concise for quick testing
+` : contentLength === 'short' ? `
+- Each H3 subsection should be ${config.h3Words} words minimum
+- Include step-by-step guides with 3-5 steps where applicable
+- Add 1-2 real-world examples per section
+- Include relevant statistical data and metrics
+- Keep content focused and actionable
+` : contentLength === 'medium' ? `
+- Each H3 subsection should be ${config.h3Words} words minimum
+- Include step-by-step guides with 4-6 steps where applicable
+- Add 1-2 real-world examples per section
+- Include good statistical data and metrics
+- Provide balanced depth and coverage
 ` : `
-- Each H3 subsection should be 100-200 words minimum
+- Each H3 subsection should be ${config.h3Words} words minimum
 - Include step-by-step guides with 5-10 steps where applicable
 - Add 2-3 real-world examples per section
 - Include extensive statistical data and metrics
@@ -164,7 +264,7 @@ STORYTELLING ELEMENTS:
 - Add "real-world application" examples
 `}
 
-COMPARISON TABLES FORMAT${isTestMode ? ' (OPTIONAL for test - 0-1 table if needed):' : ' (MANDATORY - Add 4-6 tables):'}
+COMPARISON TABLES FORMAT${isTestMode ? ' (OPTIONAL for test - 0-1 table if needed):' : contentLength === 'short' ? ' (OPTIONAL - 1-2 tables if needed):' : contentLength === 'medium' ? ' (Add 2-3 tables):' : ' (MANDATORY - Add 3-4 tables):'}
 - Create titled comparison tables with descriptive headings
 - Format: Use H3 heading with title like "10-Point Comparison: [Topic]" or "[Number]-Point Comparison: [Topic]"
 - Include 5-10 comparison rows with 4-6 columns
@@ -329,14 +429,14 @@ export function generateKeywordContentPrompt(options: ContentPromptOptions): str
     targetAudience = 'General audience',
     tone = 'professional',
     imageUrls = [],
-    isTest = false
+    isTest = false,
+    contentLength = 'long'
   } = options;
 
   const isTestMode = isTest;
-  const targetWordCount = isTestMode ? '200-300 words' : '3,800-4,200 words';
-  const wordCountDescription = isTestMode 
-    ? 'concise test article (200-300 words) for quick preview'
-    : 'comprehensive, in-depth article (3,800-4,200 words)';
+  const config = getContentLengthConfig(contentLength, isTestMode);
+  const targetWordCount = config.targetWordCount;
+  const wordCountDescription = config.wordCountDescription;
 
   return `Write ${isTestMode ? 'a brief test' : 'a comprehensive, SEO-optimized'} blog post about: "${keyword}"
 
@@ -344,7 +444,7 @@ PRIMARY KEYWORD: "${keyword}"
 CONTENT TYPE: ${contentType}
 TARGET AUDIENCE: ${targetAudience}
 TONE: ${tone}
-WORD COUNT: ${isTestMode ? '200-300' : '3,800-4,200'}${isTestMode ? ' (TEST MODE - Quick Preview)' : ' (FULL GENERATION)'}
+WORD COUNT: ${targetWordCount.replace(' words', '')}${isTestMode ? ' (TEST MODE - Quick Preview)' : ` (FULL GENERATION - ${contentLength.toUpperCase()})`}
 
 TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
 ${isTestMode 
@@ -385,28 +485,35 @@ TITLE REQUIREMENTS (CRITICAL):
 - Make it click-worthy while maintaining SEO value
 
 Follow the structure and requirements outlined in your system prompt. ${isTestMode 
-  ? 'For test mode: Create 2-3 H2 sections, each with 1-2 H3 subsections, optionally include 1 comparison table, and create a FAQ section with 2-3 questions. Keep everything concise.'
-  : 'Ensure you create 8-12 H2 sections, each with 3-5 H3 subsections, include 4-6 comparison tables, and create a FAQ section with 10-15 questions.'}`;
+    ? `For test mode: Create ${config.h2Sections} H2 sections, each with ${config.h3PerH2} H3 subsections, optionally include ${config.tablesCount} comparison table, and create a FAQ section with ${config.faqCount} questions. Keep everything concise.`
+    : `Ensure you create ${config.h2Sections} H2 sections, each with ${config.h3PerH2} H3 subsections, include ${config.tablesCount} comparison tables, and create a FAQ section with ${config.faqCount} questions.`}`;
 }
 
 /**
  * Generate expansion prompt for content that's too short
  */
-export function generateExpansionPrompt(currentContent: string, businessName: string = 'our company', websiteUrl: string = ''): string {
-  return `Expand the following draft to 500-800 words while preserving structure (TESTING MODE).
+export function generateExpansionPrompt(
+  currentContent: string, 
+  businessName: string = 'our company', 
+  websiteUrl: string = '',
+  contentLength: ContentLength = 'long'
+): string {
+  const config = getContentLengthConfig(contentLength, false);
+  
+  return `Expand the following draft to ${config.expansionMinWords}-${config.expansionMaxWords} words while preserving structure.
 
 CRITICAL EXPANSION REQUIREMENTS:
-- Ensure you have 3-4 H2 sections total (add more if needed)
-- Every H2 MUST have at least 2-3 H3 subsections
-- Each H3 subsection should be 50-100 words minimum
-- Add 1-2 more real examples per major section with specific metrics
-- Add at least 1-2 professional comparison tables (aim for 1-2 total)
-- Expand FAQ to 3-5 questions
-- Start each H2 section with a 1-2 paragraph introduction (50-100 words)
-- Include step-by-step guides with 3-5 steps where applicable
-- Add 1-2 real-world examples
-- Include some statistical data where relevant
-- Add 2-3 pro tips as blockquotes (>) throughout
+- Ensure you have ${config.h2Sections} H2 sections total (add more if needed)
+- Every H2 MUST have at least ${config.h3PerH2} H3 subsections
+- Each H3 subsection should be ${config.h3Words} words minimum
+- Add ${config.examplesCount} real examples per major section with specific metrics
+- Add ${config.tablesCount} professional comparison tables
+- Expand FAQ to ${config.faqCount} questions
+- Start each H2 section with a 1-2 paragraph introduction (${config.introWords} words)
+- Include step-by-step guides with ${contentLength === 'short' ? '3-5' : contentLength === 'medium' ? '4-6' : '5-10'} steps where applicable
+- Add ${contentLength === 'short' ? '1-2' : contentLength === 'medium' ? '1-2' : '2-3'} real-world examples per section
+- Include ${contentLength === 'short' ? 'relevant' : contentLength === 'medium' ? 'good' : 'extensive'} statistical data and metrics
+- Add ${config.proTipsCount} pro tips as blockquotes (>) throughout
 - Keep tone, headings, links, and embeds; do NOT add a Table of Contents
 - Do NOT include labels like "Title:" or "Meta Description:" anywhere
 - Keep paragraphs short (2–3 sentences), use data and tools
@@ -420,7 +527,7 @@ MANDATORY CONCLUSION STRUCTURE:
   * Include a clear call-to-action: "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]"
 - If the draft doesn't have this, ADD IT at the end
 
-TARGET: This should be a concise, well-structured article of 500-800 words (TESTING MODE).
+TARGET: This should be a well-structured article of ${config.expansionMinWords}-${config.expansionMaxWords} words (${contentLength.toUpperCase()} LENGTH).
 
 DRAFT TO EXPAND (Markdown):
 

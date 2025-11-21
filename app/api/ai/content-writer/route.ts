@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch user settings for content length preference
+    const { data: settingsData } = await supabase
+      .from('user_settings')
+      .select('content_length')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
+
     const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '' } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
@@ -245,7 +254,8 @@ export async function POST(request: NextRequest) {
         websiteUrl,
         user.id,
         currentCredits,
-        requiredCredits
+        requiredCredits,
+        contentLength
       );
     } else {
       console.log('⚠️ Using SINGLE-PHASE generation (16,000 tokens)');
@@ -260,7 +270,8 @@ export async function POST(request: NextRequest) {
         websiteUrl,
         user.id,
         currentCredits,
-        requiredCredits
+        requiredCredits,
+        contentLength
       );
     }
 
@@ -285,7 +296,8 @@ async function handleMultiPhaseGeneration(
   websiteUrl: string = '',
   userId: string,
   currentCredits: number,
-  requiredCredits: number
+  requiredCredits: number,
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ) {
   // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
   const encoder = new TextEncoder();
@@ -825,7 +837,8 @@ async function handleSinglePhaseGeneration(
   websiteUrl: string = '',
   userId: string,
   currentCredits: number,
-  requiredCredits: number
+  requiredCredits: number,
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
@@ -833,7 +846,8 @@ async function handleSinglePhaseGeneration(
     youtubeVideos: videos,
     isTest,
     businessName,
-    websiteUrl
+    websiteUrl,
+    contentLength
   });
 
     const candidateModels = [

@@ -1194,6 +1194,22 @@ export const generateKeywordContent = inngest.createFunction(
     
     console.log(`✅ Using business name: ${businessName}`);
 
+    // Step 5.5: Fetch user settings for content length preference
+    const contentLength = await step.run('fetch-user-settings', async () => {
+      try {
+        const { data: settingsData } = await supabase
+          .from('user_settings')
+          .select('content_length')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        return (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
+      } catch (error) {
+        console.warn('⚠️ Could not fetch user settings, using default (long):', error);
+        return 'long' as const;
+      }
+    });
+
     // Step 6: Generate content using multi-phase generation
     const { generateMultiPhaseContent } = await import('@/lib/multi-phase-generation');
     const { generateKeywordContentPrompt } = await import('@/lib/content-generation-prompts');
@@ -1208,7 +1224,8 @@ export const generateKeywordContent = inngest.createFunction(
       tone: 'professional',
       imageUrls: uploadedImageUrls,
       businessName,
-      websiteUrl
+      websiteUrl,
+      contentLength
     });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -1332,12 +1349,15 @@ export const generateKeywordContent = inngest.createFunction(
       fullContent = fullContent.replace(/\((?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\)]*\)/gi, '');
 
       // Expansion pass: if word count is too low, ask the writer to expand
+      // Get minimum word count threshold based on content length preference
+      const minWordThreshold = contentLength === 'short' ? 1000 : contentLength === 'medium' ? 2000 : 3800;
       const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;
-      if (plainWordCount < 3800) {
+      if (plainWordCount < minWordThreshold) {
         try {
-          console.log(`✏️ Draft length ${plainWordCount} words < 3800. Requesting expansion to 3,800-4,200 words...`);
+          const maxWords = contentLength === 'short' ? 1500 : contentLength === 'medium' ? 3000 : 4200;
+          console.log(`✏️ Draft length ${plainWordCount} words < ${minWordThreshold}. Requesting expansion to ${minWordThreshold}-${maxWords} words (${contentLength})...`);
           const { generateExpansionPrompt } = await import('@/lib/content-generation-prompts');
-          const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl);
+          const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl, contentLength);
 
           // Call Claude API directly for expansion (since we're in Inngest, no timeout issues)
           const expandResponse = await fetch('https://api.anthropic.com/v1/messages', {

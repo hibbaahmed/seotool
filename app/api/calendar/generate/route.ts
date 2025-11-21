@@ -140,6 +140,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch user settings for content length preference
+    const { data: settingsData } = await supabase
+      .from('user_settings')
+      .select('content_length')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
+
     let keywordText = keyword;
     let keywordData = null;
 
@@ -427,7 +436,8 @@ export async function POST(request: NextRequest) {
       imageUrls: uploadedImageUrls,
       isTest: is_test, // Pass test mode flag to prompt generator
       businessName, // Pass business name for personalized CTA
-      websiteUrl // Pass website URL for CTA
+      websiteUrl, // Pass website URL for CTA
+      contentLength // Pass user's content length preference
     });
 
     // Call the content writer API to generate content
@@ -542,12 +552,15 @@ export async function POST(request: NextRequest) {
     fullContent = fullContent.replace(/\((?:TODO|NOTE|PLACEHOLDER|EXAMPLE|REPLACE|FILL IN)[^\)]*\)/gi, '');
 
     // Expansion pass: if word count is too low, ask the writer to expand
+    // Get minimum word count threshold based on content length preference
+    const minWordThreshold = contentLength === 'short' ? 1000 : contentLength === 'medium' ? 2000 : 3800;
     const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;
-    if (plainWordCount < 6000) {
+    if (plainWordCount < minWordThreshold) {
       try {
-        console.log(`✏️ Draft length ${plainWordCount} words < 6000. Requesting expansion to 6,000-8,500 words...`);
+        const maxWords = contentLength === 'short' ? 1500 : contentLength === 'medium' ? 3000 : 4200;
+        console.log(`✏️ Draft length ${plainWordCount} words < ${minWordThreshold}. Requesting expansion to ${minWordThreshold}-${maxWords} words (${contentLength})...`);
         // Use shared expansion prompt function
-        const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl);
+        const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl, contentLength);
 
         const expandRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
           method: 'POST',
@@ -650,61 +663,89 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Content post-processing failed (continuing anyway):', processError);
     }
 
+    // Insert header image right after the title (at the very beginning of content)
+    if (finalImageUrls && finalImageUrls.length > 0) {
+      const headerImageUrl = finalImageUrls[0];
+      const titleMatch = fullContent.match(/^#\s+([^\n]+)\n/);
+      
+      if (titleMatch) {
+        // Insert header image right after the title
+        const titleEnd = titleMatch.index! + titleMatch[0].length;
+        const headerImageMarkdown = `\n\n![${keywordText}](${headerImageUrl})\n\n`;
+        fullContent = fullContent.slice(0, titleEnd) + headerImageMarkdown + fullContent.slice(titleEnd);
+        console.log('✅ Inserted header image at the beginning of content');
+      } else {
+        // No title found, insert at the very start
+        const headerImageMarkdown = `![${keywordText}](${headerImageUrl})\n\n`;
+        fullContent = headerImageMarkdown + fullContent;
+        console.log('✅ Inserted header image at the start of content (no title found)');
+      }
+    }
+
     // Verify images are embedded in the content markdown
     // If not embedded, the content-writer should have done it, but double-check
     const hasEmbeddedImages = /!\[.*?\]\([^)]+\)/.test(fullContent);
     
-    if (!hasEmbeddedImages && finalImageUrls && finalImageUrls.length > 0) {
-      console.log('⚠️ No embedded images detected, manually embedding...');
+    if (!hasEmbeddedImages && finalImageUrls && finalImageUrls.length > 1) {
+      console.log('⚠️ No embedded images detected in body, manually embedding...');
       
-      // Find the Content section after the main title
-      const contentStartMatch = fullContent.match(/#\s+[^\n]+\n\n/);
+      // Find the Content section after the main title and header image
+      const contentStartMatch = fullContent.match(/#\s+[^\n]+\n\n!\[[^\]]*\]\([^)]+\)\n\n/);
+      let insertPosition = 0;
+      
       if (contentStartMatch) {
-        let insertPosition = contentStartMatch.index! + contentStartMatch[0].length;
+        insertPosition = contentStartMatch.index! + contentStartMatch[0].length;
+      } else {
+        // Fallback: find after title only
+        const titleOnlyMatch = fullContent.match(/#\s+[^\n]+\n\n/);
+        if (titleOnlyMatch) {
+          insertPosition = titleOnlyMatch.index! + titleOnlyMatch[0].length;
+        }
+      }
+      
+      // Find the end of the first paragraph to insert image after
+      const afterTitle = fullContent.substring(insertPosition);
+      const firstParagraphMatch = afterTitle.match(/^(.+?)(\n\n|$)/s);
+      
+      if (firstParagraphMatch && finalImageUrls.length > 1) {
+        insertPosition += firstParagraphMatch[1].length;
         
-        // Find the end of the first paragraph to insert image after
-        const afterTitle = fullContent.substring(insertPosition);
-        const firstParagraphMatch = afterTitle.match(/^(.+?)(\n\n|$)/s);
+        // Insert second image after intro paragraph (first image is already header)
+        const imageMarkdown = `\n\n![${keywordText}](${finalImageUrls[1]})\n\n`;
+        fullContent = fullContent.slice(0, insertPosition) + imageMarkdown + fullContent.slice(insertPosition);
         
-        if (firstParagraphMatch) {
-          insertPosition += firstParagraphMatch[1].length;
+        // Find H2 headings and insert remaining images after some of them
+        const h2Pattern = /^##\s+[^\n]+$/gm;
+        const h2Matches: RegExpMatchArray[] = [];
+        let match;
+        const searchContent = fullContent.substring(insertPosition);
+        
+        while ((match = h2Pattern.exec(searchContent)) !== null) {
+          h2Matches.push(match);
+        }
+        
+        // Insert remaining images after H2 headings (distribute evenly)
+        // Start from index 2 since 0 is header image and 1 is after intro paragraph
+        if (h2Matches.length > 0 && finalImageUrls.length > 2) {
+          const imagesToPlace = Math.min(finalImageUrls.length - 2, h2Matches.length);
+          const spacing = Math.max(1, Math.floor(h2Matches.length / imagesToPlace));
           
-          // Insert first image after intro paragraph
-          const imageMarkdown = `\n\n![${keywordText}](${finalImageUrls[0]})\n\n`;
-          fullContent = fullContent.slice(0, insertPosition) + imageMarkdown + fullContent.slice(insertPosition);
-          
-          // Find H2 headings and insert remaining images after some of them
-          const h2Pattern = /^##\s+[^\n]+$/gm;
-          const h2Matches: RegExpMatchArray[] = [];
-          let match;
-          const searchContent = fullContent.substring(insertPosition);
-          
-          while ((match = h2Pattern.exec(searchContent)) !== null) {
-            h2Matches.push(match);
-          }
-          
-          // Insert remaining images after H2 headings (distribute evenly)
-          if (h2Matches.length > 0 && finalImageUrls.length > 1) {
-            const imagesToPlace = Math.min(finalImageUrls.length - 1, h2Matches.length);
-            const spacing = Math.max(1, Math.floor(h2Matches.length / imagesToPlace));
+          for (let i = 0; i < imagesToPlace && i + 2 < finalImageUrls.length; i++) {
+            const h2Index = Math.min((i + 1) * spacing - 1, h2Matches.length - 1);
+            const h2Match = h2Matches[h2Index];
             
-            for (let i = 0; i < imagesToPlace && i + 1 < finalImageUrls.length; i++) {
-              const h2Index = Math.min((i + 1) * spacing - 1, h2Matches.length - 1);
-              const h2Match = h2Matches[h2Index];
+            if (h2Match && h2Match.index !== undefined) {
+              // Find position after this H2 heading's first paragraph
+              const h2GlobalPos = insertPosition + h2Match.index + h2Match[0].length;
+              const afterH2 = fullContent.substring(h2GlobalPos);
+              const paraMatch = afterH2.match(/^(.+?)(\n\n|$)/s);
               
-              if (h2Match && h2Match.index !== undefined) {
-                // Find position after this H2 heading's first paragraph
-                const h2GlobalPos = insertPosition + h2Match.index + h2Match[0].length;
-                const afterH2 = fullContent.substring(h2GlobalPos);
-                const paraMatch = afterH2.match(/^(.+?)(\n\n|$)/s);
-                
-                if (paraMatch) {
-                  const imgPos = h2GlobalPos + paraMatch[1].length;
-                  const imgMarkdown = `\n\n![${keywordText} - Image ${i + 2}](${finalImageUrls[i + 1]})\n\n`;
-                  fullContent = fullContent.slice(0, imgPos) + imgMarkdown + fullContent.slice(imgPos);
-                  // Update insert position offset since we added content
-                  insertPosition += imgMarkdown.length;
-                }
+              if (paraMatch) {
+                const imgPos = h2GlobalPos + paraMatch[1].length;
+                const imgMarkdown = `\n\n![${keywordText} - Image ${i + 3}](${finalImageUrls[i + 2]})\n\n`;
+                fullContent = fullContent.slice(0, imgPos) + imgMarkdown + fullContent.slice(imgPos);
+                // Update insert position offset since we added content
+                insertPosition += imgMarkdown.length;
               }
             }
           }

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe, Link as LinkIcon, Calendar, Code } from 'lucide-react';
+import { TrendingUp, FileText, Image, Search, ArrowRight, PenTool, Archive, BarChart3, Globe, Link as LinkIcon, Calendar, Code, Settings } from 'lucide-react';
 import Subscription from '../components/Subscription';
 import { Card, CardContent } from '../../components/ui/Card';
 
@@ -162,6 +162,25 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
+              href="/dashboard/webflow-sites"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <LinkIcon className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Connect Webflow
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Securely store your Webflow CMS tokens and collections for one-click publishing
+              </p>
+              <div className="flex items-center text-cyan-600 font-medium group-hover:text-cyan-700">
+                <span>Configure Webflow</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
               href="/dashboard/keywords"
               className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
             >
@@ -195,6 +214,25 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-center text-violet-600 font-medium group-hover:text-violet-700">
                 <span>View Calendar</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </div>
+            </Link>
+
+            <Link 
+              href="/dashboard/settings"
+              className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-slate-500 to-gray-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <Settings className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Settings
+              </h3>
+              <p className="text-slate-600 mb-4">
+                Customize your content generation preferences, including content length
+              </p>
+              <div className="flex items-center text-slate-600 font-medium group-hover:text-slate-700">
+                <span>Manage Settings</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
             </Link>
