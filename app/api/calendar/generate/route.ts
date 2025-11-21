@@ -663,30 +663,103 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Content post-processing failed (continuing anyway):', processError);
     }
 
+    // Clean up broken/malformed image markdown first
+    // Remove incomplete image URLs (like those with &#8230; or truncated URLs)
+    fullContent = fullContent.replace(/!\[[^\]]*\]\(\s*https?:\/\/[^\s\)]*&#8230[^\s\)]*\)/gi, '');
+    fullContent = fullContent.replace(/!\[[^\]]*\]\(\s*https?:\/\/[^\s\)]*\.\.\.[^\s\)]*\)/gi, '');
+    // Remove any image markdown with incomplete URLs
+    fullContent = fullContent.replace(/!\[[^\]]*\]\(\s*[^)]*publi[^)]*\)/gi, '');
+    
+    // Remove ALL existing images from the beginning of the content (before first H2)
+    // This ensures we only have ONE header image that we control
+    const firstH2Match = fullContent.match(/\n##\s+/);
+    if (firstH2Match && firstH2Match.index !== undefined) {
+      const beforeFirstH2 = fullContent.substring(0, firstH2Match.index);
+      const afterFirstH2 = fullContent.substring(firstH2Match.index);
+      // Remove all image markdown from before first H2
+      const cleanedBeforeH2 = beforeFirstH2.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+      // Also remove any standalone image lines with just whitespace
+      const cleanedBeforeH2NoEmptyLines = cleanedBeforeH2.replace(/^\s*!\[[^\]]*\]\([^)]+\)\s*$/gm, '');
+      fullContent = cleanedBeforeH2NoEmptyLines + afterFirstH2;
+    } else {
+      // No H2 found, remove images from first 1000 characters (header area)
+      const headerArea = fullContent.substring(0, 1000);
+      const restContent = fullContent.substring(1000);
+      const cleanedHeader = headerArea.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+      const cleanedHeaderNoEmpty = cleanedHeader.replace(/^\s*!\[[^\]]*\]\([^)]+\)\s*$/gm, '');
+      fullContent = cleanedHeaderNoEmpty + restContent;
+    }
+    
+    // Normalize whitespace after removing images
+    fullContent = fullContent.replace(/\n\n\n+/g, '\n\n');
+
     // Insert header image right after the title (at the very beginning of content)
+    // Only insert if we have images available
     if (finalImageUrls && finalImageUrls.length > 0) {
       const headerImageUrl = finalImageUrls[0];
       const titleMatch = fullContent.match(/^#\s+([^\n]+)\n/);
       
       if (titleMatch) {
-        // Insert header image right after the title
+        // Check if header image already exists right after title
         const titleEnd = titleMatch.index! + titleMatch[0].length;
-        const headerImageMarkdown = `\n\n![${keywordText}](${headerImageUrl})\n\n`;
-        fullContent = fullContent.slice(0, titleEnd) + headerImageMarkdown + fullContent.slice(titleEnd);
-        console.log('✅ Inserted header image at the beginning of content');
+        const afterTitle = fullContent.substring(titleEnd, titleEnd + 200);
+        const hasHeaderImage = /!\[[^\]]*\]\([^)]+\)/.test(afterTitle);
+        
+        if (!hasHeaderImage) {
+          // Insert header image right after the title
+          const headerImageMarkdown = `\n\n![${keywordText}](${headerImageUrl})\n\n`;
+          fullContent = fullContent.slice(0, titleEnd) + headerImageMarkdown + fullContent.slice(titleEnd);
+          console.log('✅ Inserted header image at the beginning of content');
+        } else {
+          console.log('⚠️ Header image already exists, skipping insertion');
+        }
       } else {
-        // No title found, insert at the very start
-        const headerImageMarkdown = `![${keywordText}](${headerImageUrl})\n\n`;
-        fullContent = headerImageMarkdown + fullContent;
-        console.log('✅ Inserted header image at the start of content (no title found)');
+        // No title found, insert at the very start if no image exists
+        const startCheck = fullContent.substring(0, 200);
+        const hasStartImage = /!\[[^\]]*\]\([^)]+\)/.test(startCheck);
+        
+        if (!hasStartImage) {
+          const headerImageMarkdown = `![${keywordText}](${headerImageUrl})\n\n`;
+          fullContent = headerImageMarkdown + fullContent;
+          console.log('✅ Inserted header image at the start of content (no title found)');
+        }
       }
     }
 
-    // Verify images are embedded in the content markdown
+    // Remove any duplicate header image URLs from the rest of the content
+    // Find header image URL and remove any other instances of it
+    if (finalImageUrls && finalImageUrls.length > 0) {
+      const headerImageUrl = finalImageUrls[0];
+      // Escape special regex characters in URL
+      const escapedUrl = headerImageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Create regex to find image markdown with this URL (but keep the first one after title)
+      const headerImageRegex = new RegExp(`!\\[([^\\]]*)\\]\\(\\s*${escapedUrl}\\s*\\)`, 'gi');
+      let headerImageCount = 0;
+      
+      fullContent = fullContent.replace(headerImageRegex, (match, altText) => {
+        headerImageCount++;
+        // Keep the first occurrence (header), remove the rest
+        if (headerImageCount === 1) {
+          return match;
+        } else {
+          console.log(`⚠️ Removed duplicate header image (occurrence ${headerImageCount})`);
+          return ''; // Remove duplicate
+        }
+      });
+      
+      // Clean up any resulting double newlines
+      fullContent = fullContent.replace(/\n\n\n+/g, '\n\n');
+    }
+
+    // Verify images are embedded in the content markdown (excluding header image)
     // If not embedded, the content-writer should have done it, but double-check
-    const hasEmbeddedImages = /!\[.*?\]\([^)]+\)/.test(fullContent);
+    // Count images excluding the header area (first 500 chars)
+    const headerArea = fullContent.substring(0, 500);
+    const bodyContent = fullContent.substring(500);
+    const hasEmbeddedImagesInBody = /!\[.*?\]\([^)]+\)/.test(bodyContent);
     
-    if (!hasEmbeddedImages && finalImageUrls && finalImageUrls.length > 1) {
+    // Only embed additional images if we have more than 1 image and body has none
+    if (!hasEmbeddedImagesInBody && finalImageUrls && finalImageUrls.length > 1) {
       console.log('⚠️ No embedded images detected in body, manually embedding...');
       
       // Find the Content section after the main title and header image
@@ -696,10 +769,16 @@ export async function POST(request: NextRequest) {
       if (contentStartMatch) {
         insertPosition = contentStartMatch.index! + contentStartMatch[0].length;
       } else {
-        // Fallback: find after title only
-        const titleOnlyMatch = fullContent.match(/#\s+[^\n]+\n\n/);
-        if (titleOnlyMatch) {
-          insertPosition = titleOnlyMatch.index! + titleOnlyMatch[0].length;
+        // Fallback: find after title + header image area
+        const titleImageMatch = fullContent.match(/#\s+[^\n]+\n\n!\[[^\]]*\]\([^)]+\)\n\n/);
+        if (titleImageMatch) {
+          insertPosition = titleImageMatch.index! + titleImageMatch[0].length;
+        } else {
+          // Find after title only
+          const titleOnlyMatch = fullContent.match(/#\s+[^\n]+\n\n/);
+          if (titleOnlyMatch) {
+            insertPosition = titleOnlyMatch.index! + titleOnlyMatch[0].length;
+          }
         }
       }
       
@@ -711,42 +790,55 @@ export async function POST(request: NextRequest) {
         insertPosition += firstParagraphMatch[1].length;
         
         // Insert second image after intro paragraph (first image is already header)
-        const imageMarkdown = `\n\n![${keywordText}](${finalImageUrls[1]})\n\n`;
-        fullContent = fullContent.slice(0, insertPosition) + imageMarkdown + fullContent.slice(insertPosition);
+        // Make sure it's not the same as header image
+        const secondImageUrl = finalImageUrls[1] !== finalImageUrls[0] ? finalImageUrls[1] : (finalImageUrls.length > 2 ? finalImageUrls[2] : null);
         
-        // Find H2 headings and insert remaining images after some of them
-        const h2Pattern = /^##\s+[^\n]+$/gm;
-        const h2Matches: RegExpMatchArray[] = [];
-        let match;
-        const searchContent = fullContent.substring(insertPosition);
-        
-        while ((match = h2Pattern.exec(searchContent)) !== null) {
-          h2Matches.push(match);
-        }
-        
-        // Insert remaining images after H2 headings (distribute evenly)
-        // Start from index 2 since 0 is header image and 1 is after intro paragraph
-        if (h2Matches.length > 0 && finalImageUrls.length > 2) {
-          const imagesToPlace = Math.min(finalImageUrls.length - 2, h2Matches.length);
-          const spacing = Math.max(1, Math.floor(h2Matches.length / imagesToPlace));
+        if (secondImageUrl) {
+          const imageMarkdown = `\n\n![${keywordText}](${secondImageUrl})\n\n`;
+          fullContent = fullContent.slice(0, insertPosition) + imageMarkdown + fullContent.slice(insertPosition);
           
-          for (let i = 0; i < imagesToPlace && i + 2 < finalImageUrls.length; i++) {
-            const h2Index = Math.min((i + 1) * spacing - 1, h2Matches.length - 1);
-            const h2Match = h2Matches[h2Index];
+          // Find H2 headings and insert remaining images after some of them
+          const h2Pattern = /^##\s+[^\n]+$/gm;
+          const h2Matches: RegExpMatchArray[] = [];
+          let match;
+          const searchContent = fullContent.substring(insertPosition);
+          
+          while ((match = h2Pattern.exec(searchContent)) !== null) {
+            h2Matches.push(match);
+          }
+          
+          // Insert remaining images after H2 headings (distribute evenly)
+          // Start from index that's NOT the header image (index 0) or second image (index 1)
+          let imageIndex = 2; // Start from third image
+          if (finalImageUrls.length > 2) {
+            const imagesToPlace = Math.min(finalImageUrls.length - 2, h2Matches.length);
+            const spacing = Math.max(1, Math.floor(h2Matches.length / imagesToPlace));
             
-            if (h2Match && h2Match.index !== undefined) {
-              // Find position after this H2 heading's first paragraph
-              const h2GlobalPos = insertPosition + h2Match.index + h2Match[0].length;
-              const afterH2 = fullContent.substring(h2GlobalPos);
-              const paraMatch = afterH2.match(/^(.+?)(\n\n|$)/s);
-              
-              if (paraMatch) {
-                const imgPos = h2GlobalPos + paraMatch[1].length;
-                const imgMarkdown = `\n\n![${keywordText} - Image ${i + 3}](${finalImageUrls[i + 2]})\n\n`;
-                fullContent = fullContent.slice(0, imgPos) + imgMarkdown + fullContent.slice(imgPos);
-                // Update insert position offset since we added content
-                insertPosition += imgMarkdown.length;
+            for (let i = 0; i < imagesToPlace && imageIndex < finalImageUrls.length; i++) {
+              // Skip header image URL if we encounter it
+              while (imageIndex < finalImageUrls.length && finalImageUrls[imageIndex] === finalImageUrls[0]) {
+                imageIndex++;
               }
+              if (imageIndex >= finalImageUrls.length) break;
+              
+              const h2Index = Math.min((i + 1) * spacing - 1, h2Matches.length - 1);
+              const h2Match = h2Matches[h2Index];
+              
+              if (h2Match && h2Match.index !== undefined) {
+                // Find position after this H2 heading's first paragraph
+                const h2GlobalPos = insertPosition + h2Match.index + h2Match[0].length;
+                const afterH2 = fullContent.substring(h2GlobalPos);
+                const paraMatch = afterH2.match(/^(.+?)(\n\n|$)/s);
+                
+                if (paraMatch) {
+                  const imgPos = h2GlobalPos + paraMatch[1].length;
+                  const imgMarkdown = `\n\n![${keywordText} - Image ${i + 3}](${finalImageUrls[imageIndex]})\n\n`;
+                  fullContent = fullContent.slice(0, imgPos) + imgMarkdown + fullContent.slice(imgPos);
+                  // Update insert position offset since we added content
+                  insertPosition += imgMarkdown.length;
+                }
+              }
+              imageIndex++;
             }
           }
         }
