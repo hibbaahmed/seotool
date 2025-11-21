@@ -79,33 +79,6 @@ const PricingSection = () => {
           </p>
         </div>
 
-        {/* Key Feature Highlights - Responsive Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-8 max-w-3xl mx-auto">
-          {keyFeatures.map((feature, index) => {
-            const gradients = [
-              'from-blue-50 to-indigo-50',
-              'from-indigo-50 to-purple-50',
-              'from-purple-50 to-violet-50',
-              'from-blue-50 to-indigo-50'
-            ];
-            const iconColors = [
-              'bg-blue-600',
-              'bg-indigo-600',
-              'bg-purple-600',
-              'bg-blue-600'
-            ];
-            return (
-              <div key={index} className={`bg-gradient-to-br ${gradients[index % gradients.length]} rounded-lg p-3 md:p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all aspect-square flex flex-col items-center justify-center text-center`}>
-                <div className={`w-8 h-8 md:w-10 md:h-10 ${iconColors[index % iconColors.length]} rounded-lg flex items-center justify-center mb-2 md:mb-3`}>
-                  <feature.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </div>
-                <h3 className="font-bold text-slate-900 mb-1 text-xs md:text-sm leading-tight">{feature.title}</h3>
-                <p className="text-xs text-slate-600 font-normal leading-tight px-0.5 md:px-1">{feature.description}</p>
-              </div>
-            );
-          })}
-        </div>
-
         {/* Two Column Layout - Centered */}
         <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto items-start lg:items-center">
           {/* Left Column - Pricing Card */}
@@ -246,6 +219,33 @@ const PricingSection = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Key Feature Highlights - Responsive Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mt-16 max-w-[500px] sm:max-w-[600px] md:max-w-3xl mx-auto justify-items-center">
+          {keyFeatures.map((feature, index) => {
+            const gradients = [
+              'from-blue-50 to-indigo-50',
+              'from-indigo-50 to-purple-50',
+              'from-purple-50 to-violet-50',
+              'from-blue-50 to-indigo-50'
+            ];
+            const iconColors = [
+              'bg-blue-600',
+              'bg-indigo-600',
+              'bg-purple-600',
+              'bg-blue-600'
+            ];
+            return (
+              <div key={index} className={`bg-gradient-to-br ${gradients[index % gradients.length]} rounded-lg p-3 md:p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all aspect-square flex flex-col items-center justify-center text-center w-full max-w-[200px] md:max-w-none`}>
+                <div className={`w-8 h-8 md:w-10 md:h-10 ${iconColors[index % iconColors.length]} rounded-lg flex items-center justify-center mb-2 md:mb-3`}>
+                  <feature.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1 text-xs md:text-sm leading-tight">{feature.title}</h3>
+                <p className="text-xs text-slate-600 font-normal leading-tight px-0.5 md:px-1">{feature.description}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
