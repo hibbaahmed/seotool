@@ -7,6 +7,7 @@ import OutOfCreditsDialog from '../../components/OutOfCreditsDialog';
 const CreditsContext = createContext({
     credits: 0,
     isFreeTrial: true,
+    isInTrial: false, // New: indicates if user is in paid trial period (unlimited usage)
     loading: true,
     checkUserCredits: async (required) => false,
     refreshCredits: async () => {},
@@ -18,6 +19,7 @@ export function CreditsProvider({ children }) {
     const [requiredCredits, setRequiredCredits] = useState(1);
     const [credits, setCredits] = useState(0);
     const [isFreeTrial, setIsFreeTrial] = useState(true);
+    const [isInTrial, setIsInTrial] = useState(false); // New: paid trial period
     const [loading, setLoading] = useState(true);
 
     // Fetch initial credits on mount
@@ -36,6 +38,7 @@ export function CreditsProvider({ children }) {
         if (!result.error) {
             setCredits(result.credits);
             setIsFreeTrial(result.isFreeTrial);
+            setIsInTrial(result.isInTrial || false); // Update trial status
         }
         setLoading(false);
     };
@@ -54,6 +57,7 @@ export function CreditsProvider({ children }) {
         // Update local state with latest values
         setCredits(result.credits);
         setIsFreeTrial(result.isFreeTrial);
+        setIsInTrial(result.isInTrial || false); // Update trial status
 
         console.log(`🔍 checkUserCredits - User has ${result.credits} credits, needs ${required}, hasEnough: ${result.hasEnoughCredits}`);
 
@@ -84,6 +88,7 @@ export function CreditsProvider({ children }) {
     const value = {
         credits,
         isFreeTrial,
+        isInTrial, // New: paid trial period (unlimited usage)
         loading,
         checkUserCredits,
         refreshCredits: fetchCredits,

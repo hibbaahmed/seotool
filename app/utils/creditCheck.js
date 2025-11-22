@@ -13,28 +13,58 @@ export const checkCredits = async (requiredCredits = 1) => {
 
         console.log(`User authenticated: ${user.id}`);
 
-        const { data, error } = await supabase
+        // Get user email to query subscription table
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const userEmail = authUser?.email;
+
+        if (!userEmail) {
+            throw new Error("User email not found");
+        }
+
+        // Fetch credits and subscription data
+        const { data: creditsData, error: creditsError } = await supabase
             .from('credits')
             .select('credits, subscription_id, customer_id')
             .eq('user_id', user.id)
             .single();
 
-        if (error) {
-            console.error('Error fetching credits:', error);
+        if (creditsError) {
+            console.error('Error fetching credits:', creditsError);
             return { error: 'Could not fetch credits' };
         }
 
-        console.log('Credits data from database:', data);
+        // Fetch subscription data to check trial status
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+            .from('subscription')
+            .select('trial_ends_at')
+            .eq('email', userEmail)
+            .maybeSingle();
 
-        const currentCredits = data?.credits || 0;
-        const hasEnoughCredits = currentCredits >= requiredCredits;
-        const isFreeTrial = !data?.subscription_id && !data?.customer_id;
+        if (subscriptionError) {
+            console.error('Error fetching subscription:', subscriptionError);
+            // Don't fail - just log the error and continue without trial check
+        }
 
-        console.log(`Credit check result: current=${currentCredits}, required=${requiredCredits}, hasEnough=${hasEnoughCredits}, isFreeTrial=${isFreeTrial}`);
+        console.log('Credits data from database:', creditsData);
+        console.log('Subscription data from database:', subscriptionData);
+
+        const currentCredits = creditsData?.credits || 0;
+        
+        // Check if user is in trial period (unlimited usage) from subscription table
+        const now = new Date();
+        const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null;
+        const isInTrial = trialEndsAt && now < trialEndsAt;
+        
+        // During trial, always allow usage (unlimited credits)
+        const hasEnoughCredits = isInTrial || currentCredits >= requiredCredits;
+        const isFreeTrial = !creditsData?.subscription_id && !creditsData?.customer_id;
+
+        console.log(`Credit check result: current=${currentCredits}, required=${requiredCredits}, hasEnough=${hasEnoughCredits}, isInTrial=${isInTrial}, trialEndsAt=${trialEndsAt}`);
 
         return {
             credits: currentCredits,
             isFreeTrial,
+            isInTrial, // New field to indicate trial period
             hasEnoughCredits,
             requiredCredits,
             error: null

@@ -386,6 +386,15 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 		? subscription.customer 
 		: (subscription.customer as any)?.id;
 
+	// Check if subscription is in trial period and get trial end date
+	let trialEndsAt: string | null = null;
+	const isInTrial = subscription.status === 'trialing';
+	if (isInTrial && subscription.trial_end) {
+		trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+		console.log('🎉 Subscription is in trial period, trial ends at:', trialEndsAt);
+		console.log('⏸️ Skipping credit allocation during trial - credits will be added after trial ends');
+	}
+
 	// Get subscription period end date - try multiple methods
 	let subscriptionEndDate: string | null = null;
 	
@@ -529,7 +538,7 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 		priceIds: subscription.items.data.map(item => item.price.id)
 	});
 
-	// Update subscription table with end_at if we have it
+	// Update subscription table with end_at and trial_ends_at if we have them
 	const subscriptionUpdate: any = {
 		customer_id: customerId,
 		subscription_id: subscriptionId,
@@ -537,6 +546,11 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 	
 	if (subscriptionEndDate) {
 		subscriptionUpdate.end_at = subscriptionEndDate;
+	}
+	
+	// Add trial_ends_at if subscription is in trial
+	if (trialEndsAt) {
+		subscriptionUpdate.trial_ends_at = trialEndsAt;
 	}
 	
 	const { error: subscriptionError } = await supabase
@@ -570,6 +584,69 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 		console.warn('⚠️ Using fallback end_at (30 days from now):', subscriptionEndDate);
 	}
 
+	// During trial period, don't add credits - user has unlimited usage
+	// Credits will be added when trial ends and first payment succeeds
+	if (isInTrial) {
+		console.log('🎉 User is in trial period - skipping credit allocation');
+		console.log('✅ Subscription info updated, but credits will be allocated after trial ends');
+		
+		// Still update/create credits record with subscription info, but set credits to 0
+		// This ensures the record exists for when trial ends
+		let creditsError;
+		if (existingCredits) {
+			// Update existing record - keep existing credits, just update subscription info
+			console.log('🔄 Updating existing credits record (trial - no credit change):', {
+				oldCredits: existingCredits.credits,
+				keepingCredits: existingCredits.credits,
+				end_at: subscriptionEndDate
+			});
+			const updateData: any = {
+				customer_id: customerId,
+				subscription_id: subscriptionId,
+				credits: existingCredits.credits, // Keep existing credits, don't add new ones
+				email: email,
+				end_at: subscriptionEndDate,
+			};
+			
+			const { error } = await supabase
+				.from("credits")
+				.update(updateData)
+				.eq("user_id", userId);
+			creditsError = error;
+		} else {
+			// Create new record with 0 credits during trial
+			console.log('➕ Creating credits record during trial (0 credits - unlimited usage):', subscriptionEndDate);
+			const insertData: any = {
+				user_id: userId,
+				email: email,
+				customer_id: customerId,
+				subscription_id: subscriptionId,
+				credits: 0, // No credits during trial - unlimited usage
+				end_at: subscriptionEndDate,
+			};
+			
+			const { error } = await supabase
+				.from("credits")
+				.insert(insertData);
+			creditsError = error;
+		}
+		
+		if (creditsError) {
+			console.error('Error updating credits during trial:', creditsError);
+			throw creditsError;
+		}
+		
+		console.log('✅ Successfully updated subscription and credits record (trial - no credits added):', {
+			userId,
+			subscription_id: subscriptionId,
+			customer_id: customerId,
+			email,
+			trialEndsAt
+		});
+		return; // Exit early - don't add credits during trial
+	}
+
+	// Not in trial - add credits normally
 	let creditsError;
 	if (existingCredits) {
 		// Update existing record - only update if we have valid credits
@@ -578,31 +655,39 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 			newCredits: totalCredits,
 			end_at: subscriptionEndDate
 		});
+		const updateData: any = {
+			customer_id: customerId,
+			subscription_id: subscriptionId,
+			credits: totalCredits > 0 ? totalCredits : existingCredits.credits, // Don't set to 0 if calculation failed
+			email: email,
+			end_at: subscriptionEndDate,
+		};
+		
+		// Note: trial_ends_at is now stored in subscription table, not credits table
+		
 		const { error } = await supabase
 			.from("credits")
-			.update({
-				customer_id: customerId,
-				subscription_id: subscriptionId,
-				credits: totalCredits > 0 ? totalCredits : existingCredits.credits, // Don't set to 0 if calculation failed
-				email: email,
-				end_at: subscriptionEndDate,
-			})
+			.update(updateData)
 			.eq("user_id", userId);
 		creditsError = error;
 	} else {
 		// Insert new record - only insert if we have valid credits
 		if (totalCredits > 0) {
 			console.log('➕ Inserting new credits record with', totalCredits, 'credits, end_at:', subscriptionEndDate);
+			const insertData: any = {
+				user_id: userId,
+				email: email,
+				customer_id: customerId,
+				subscription_id: subscriptionId,
+				credits: totalCredits,
+				end_at: subscriptionEndDate,
+			};
+			
+			// Note: trial_ends_at is now stored in subscription table, not credits table
+			
 			const { error } = await supabase
 				.from("credits")
-				.insert({
-					user_id: userId,
-					email: email,
-					customer_id: customerId,
-					subscription_id: subscriptionId,
-					credits: totalCredits,
-					end_at: subscriptionEndDate,
-				});
+				.insert(insertData);
 			creditsError = error;
 		} else {
 			console.error('❌ Cannot insert credits: totalCredits is 0. Price ID mismatch likely.');
@@ -632,20 +717,46 @@ async function onPaymentSucceeded(
 	req: any
 ) {
 	try {
+		// Get subscription from Stripe to check trial status
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+		const subscription = await stripe.subscriptions.retrieve(subscription_id, {
+			expand: ['items.data.price', 'customer']
+		});
+
+		// Check if subscription is still in trial period
+		let trialEndsAt: string | null = null;
+		if (subscription.status === 'trialing' && subscription.trial_end) {
+			trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+			console.log('🎉 Subscription is still in trial period, trial ends at:', trialEndsAt);
+		} else {
+			// If trial has ended, clear trial_ends_at
+			console.log('✅ Trial period has ended, clearing trial_ends_at');
+		}
+
 		// Update credits and subscription (this will be idempotent if already updated in checkout.session.completed)
 		// Pass the end_at from the invoice so we use the correct period end date
 		await updateCreditsFromSubscription(email, subscription_id, end_at);
 		
-		// Also update subscription table with the end_at from the invoice
+		// Also update subscription table with the end_at from the invoice and trial status
 		// (updateCreditsFromSubscription already updates subscription, but we want to ensure end_at is set correctly)
 		const supabase = await supabaseAdmin();
+		const subscriptionUpdate: any = {
+			end_at, // This is the end_at from the invoice period
+			customer_id,
+			subscription_id,
+		};
+
+		// Update trial_ends_at based on current subscription status
+		if (trialEndsAt) {
+			subscriptionUpdate.trial_ends_at = trialEndsAt;
+		} else {
+			// Clear trial_ends_at if trial has ended
+			subscriptionUpdate.trial_ends_at = null;
+		}
+
 		const { error: subscriptionError } = await supabase
 			.from("subscription")
-			.update({
-				end_at, // This is the end_at from the invoice period
-				customer_id,
-				subscription_id,
-			})
+			.update(subscriptionUpdate)
 			.eq("email", email);
 		
 		if (subscriptionError) {
@@ -653,7 +764,7 @@ async function onPaymentSucceeded(
 			return subscriptionError;
 		}
 
-		console.log('📝 Payment succeeded - credits and subscription updated with end_at:', end_at);
+		console.log('📝 Payment succeeded - credits and subscription updated with end_at:', end_at, 'trial_ends_at:', trialEndsAt);
 		return null;
 	} catch (error) {
 		console.error('Error in onPaymentSucceeded:', error);

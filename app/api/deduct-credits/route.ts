@@ -36,7 +36,12 @@ export async function POST(req: Request) {
         throw new Error('User not authenticated for script upload');
       }
 
-      const { data: creditsData, error: creditsError } = await supabase
+    if (!user.email) {
+        throw new Error('User email not found');
+    }
+
+    // Fetch credits data
+    const { data: creditsData, error: creditsError } = await supabase
       .from('credits')
       .select('credits')
       .eq('user_id', user.id)
@@ -46,9 +51,31 @@ export async function POST(req: Request) {
       throw new Error('Could not fetch user credits');
     }
 
+    // Fetch subscription data to check trial status
+    const { data: subscriptionData, error: subscriptionError } = await supabase
+      .from('subscription')
+      .select('trial_ends_at')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    if (subscriptionError) {
+      console.error('Error fetching subscription:', subscriptionError);
+      // Don't fail - just log and continue without trial check
+    }
+
     const { credits } = creditsData;
 
-    // Check if the user has enough credits
+    // Check if user is in trial period - skip credit deduction during trial
+    const now = new Date();
+    const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null;
+    const isInTrial = trialEndsAt && now < trialEndsAt;
+
+    if (isInTrial) {
+      console.log('🎉 User is in trial period - skipping credit deduction (unlimited usage)');
+      return NextResponse.json({ success: true, trial: true });
+    }
+
+    // Check if the user has enough credits (only if not in trial)
     if (credits < 1) {
       return NextResponse.json(
         { error: 'Not enough credits to generate script' },
@@ -56,7 +83,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Subtract 1 credit from the user's account
+    // Subtract 1 credit from the user's account (only if not in trial)
     const { error: updateCreditError } = await supabase
       .from('credits')
       .update({ credits: credits - 1 })

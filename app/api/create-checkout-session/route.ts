@@ -14,6 +14,17 @@ export async function POST(req: Request) {
 
     const { priceId, userEmail, promotekit_referral, fbc, fbp } = await req.json();
     
+    // Get the $1 setup fee price ID from environment variable (required for trial)
+    const setupFeePriceId = process.env.NEXT_PUBLIC_STRIPE_SETUP_FEE_PRICE_ID;
+    
+    if (!setupFeePriceId) {
+      return NextResponse.json({ 
+        error: 'Setup fee price ID is not configured. Please set NEXT_PUBLIC_STRIPE_SETUP_FEE_PRICE_ID in your environment variables.' 
+      }, { status: 500 });
+    }
+    
+    console.log('✅ Setup fee price ID configured:', setupFeePriceId);
+    
     // Use Facebook cookies from request body (sent by frontend) or fallback to headers
     let finalFbc = fbc || '';
     let finalFbp = fbp || '';
@@ -93,6 +104,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid base URL configuration' }, { status: 500 });
     }
     
+    // Build line items - setup fee is required for the trial
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    
+    // Add $1 setup fee (required - charged immediately)
+    // Note: One-time prices in subscription checkouts are charged immediately,
+    // while the subscription itself starts with the trial period
+    lineItems.push({
+      price: setupFeePriceId,
+      quantity: 1,
+    });
+    console.log('💰 Adding $1 setup fee to checkout (required for trial)');
+    
+    // Add subscription price (will start after 3-day trial)
+    lineItems.push({
+      price: priceId,
+      quantity: 1,
+    });
+    console.log('📅 Adding subscription with 3-day trial period');
+    
     // Build session creation parameters
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -105,17 +135,21 @@ export async function POST(req: Request) {
         currency: 'USD',
         // Store Facebook cookies for server-side tracking
         fbc: finalFbc || '',
-        fbp: finalFbp || ''
+        fbp: finalFbp || '',
+        has_trial: 'true',
       },
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       payment_method_collection: 'always',
       // Collect more customer information for better Facebook tracking
       billing_address_collection: 'required',
+      // Set up 3-day trial period for the subscription
+      subscription_data: {
+        trial_period_days: 3,
+        metadata: {
+          plan: planName,
+          plan_value: planValue.toString(),
+        },
+      },
     };
 
     // Only include customer_email if it's valid

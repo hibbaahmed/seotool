@@ -212,8 +212,17 @@ export default function Price() {
                     <span className="text-slate-400 line-through text-lg font-normal">$200</span>
                     <span className="text-slate-400 line-through text-lg font-normal">/monthly</span>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-7xl lg:text-8xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$69</span>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-7xl lg:text-8xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$99</span>
+                    <span className="text-2xl lg:text-3xl font-semibold text-slate-600">/month</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-700 font-bold text-sm">🎉 3-Day Trial for $1</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1 font-normal">
+                      $1 for 3 days, then $99/month. Cancel anytime.
+                    </p>
                   </div>
                 </div>
 
@@ -245,8 +254,8 @@ export default function Price() {
                 )}
 
                 {/* Trial Details */}
-                <div className="flex items-center gap-2 text-slate-600 text-sm mb-8 font-normal text-center justify-center">
-                  <span>Cancel anytime. No questions asked!</span>
+                <div className="flex flex-col items-center gap-2 text-slate-600 text-sm mb-8 font-normal text-center justify-center">
+                  <span className="font-semibold text-slate-700">$1 for 3 days, then $99/month. Cancel anytime.</span>
                 </div>
 
                 {/* Features List */}
