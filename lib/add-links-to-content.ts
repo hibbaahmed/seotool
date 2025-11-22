@@ -597,9 +597,19 @@ export async function addBusinessPromotionToContent(
     
     console.log(`💼 Found business: ${businessName}`);
     
-    // Check if business is already mentioned
-    if (content.toLowerCase().includes(businessName.toLowerCase())) {
-      console.log('⚠️ Business already mentioned in content, skipping promotion');
+    // Check how many mentions already exist in the main content (excluding conclusion)
+    // Split content to exclude conclusion section
+    const conclusionMatch = content.match(/(?:^|\n)##\s+Conclusion[^\n]*/i);
+    const mainContent = conclusionMatch 
+      ? content.substring(0, conclusionMatch.index || content.length)
+      : content;
+    
+    const existingMentions = (mainContent.toLowerCase().match(new RegExp(businessName.toLowerCase(), 'g')) || []).length;
+    console.log(`💼 Found ${existingMentions} existing mentions in main content`);
+    
+    // If there are already 2+ mentions in main content, skip adding more
+    if (existingMentions >= 2) {
+      console.log('ℹ️ Business already has sufficient mentions throughout main content');
       return { linkedContent: content, mentionsAdded: 0 };
     }
     
@@ -716,11 +726,26 @@ function buildBusinessMentionBlocks({
 
 function findBusinessMentionPositions(content: string, desiredCount: number): number[] {
   if (desiredCount <= 0) return [];
-  const headingMatches = [...content.matchAll(/^##\s+[^\n]+/gm)];
+  
+  // Exclude conclusion section from consideration
+  const conclusionMatch = content.match(/(?:^|\n)##\s+Conclusion[^\n]*/i);
+  const mainContent = conclusionMatch 
+    ? content.substring(0, conclusionMatch.index || content.length)
+    : content;
+  const mainContentLength = mainContent.length;
+  
+  const headingMatches = [...mainContent.matchAll(/^##\s+[^\n]+/gm)];
   const positions: number[] = [];
 
   if (headingMatches.length > 1) {
-    const usableMatches = headingMatches.slice(1); // Skip first section to avoid intro
+    // Skip first section (intro) and filter out conclusion
+    const usableMatches = headingMatches.slice(1).filter(match => {
+      if (typeof match.index !== 'number') return false;
+      // Make sure we're not in or near conclusion
+      const headingText = match[0].toLowerCase();
+      return !headingText.includes('conclusion') && match.index < mainContentLength;
+    });
+    
     if (usableMatches.length > 0) {
       const step = Math.max(1, Math.floor(usableMatches.length / desiredCount));
       for (let i = 0; i < usableMatches.length && positions.length < desiredCount; i += step) {
@@ -733,10 +758,11 @@ function findBusinessMentionPositions(content: string, desiredCount: number): nu
   }
 
   if (positions.length === 0) {
+    // Use fractions of main content only (not conclusion)
     const fallbackFractions =
       desiredCount === 1 ? [0.6] : desiredCount === 2 ? [0.45, 0.75] : [0.35, 0.6, 0.8];
     fallbackFractions.slice(0, desiredCount).forEach((fraction) => {
-      positions.push(Math.min(content.length, Math.floor(content.length * fraction)));
+      positions.push(Math.min(mainContentLength, Math.floor(mainContentLength * fraction)));
     });
   }
 
