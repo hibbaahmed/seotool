@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Get or create user settings
     const { data: settings, error: settingsError } = await supabase
       .from('user_settings')
-      .select('*')
+      .select('content_length, auto_promote_business, created_at, updated_at')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     if (!settings) {
       return NextResponse.json({
         content_length: 'long',
+        auto_promote_business: false,
         created_at: null,
         updated_at: null
       });
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       content_length: settings.content_length || 'long',
+      auto_promote_business: settings.auto_promote_business ?? false,
       created_at: settings.created_at,
       updated_at: settings.updated_at
     });
@@ -54,7 +56,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content_length } = body;
+    const { content_length, auto_promote_business } = body;
 
     if (content_length && !['short', 'medium', 'long'].includes(content_length)) {
       return NextResponse.json(
@@ -63,13 +65,38 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (
+      auto_promote_business !== undefined &&
+      typeof auto_promote_business !== 'boolean'
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid auto_promote_business. Must be a boolean value.' },
+        { status: 400 }
+      );
+    }
+
+    const { data: existingSettings } = await supabase
+      .from('user_settings')
+      .select('content_length, auto_promote_business')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const nextContentLength =
+      content_length || existingSettings?.content_length || 'long';
+
+    const nextAutoPromote =
+      typeof auto_promote_business === 'boolean'
+        ? auto_promote_business
+        : existingSettings?.auto_promote_business ?? false;
+
     // Upsert settings (insert if doesn't exist, update if it does)
     const { data: settings, error: upsertError } = await supabase
       .from('user_settings')
       .upsert(
         {
           user_id: user.id,
-          content_length: content_length || 'long',
+          content_length: nextContentLength,
+          auto_promote_business: nextAutoPromote,
           updated_at: new Date().toISOString()
         },
         {
@@ -86,6 +113,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       content_length: settings.content_length,
+      auto_promote_business: settings.auto_promote_business ?? false,
       created_at: settings.created_at,
       updated_at: settings.updated_at
     });

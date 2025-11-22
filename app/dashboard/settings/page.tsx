@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Settings, Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, Loader2, CheckCircle2, Megaphone } from 'lucide-react';
 
 type ContentLength = 'short' | 'medium' | 'long';
 
 interface UserSettings {
   content_length: ContentLength;
+  auto_promote_business?: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -14,6 +15,7 @@ interface UserSettings {
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [selectedLength, setSelectedLength] = useState<ContentLength>('long');
+  const [autoPromote, setAutoPromote] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -35,6 +37,7 @@ export default function SettingsPage() {
       const data = await response.json();
       setSettings(data);
       setSelectedLength(data.content_length || 'long');
+      setAutoPromote(data.auto_promote_business ?? false);
     } catch (err) {
       console.error('Error fetching settings:', err);
       setError('Failed to load settings. Please try again.');
@@ -56,6 +59,7 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({
           content_length: selectedLength,
+          auto_promote_business: autoPromote,
         }),
       });
 
@@ -66,6 +70,8 @@ export default function SettingsPage() {
 
       const data = await response.json();
       setSettings(data);
+      setSelectedLength(data.content_length || 'long');
+      setAutoPromote(data.auto_promote_business ?? false);
       setSaved(true);
       
       // Hide success message after 3 seconds
@@ -103,6 +109,11 @@ export default function SettingsPage() {
       wordCount: '3,800-4,200 words',
     },
   ];
+
+  const originalContentLength = settings?.content_length || 'long';
+  const originalAutoPromote = settings?.auto_promote_business ?? false;
+  const hasChanges =
+    selectedLength !== originalContentLength || autoPromote !== originalAutoPromote;
 
   if (loading) {
     return (
@@ -194,9 +205,9 @@ export default function SettingsPage() {
 
           <button
             onClick={handleSave}
-            disabled={saving || selectedLength === settings?.content_length}
+            disabled={saving || !hasChanges}
             className={`w-full sm:w-auto px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-              saving || selectedLength === settings?.content_length
+              saving || !hasChanges
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
             }`}
@@ -213,6 +224,74 @@ export default function SettingsPage() {
               </>
             )}
           </button>
+        </div>
+
+        {/* Auto Promotion Settings */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                  <Megaphone className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Auto Promotion</h2>
+                  <p className="text-sm text-slate-500">
+                    Spotlight your business throughout every article automatically.
+                  </p>
+                </div>
+              </div>
+              <p className="text-slate-600 mb-4">
+                When enabled, we take the <strong>business_name</strong> and <strong>website_url</strong>{' '}
+                you provided during onboarding and weave natural callouts throughout each blog post.
+                These callouts look like expert recommendations, not advertisements.
+              </p>
+              <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                <li>Mentions are spaced throughout the article so they feel organic.</li>
+                <li>Calls to action automatically link to your onboarding website URL.</li>
+                <li>Great for agencies or founders who want their brand present in every post.</li>
+              </ul>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-600">
+                {autoPromote ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoPromote}
+                onClick={() => setAutoPromote((prev) => !prev)}
+                className={`relative inline-flex h-9 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                  autoPromote ? 'bg-indigo-600' : 'bg-slate-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-7 w-7 transform rounded-full bg-white shadow transition duration-200 ${
+                    autoPromote ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <div
+            className={`mt-6 rounded-xl border p-4 text-sm ${
+              autoPromote
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-slate-200 bg-slate-50 text-slate-600'
+            }`}
+          >
+            {autoPromote ? (
+              <p>
+                ✅ Auto promotion is <strong>on</strong>. Future articles will automatically highlight your
+                business using your onboarding details.
+              </p>
+            ) : (
+              <p>
+                Auto promotion is currently <strong>off</strong>. Enable it whenever you want your brand to
+                appear throughout every blog post without manual edits.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Info Box */}

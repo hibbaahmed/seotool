@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   content_length TEXT NOT NULL DEFAULT 'long' CHECK (content_length IN ('short', 'medium', 'long')),
+  auto_promote_business BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -45,26 +46,27 @@ RETURNS TABLE (
   id UUID,
   user_id UUID,
   content_length TEXT,
+  auto_promote_business BOOLEAN,
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 BEGIN
   -- Try to get existing settings
   RETURN QUERY
-  SELECT us.id, us.user_id, us.content_length, us.created_at, us.updated_at
+  SELECT us.id, us.user_id, us.content_length, us.auto_promote_business, us.created_at, us.updated_at
   FROM user_settings us
   WHERE us.user_id = p_user_id;
 
   -- If no settings found, create default ones
   IF NOT FOUND THEN
-    INSERT INTO user_settings (user_id, content_length)
-    VALUES (p_user_id, 'long')
+    INSERT INTO user_settings (user_id, content_length, auto_promote_business)
+    VALUES (p_user_id, 'long', false)
     ON CONFLICT (user_id) DO NOTHING
-    RETURNING user_settings.id, user_settings.user_id, user_settings.content_length, user_settings.created_at, user_settings.updated_at;
+    RETURNING user_settings.id, user_settings.user_id, user_settings.content_length, user_settings.auto_promote_business, user_settings.created_at, user_settings.updated_at;
     
     -- Return the newly created settings
     RETURN QUERY
-    SELECT us.id, us.user_id, us.content_length, us.created_at, us.updated_at
+    SELECT us.id, us.user_id, us.content_length, us.auto_promote_business, us.created_at, us.updated_at
     FROM user_settings us
     WHERE us.user_id = p_user_id;
   END IF;

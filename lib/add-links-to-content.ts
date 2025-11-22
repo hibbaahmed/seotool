@@ -564,6 +564,21 @@ export async function addBusinessPromotionToContent(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    const { data: userSettings, error: settingsError } = await supabase
+      .from('user_settings')
+      .select('auto_promote_business')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('⚠️ Failed to load user settings for business promotion:', settingsError);
+    }
+
+    if (!userSettings?.auto_promote_business) {
+      console.log('ℹ️ Auto promotion disabled for this user. Skipping business mentions.');
+      return { linkedContent: content, mentionsAdded: 0 };
+    }
     
     const { data: onboardingProfile, error } = await supabase
       .from('user_onboarding_profiles')
