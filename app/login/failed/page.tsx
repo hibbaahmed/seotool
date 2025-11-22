@@ -7,23 +7,23 @@ export default async function Page({
     searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
 
-    let errorMessage = "Something went wrong, please reach out to support.";
+    let errorMessage = "We couldn't complete your login. Please email us at team@bridgely.io for assistance.";
 
     const params = await searchParams;
     if (params?.err !== undefined) {
         const errorCode = params["err"];
         switch (errorCode) {
             case "AuthApiError":
-                errorMessage = "Oops! It looks like you tried to open your magic link from another device or browser.";
+                errorMessage = "We couldn't verify your login. Please email us at team@bridgely.io for assistance.";
                 break;
             case "500":
-                errorMessage = "Something went wrong, please reach out to support.";
+                errorMessage = "Something went wrong with the authentication process. Please email us at team@bridgely.io for assistance.";
                 break;
         }
     }
 
     return (
-        <div className="flex flex-col flex-1 w-full h-[calc(100vh-73px)]">
+        <div className="flex flex-col flex-1 w-full min-h-screen">
             <LoginFail errorMessage={errorMessage} />
         </div>
     );

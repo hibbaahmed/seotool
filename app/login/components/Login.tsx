@@ -39,7 +39,7 @@ export const Login = ({
       }, 1000);
     } catch (error) {
       setIsSubmitting(false);
-      toast.error("Something went wrong. Please try again, if the problem persists, contact us at hello@tryleap.ai");
+      toast.error("Something went wrong. Please try again, if the problem persists, contact us at team@bridgely.io");
     }
   };
   let inviteToken = null;
@@ -58,6 +58,7 @@ export const Login = ({
     });
     if (error) {
       console.log(`Error: ${error.message}`);
+      throw new Error(error.message);
     }
   };
   if (isMagicLinkSent) {
