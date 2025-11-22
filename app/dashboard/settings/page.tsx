@@ -143,6 +143,46 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* Save Button and Messages */}
+        <div className="mb-6">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {saved && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <p className="text-sm text-green-600">
+                Settings saved successfully!
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className={`w-full sm:w-auto px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+              saving || !hasChanges
+                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
+            }`}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                Save Settings
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Content Length Settings */}
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6">
           <div className="mb-6">
@@ -187,43 +227,6 @@ export default function SettingsPage() {
               </label>
             ))}
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {saved && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <p className="text-sm text-green-600">
-                Settings saved successfully!
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className={`w-full sm:w-auto px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-              saving || !hasChanges
-                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
-            }`}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                Save Settings
-              </>
-            )}
-          </button>
         </div>
 
         {/* Auto Promotion Settings */}
