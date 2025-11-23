@@ -46,6 +46,21 @@ export async function POST(request: NextRequest) {
     
     const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
 
+    // Helper function to calculate max_tokens based on content length
+    // Approximately 1 token = 0.75 words, so we add buffer for safety
+    const getMaxTokens = (length: 'short' | 'medium' | 'long'): number => {
+      switch (length) {
+        case 'short':
+          return 2500; // ~1500 words max with buffer
+        case 'medium':
+          return 4500; // ~3000 words max with buffer
+        case 'long':
+          return 6000; // ~4200 words max with buffer
+        default:
+          return 6000;
+      }
+    };
+
     const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '' } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
@@ -238,11 +253,13 @@ export async function POST(request: NextRequest) {
 
     // Choose between single-phase or multi-phase generation
     if (enableMultiPhase) {
-      console.log('🔄 Using MULTI-PHASE generation (4 phases, 28,000 tokens total)');
+      const maxTokens = getMaxTokens(contentLength);
+      console.log('🔄 Using MULTI-PHASE generation (4 phases)');
       console.log('📝 Topic:', extractedTopic);
       console.log('🖼️ Images available:', uploadedImageUrls.length);
       console.log('🎥 Videos available:', youtubeVideos.length);
       console.log('🏢 Business name:', businessName);
+      console.log('📏 Content length:', contentLength, `(max_tokens: ${maxTokens})`);
       return handleMultiPhaseGeneration(
         userInput,
         extractedTopic,
@@ -255,10 +272,13 @@ export async function POST(request: NextRequest) {
         user.id,
         currentCredits,
         requiredCredits,
-        contentLength
+        contentLength,
+        maxTokens
       );
     } else {
-      console.log('⚠️ Using SINGLE-PHASE generation (16,000 tokens)');
+      const maxTokens = getMaxTokens(contentLength);
+      console.log('⚠️ Using SINGLE-PHASE generation');
+      console.log('📏 Content length:', contentLength, `(max_tokens: ${maxTokens})`);
       return handleSinglePhaseGeneration(
         userInput,
         extractedTopic,
@@ -271,7 +291,8 @@ export async function POST(request: NextRequest) {
         user.id,
         currentCredits,
         requiredCredits,
-        contentLength
+        contentLength,
+        maxTokens
       );
     }
 
@@ -297,8 +318,41 @@ async function handleMultiPhaseGeneration(
   userId: string,
   currentCredits: number,
   requiredCredits: number,
-  contentLength: 'short' | 'medium' | 'long' = 'long'
+  contentLength: 'short' | 'medium' | 'long' = 'long',
+  maxTokens: number = 6000
 ) {
+  // Calculate phase-specific token limits based on content length
+  // For short content, we need much smaller limits per phase
+  const getPhaseTokens = (phase: number): number => {
+    if (contentLength === 'short') {
+      // Short: 1000-1500 words total, distribute across phases
+      switch (phase) {
+        case 1: return 1000; // Outline
+        case 2: return 600;  // Intro + sections 1-2
+        case 3: return 500;  // Sections 3-4
+        case 4: return 400;  // FAQ + conclusion
+        default: return 500;
+      }
+    } else if (contentLength === 'medium') {
+      // Medium: 2000-3000 words total
+      switch (phase) {
+        case 1: return 1500; // Outline
+        case 2: return 1200; // Intro + sections 1-4
+        case 3: return 1000; // Sections 5-8
+        case 4: return 800;  // FAQ + conclusion
+        default: return 1000;
+      }
+    } else {
+      // Long: 3800-4200 words total (original behavior)
+      switch (phase) {
+        case 1: return 4000; // Outline
+        case 2: return 8000; // Intro + sections 1-4
+        case 3: return 8000; // Sections 5-8
+        case 4: return 8000; // FAQ + conclusion
+        default: return 8000;
+      }
+    }
+  };
   // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
   const encoder = new TextEncoder();
   
@@ -318,9 +372,9 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 1, description: 'Generating article outline...' })}\n\n`));
         
         const outline = await generatePhase(
-          getOutlinePrompt(topic, userInput, businessName),
+          getOutlinePrompt(topic, userInput, businessName, contentLength),
           apiKey,
-          4000
+          getPhaseTokens(1)
         );
         
         console.log(`✅ Phase 1 complete. Outline length: ${outline.length} characters`);
@@ -334,9 +388,9 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 2, description: 'Writing introduction and sections 1-4...' })}\n\n`));
         
         const sections1to4 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections'),
+          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', contentLength),
           apiKey,
-          8000
+          getPhaseTokens(2)
         );
         
         const words1to4 = sections1to4.split(/\s+/).length;
@@ -350,9 +404,9 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 3, description: 'Writing sections 5-8...' })}\n\n`));
         
         const sections5to8 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8'),
+          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', contentLength),
           apiKey,
-          8000
+          getPhaseTokens(3)
         );
         
         const words5to8 = sections5to8.split(/\s+/).length;
@@ -366,9 +420,9 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 4, description: 'Writing final sections, FAQ, and conclusion...' })}\n\n`));
         
         const finalSections = await generatePhase(
-          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl),
+          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, contentLength),
           apiKey,
-          8000
+          getPhaseTokens(4)
         );
         
         const wordsFinal = finalSections.split(/\s+/).length;
@@ -486,8 +540,17 @@ async function streamText(
 
 // ============= PROMPT GENERATORS =============
 
-function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company'): string {
-  return `You are creating a comprehensive article outline for a 7,000-8,000 word pillar article about: "${topic}"
+function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company', contentLength: 'short' | 'medium' | 'long' = 'long'): string {
+  const wordTargets = {
+    short: { total: '1,000-1,500', h2s: '4-5', h2Words: '150-250', intro: '100-150', faq: '5-7', conclusion: '100-150' },
+    medium: { total: '2,000-3,000', h2s: '5-6', h2Words: '250-350', intro: '150-200', faq: '6-8', conclusion: '150-200' },
+    long: { total: '3,800-4,200', h2s: '6-8', h2Words: '400-500', intro: '200-250', faq: '8-10', conclusion: '200-250' }
+  };
+  const targets = wordTargets[contentLength];
+  
+  return `You are creating a comprehensive article outline for a ${targets.total} word article about: "${topic}"
+
+CRITICAL: The final article MUST be between ${targets.total} words. Do NOT exceed ${targets.total.split('-')[1]} words.
 
 User requirements: ${userInput}
 
@@ -501,18 +564,18 @@ DO NOT write "Title:" as a label in the output - just write the title text itsel
 150-160 characters with primary keyword
 DO NOT write "Meta Description:" as a label in the output - just write the description text itself.
 
-3. **Introduction Structure** (target: 300-400 words)
+3. **Introduction Structure** (target: ${targets.intro} words)
 - Hook paragraph
 - Why this topic matters
 - What readers will learn
 
-4. **Main Content: 10-12 H2 Sections** (target: 5,500-6,500 words total)
+4. **Main Content: ${targets.h2s} H2 Sections** (target: ${contentLength === 'short' ? '800-1,000' : contentLength === 'medium' ? '1,500-2,000' : '3,000-3,500'} words total)
 For EACH H2 section:
 - Create a descriptive H2 title with secondary keywords
-- List 4-5 specific H3 subsections
-- Note: Each H2 should yield 400-550 words
-- Note: Each H3 should yield 100-130 words
-- Indicate where to place HTML comparison tables (need 3-5 total across all sections)
+- List 2-3 specific H3 subsections${contentLength === 'long' ? ' (4-5 for long articles)' : ''}
+- Note: Each H2 should yield ${targets.h2Words} words
+- Note: Each H3 should yield ${contentLength === 'short' ? '50-80' : contentLength === 'medium' ? '80-120' : '100-200'} words
+- Indicate where to place HTML comparison tables (need ${contentLength === 'short' ? '0-1' : contentLength === 'medium' ? '1-2' : '3-4'} total across all sections)
 - Indicate where to place images/videos
 - IMPORTANT: Tables must be in HTML format, not Markdown
 
@@ -520,23 +583,21 @@ Example H2 structure:
 ## [H2 Title]
 ### [H3: Specific subtopic]
 ### [H3: Related technique]  
-### [H3: Advanced strategy]
-### [H3: Common mistakes]
-### [H3: Best practices]
+${contentLength === 'long' ? '### [H3: Advanced strategy]\n### [H3: Common mistakes]\n### [H3: Best practices]' : ''}
 
-5. **FAQ Section** (target: 800-1,000 words)
-- List 10-12 specific questions
+5. **FAQ Section** (target: ${contentLength === 'short' ? '200-300' : contentLength === 'medium' ? '400-600' : '800-1,000'} words)
+- List ${targets.faq} specific questions
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
 
-6. **Conclusion** (target: 350-450 words)
-- Key takeaways (4-5 bullet points with specific article insights)
+6. **Conclusion** (target: ${targets.conclusion} words)
+- Key takeaways (${contentLength === 'short' ? '3-4' : '4-5'} bullet points with specific article insights)
 - Final actionable advice
 - "Partner with ${businessName} for Success" subsection that references specific article topics and explains how ${businessName} helps with those exact things
 
 FORMAT: Use markdown with ## for H2 and ### for H3. Be VERY specific with section titles - use actual descriptive titles, not placeholders.
 
-CRITICAL: Create at least 10 H2 sections to reach the 7,000-8,000 word target.`;
+CRITICAL: The final article MUST be exactly ${targets.total} words. Do NOT exceed the maximum.`;
 }
 
 function getSectionsPrompt(
@@ -546,11 +607,20 @@ function getSectionsPrompt(
   sectionRange: string,
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
-  description: string
+  description: string,
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
-  return `You are writing the ${description} for a comprehensive pillar article about: "${topic}"
+  const phaseTargets = {
+    short: { phase2: '300-400', phase3: '250-350', phase4: '200-300', h2: '150-250', h3: '50-80' },
+    medium: { phase2: '600-800', phase3: '500-700', phase4: '400-600', h2: '250-350', h3: '80-120' },
+    long: { phase2: '1,500-1,800', phase3: '1,500-1,800', phase4: '1,500-1,800', h2: '400-550', h3: '100-130' }
+  };
+  const targets = phaseTargets[contentLength];
+  const phaseTarget = sectionRange === '1-4' ? targets.phase2 : sectionRange === '5-8' ? targets.phase3 : targets.phase4;
+  
+  return `You are writing the ${description} for a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
-TARGET LENGTH FOR THIS PHASE: 1,500-1,800 words (not more)
+CRITICAL: TARGET LENGTH FOR THIS PHASE: ${phaseTarget} words MAXIMUM. Do NOT exceed this limit.
 
 User requirements: ${userInput}
 
@@ -565,7 +635,7 @@ ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` 
 
 Write sections ${sectionRange} according to the outline above. Follow this structure EXACTLY:
 
-FOR EACH H2 SECTION (target: 400-550 words per H2):
+FOR EACH H2 SECTION (target: ${targets.h2} words per H2 - DO NOT EXCEED):
 
 ## [H2 Title from Outline]
 
@@ -578,7 +648,7 @@ Opening paragraph (70-100 words):
 
 **Bold opening sentence that summarizes this subsection**
 
-Write 100-130 words covering:
+Write ${targets.h3} words covering:
 - Step-by-step explanation or detailed breakdown
 - Specific example with real numbers (e.g., "increases engagement by 45%")
 - Tool names, metrics, data points
@@ -588,7 +658,7 @@ Write 100-130 words covering:
 
 **Bold opening sentence**
 
-Write 100-130 words covering:
+Write ${targets.h3} words covering:
 - Build on previous subsection
 - More detailed guidance
 - Another specific example with data
@@ -598,7 +668,7 @@ Write 100-130 words covering:
 
 **Bold opening sentence**
 
-Write 100-130 words covering:
+Write ${targets.h3} words covering:
 - Advanced technique or alternative approach
 - Case study or real-world application
 - Pro tip in blockquote: > **Pro Tip:** [advice]
@@ -607,7 +677,7 @@ Write 100-130 words covering:
 
 **Bold opening sentence**
 
-Write 100-130 words covering:
+Write ${targets.h3} words covering:
 - Common mistakes to avoid
 - Best practices
 - Troubleshooting advice
@@ -616,7 +686,7 @@ Write 100-130 words covering:
 
 **Bold opening sentence**
 
-Write 100-130 words covering:
+Write ${targets.h3} words covering:
 - Expert insights or industry trends
 - Future outlook or emerging techniques
 - Actionable takeaway
@@ -699,11 +769,19 @@ function getFinalSectionsPrompt(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   businessName: string = 'our company',
-  websiteUrl: string = ''
+  websiteUrl: string = '',
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
-  return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
+  const phaseTargets = {
+    short: { phase: '200-300', h2: '150-250', faq: '200-300', conclusion: '100-150', faqCount: '5-7', faqWords: '30-50' },
+    medium: { phase: '400-600', h2: '250-350', faq: '400-600', conclusion: '150-200', faqCount: '6-8', faqWords: '50-70' },
+    long: { phase: '1,500-1,800', h2: '400-550', faq: '800-1,000', conclusion: '200-250', faqCount: '8-10', faqWords: '50-70' }
+  };
+  const targets = phaseTargets[contentLength];
+  
+  return `You are writing the final sections of a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
-TARGET LENGTH FOR THIS PHASE: 1,500-1,800 words (not more)
+CRITICAL: TARGET LENGTH FOR THIS PHASE: ${targets.phase} words MAXIMUM. Do NOT exceed this limit.
 
 User requirements: ${userInput}
 
@@ -729,13 +807,13 @@ For each remaining H2 section, follow the same structure:
 - Add comparison tables where indicated
 - Use > blockquotes for pro tips
 
-Target: 400-550 words per H2 section
+Target: ${targets.h2} words per H2 section - DO NOT EXCEED
 
-PART 2: FAQ SECTION (target: 800-1,000 words)
+PART 2: FAQ SECTION (target: ${targets.faq} words MAXIMUM)
 
 ## FAQ
 
-Write 10-12 comprehensive questions and answers. Format:
+Write ${targets.faqCount} comprehensive questions and answers. Format:
 
 **Q: How do [specific action] for [specific outcome]?**
 
@@ -743,7 +821,7 @@ Write 10-12 comprehensive questions and answers. Format:
 
 [Second paragraph with more detail, specific examples, and data]
 
-Target: 50-70 words per FAQ answer
+Target: ${targets.faqWords} words per FAQ answer - keep concise
 
 Example questions to cover:
 - How to get started (beginner question)
@@ -838,7 +916,8 @@ async function handleSinglePhaseGeneration(
   userId: string,
   currentCredits: number,
   requiredCredits: number,
-  contentLength: 'short' | 'medium' | 'long' = 'long'
+  contentLength: 'short' | 'medium' | 'long' = 'long',
+  maxTokens: number = 6000
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
@@ -871,7 +950,7 @@ async function handleSinglePhaseGeneration(
           },
           body: JSON.stringify({
             model,
-          max_tokens: 16000,
+            max_tokens: maxTokens,
             temperature: 0.7,
             system: systemPrompt,
             messages: [
