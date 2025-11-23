@@ -1,6 +1,6 @@
 "use client";
-import React from 'react';
-import { Check, Search, Calendar, Settings, TrendingUp, Globe, Home, BarChart3, Star, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Search, Calendar, Settings, TrendingUp, Globe, Home, BarChart3, Star, ArrowRight, Info } from 'lucide-react';
 import { Button } from "./ui/Button";
 import { cn } from "../lib/utils";
 import Link from "next/link";
@@ -104,19 +104,10 @@ const PricingSection = () => {
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="text-slate-400 line-through text-lg font-normal">$200</span>
-                    <span className="text-slate-400 line-through text-lg font-normal">/monthly</span>
                   </div>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-7xl lg:text-8xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$99</span>
-                    <span className="text-2xl lg:text-3xl font-semibold text-slate-600">/month</span>
-                  </div>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-700 font-bold text-sm">🎉 3-Day Trial for $1</span>
-                    </div>
-                    <p className="text-xs text-green-600 mt-1 font-normal">
-                      $1 for 3 days, then $99/month. Cancel anytime.
-                    </p>
+                    <span className="text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$99</span>
+                    <span className="text-xl lg:text-2xl font-semibold text-slate-600">/month</span>
                   </div>
                 </div>
 
@@ -127,14 +118,23 @@ const PricingSection = () => {
                       "w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-4 px-6 rounded-xl font-bold text-lg mb-4 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 group"
                     )}
                   >
-                    Get Started
+                    Start for Free
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
 
                 {/* Trial Details */}
-                <div className="flex flex-col items-center gap-2 text-slate-600 text-sm mb-8 font-normal text-center justify-center">
+                <div className="flex items-center justify-center gap-2 text-slate-600 text-sm mb-8 font-normal text-center">
                   <span className="font-semibold text-slate-700">$1 for 3 days, then $99/month. Cancel anytime.</span>
+                  <div className="relative group">
+                    <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-lg">
+                      <p>The $1 trial charge helps us prevent fraud and ensures we're working with serious customers. It's a small verification fee that gives you full access to test our platform risk-free.</p>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-slate-900"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Features List */}
