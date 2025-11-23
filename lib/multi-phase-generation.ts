@@ -11,7 +11,6 @@ export interface MultiPhaseGenerationOptions {
   apiKey: string;
   businessName?: string; // User's business/company name for CTA
   websiteUrl?: string; // User's website URL
-  autoPromoteBusiness?: boolean; // Whether to naturally integrate business mentions throughout the article
 }
 
 export interface MultiPhaseResult {
@@ -28,7 +27,7 @@ export interface MultiPhaseResult {
 export async function generateMultiPhaseContent(
   options: MultiPhaseGenerationOptions
 ): Promise<MultiPhaseResult> {
-  const { topic, userInput, imageUrls, videos, apiKey, businessName = 'our company', websiteUrl = '', autoPromoteBusiness = false } = options;
+  const { topic, userInput, imageUrls, videos, apiKey, businessName = 'our company', websiteUrl = '' } = options;
 
   // PHASE 1: Generate Outline (reduced from 4000 to stay under rate limit)
   console.log('📋 Phase 1: Generating outline...');
@@ -42,7 +41,7 @@ export async function generateMultiPhaseContent(
   // PHASE 2: Generate Introduction + First 4 sections (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 2: Writing introduction and sections 1-4...');
   const sections1to4 = await generatePhase(
-    getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', businessName, websiteUrl, autoPromoteBusiness),
+    getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections'),
     apiKey,
     5000
   );
@@ -52,7 +51,7 @@ export async function generateMultiPhaseContent(
   // PHASE 3: Generate Sections 5-8 (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 3: Writing sections 5-8...');
   const sections5to8 = await generatePhase(
-    getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', businessName, websiteUrl, autoPromoteBusiness),
+    getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8'),
     apiKey,
     5000
   );
@@ -63,7 +62,7 @@ export async function generateMultiPhaseContent(
   // Increased to 8000 tokens to ensure FAQ answers don't get cut off
   console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
   const finalSections = await generatePhase(
-    getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, autoPromoteBusiness),
+    getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl),
     apiKey,
     8000
   );
@@ -269,10 +268,7 @@ export function getSectionsPrompt(
   sectionRange: string,
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
-  description: string,
-  businessName: string = 'our company',
-  websiteUrl: string = '',
-  autoPromoteBusiness: boolean = false
+  description: string
 ): string {
   return `You are writing the ${description} for a comprehensive pillar article about: "${topic}"
 
@@ -290,15 +286,6 @@ ${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed if relevant):
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
-
-${autoPromoteBusiness && businessName !== 'our company' ? `
-BUSINESS PROMOTION (AUTO-PROMOTION ENABLED):
-- NATURALLY integrate "${businessName}" and website (${websiteUrl || 'contact us'}) into 1-2 sections in this phase
-- Mentions should feel organic and contextual, not promotional
-- Examples: "Tools like those from ${businessName} can help...", "Platforms such as ${businessName} streamline...", "For businesses needing [topic], ${websiteUrl ? `visit ${websiteUrl}` : `contact ${businessName}`}..."
-- Link to ${websiteUrl || 'the business website'} naturally when mentioning ${businessName}
-- Each mention should add value and context
-` : ''}
 
 Write sections ${sectionRange} according to the outline above. Follow this structure EXACTLY:
 
@@ -439,8 +426,7 @@ export function getFinalSectionsPrompt(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   businessName: string = 'our company',
-  websiteUrl: string = '',
-  autoPromoteBusiness: boolean = false
+  websiteUrl: string = ''
 ): string {
   return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
 
@@ -542,16 +528,7 @@ CRITICAL: The ${businessName} section MUST:
 - Use the business name "${businessName}" naturally within this CTA section
 - Be specific to this article's content (a blog about SEO should have different CTA than one about email marketing)
 
-${autoPromoteBusiness && businessName !== 'our company' ? `
-BUSINESS PROMOTION (AUTO-PROMOTION ENABLED):
-- NATURALLY integrate "${businessName}" and website (${websiteUrl || 'contact us'}) into the FAQ section and remaining H2 sections if any
-- Include 1-2 natural mentions in FAQ answers where relevant
-- Examples: "Services like ${businessName} can assist with...", "Platforms such as ${businessName} help...", "For businesses looking to [topic], ${websiteUrl ? `visit ${websiteUrl}` : `contact ${businessName}`}..."
-- Link to ${websiteUrl || 'the business website'} naturally when mentioning ${businessName}
-- Mentions should feel organic and add value, not be promotional plugs
-` : `
 CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
-`}
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis

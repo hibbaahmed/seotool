@@ -140,15 +140,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user settings for content length preference and auto-promotion
+    // Fetch user settings for content length preference
     const { data: settingsData } = await supabase
       .from('user_settings')
-      .select('content_length, auto_promote_business')
+      .select('content_length')
       .eq('user_id', user.id)
       .maybeSingle();
     
     const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
-    const autoPromoteBusiness = settingsData?.auto_promote_business || false;
 
     let keywordText = keyword;
     let keywordData = null;
@@ -438,8 +437,7 @@ export async function POST(request: NextRequest) {
       isTest: is_test, // Pass test mode flag to prompt generator
       businessName, // Pass business name for personalized CTA
       websiteUrl, // Pass website URL for CTA
-      contentLength, // Pass user's content length preference
-      autoPromoteBusiness // Pass auto-promotion setting
+      contentLength // Pass user's content length preference
     });
 
     // Call the content writer API to generate content

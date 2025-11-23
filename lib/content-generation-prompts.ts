@@ -19,7 +19,6 @@ export interface ContentPromptOptions {
   businessName?: string; // User's business/company name for CTA
   websiteUrl?: string; // User's website URL
   contentLength?: ContentLength; // User's preferred content length: 'short', 'medium', or 'long'
-  autoPromoteBusiness?: boolean; // Whether to naturally integrate business mentions throughout the article
 }
 
 // Helper function to get word count and structure based on content length
@@ -118,8 +117,7 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
     isTest = false,
     businessName = 'our company',
     websiteUrl = '',
-    contentLength = 'long',
-    autoPromoteBusiness = false
+    contentLength = 'long'
   } = options;
   
   const isTestMode = isTest;
@@ -411,23 +409,7 @@ CRITICAL: This ${businessName} section MUST:
 - Avoid vague terms like "success," "results," "growth" without specifying what kind
 - Instead use specific outcomes relevant to the article (e.g., "rank higher for competitive keywords," "reduce page load times," "build authority backlinks")
 
-${autoPromoteBusiness && businessName !== 'our company' ? `
-BUSINESS PROMOTION (AUTO-PROMOTION ENABLED):
-- NATURALLY integrate "${businessName}" and website (${websiteUrl || 'contact us'}) throughout the article content
-- Include 2-4 natural mentions of "${businessName}" in the main article body (introduction, H2 sections, H3 subsections)
-- Mentions should feel organic and contextual, not promotional
-- Examples of natural integration:
-  * "Many businesses find success with tools like those offered by ${businessName}..."
-  * "Platforms such as ${businessName} help streamline this process..."
-  * "Services from ${businessName} can assist with implementing these strategies..."
-  * "For businesses looking to [article topic], ${websiteUrl ? `visit ${websiteUrl}` : `contact ${businessName}`} to learn more..."
-- Link to ${websiteUrl || 'the business website'} naturally when mentioning ${businessName} (2-3 times throughout the article)
-- Spread mentions evenly across different sections - don't cluster them
-- Each mention should add value and context, not just be a plug
-- Still maintain educational value - business mentions should enhance, not distract from the content
-` : `
 CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
-`}
 
 CRITICAL RULES:
 - NEVER split words across lines (e.g., "Generatio\nn" is FORBIDDEN). If a word would wrap, write it fully on the next line.
@@ -454,10 +436,7 @@ export function generateKeywordContentPrompt(options: ContentPromptOptions): str
     tone = 'professional',
     imageUrls = [],
     isTest = false,
-    contentLength = 'long',
-    businessName = 'our company',
-    websiteUrl = '',
-    autoPromoteBusiness = false
+    contentLength = 'long'
   } = options;
 
   const isTestMode = isTest;

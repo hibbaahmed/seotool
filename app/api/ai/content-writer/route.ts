@@ -37,15 +37,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user settings for content length preference and auto-promotion
+    // Fetch user settings for content length preference
     const { data: settingsData } = await supabase
       .from('user_settings')
-      .select('content_length, auto_promote_business')
+      .select('content_length')
       .eq('user_id', user.id)
       .maybeSingle();
     
     const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
-    const autoPromoteBusiness = settingsData?.auto_promote_business || false;
 
     // Helper function to calculate max_tokens based on content length
     // Approximately 1 token = 0.75 words, so we add buffer for safety
@@ -274,8 +273,7 @@ export async function POST(request: NextRequest) {
         currentCredits,
         requiredCredits,
         contentLength,
-        maxTokens,
-        autoPromoteBusiness
+        maxTokens
       );
     } else {
       const maxTokens = getMaxTokens(contentLength);
@@ -294,8 +292,7 @@ export async function POST(request: NextRequest) {
         currentCredits,
         requiredCredits,
         contentLength,
-        maxTokens,
-        autoPromoteBusiness
+        maxTokens
       );
     }
 
@@ -322,8 +319,7 @@ async function handleMultiPhaseGeneration(
   currentCredits: number,
   requiredCredits: number,
   contentLength: 'short' | 'medium' | 'long' = 'long',
-  maxTokens: number = 6000,
-  autoPromoteBusiness: boolean = false
+  maxTokens: number = 6000
 ) {
   // Calculate phase-specific token limits based on content length
   // For short content, we need much smaller limits per phase
@@ -394,7 +390,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 2, description: 'Writing introduction and sections 1-4...' })}\n\n`));
         
         const sections1to4 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', contentLength, businessName, websiteUrl, autoPromoteBusiness),
+          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', contentLength),
           apiKey,
           getPhaseTokens(2)
         );
@@ -410,7 +406,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 3, description: 'Writing sections 5-8...' })}\n\n`));
         
         const sections5to8 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', contentLength, businessName, websiteUrl, autoPromoteBusiness),
+          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', contentLength),
           apiKey,
           getPhaseTokens(3)
         );
@@ -426,7 +422,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 4, description: 'Writing final sections, FAQ, and conclusion...' })}\n\n`));
         
         const finalSections = await generatePhase(
-          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, contentLength, autoPromoteBusiness),
+          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, contentLength),
           apiKey,
           getPhaseTokens(4)
         );
@@ -614,10 +610,7 @@ function getSectionsPrompt(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   description: string,
-  contentLength: 'short' | 'medium' | 'long' = 'long',
-  businessName: string = 'our company',
-  websiteUrl: string = '',
-  autoPromoteBusiness: boolean = false
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
   const phaseTargets = {
     short: { phase2: '300-400', phase3: '250-350', phase4: '200-300', h2: '150-250', h3: '50-80' },
@@ -641,15 +634,6 @@ ${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed if relevant):
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
-
-${autoPromoteBusiness && businessName !== 'our company' ? `
-BUSINESS PROMOTION (AUTO-PROMOTION ENABLED):
-- NATURALLY integrate "${businessName}" and website (${websiteUrl || 'contact us'}) into 1-2 sections in this phase
-- Mentions should feel organic and contextual, not promotional
-- Examples: "Tools like those from ${businessName} can help...", "Platforms such as ${businessName} streamline...", "For businesses needing [topic], ${websiteUrl ? `visit ${websiteUrl}` : `contact ${businessName}`}..."
-- Link to ${websiteUrl || 'the business website'} naturally when mentioning ${businessName}
-- Each mention should add value and context
-` : ''}
 
 Write sections ${sectionRange} according to the outline above. Follow this structure EXACTLY:
 
@@ -788,8 +772,7 @@ function getFinalSectionsPrompt(
   videos: Array<{ id: string; title: string; url: string }>,
   businessName: string = 'our company',
   websiteUrl: string = '',
-  contentLength: 'short' | 'medium' | 'long' = 'long',
-  autoPromoteBusiness: boolean = false
+  contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
   const phaseTargets = {
     short: { phase: '150-200', h2: '100-150', faq: '120-180', conclusion: '60-80', faqCount: '3-5', faqWords: '25-40' },
@@ -896,16 +879,7 @@ CRITICAL: The ${businessName} section MUST:
 - Feel article-specific (SEO article CTA ≠ email marketing article CTA)
 - Use the business name "${businessName}" naturally within this CTA section
 
-${autoPromoteBusiness && businessName !== 'our company' ? `
-BUSINESS PROMOTION (AUTO-PROMOTION ENABLED):
-- NATURALLY integrate "${businessName}" and website (${websiteUrl || 'contact us'}) into the FAQ section and remaining H2 sections if any
-- Include 1-2 natural mentions in FAQ answers where relevant
-- Examples: "Services like ${businessName} can assist with...", "Platforms such as ${businessName} help...", "For businesses looking to [topic], ${websiteUrl ? `visit ${websiteUrl}` : `contact ${businessName}`}..."
-- Link to ${websiteUrl || 'the business website'} naturally when mentioning ${businessName}
-- Mentions should feel organic and add value, not be promotional plugs
-` : `
 CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
-`}
 
 FORMATTING REQUIREMENTS:
 - Use **bold** for emphasis
@@ -945,8 +919,7 @@ async function handleSinglePhaseGeneration(
   currentCredits: number,
   requiredCredits: number,
   contentLength: 'short' | 'medium' | 'long' = 'long',
-  maxTokens: number = 6000,
-  autoPromoteBusiness: boolean = false
+  maxTokens: number = 6000
 ) {
   const systemPrompt = generateContentSystemPrompt({
     keyword: topic,
@@ -955,8 +928,7 @@ async function handleSinglePhaseGeneration(
     isTest,
     businessName,
     websiteUrl,
-    contentLength,
-    autoPromoteBusiness
+    contentLength
   });
 
     const candidateModels = [
