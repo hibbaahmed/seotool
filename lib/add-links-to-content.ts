@@ -730,7 +730,7 @@ function addBusinessPromotionToHtmlContent({
   }
 
   const wrapperId = '__business_promo_root__';
-  const $ = load(`<div id="${wrapperId}">${content}</div>`, { decodeEntities: false });
+  const $ = load(`<div id="${wrapperId}">${content}</div>`);
   const root = $(`#${wrapperId}`) as Cheerio<DomElement>;
 
   if (!root.length) {
