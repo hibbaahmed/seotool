@@ -47,8 +47,13 @@ export const Login = ({
     inviteToken = searchParams["inviteToken"];
   }
   const protocol = host?.includes("localhost") ? "http" : "https";
-  const redirectUrl = `${protocol}://${host}/auth/callback`; // Ensure this matches your Supabase redirect URL  
-  console.log({ redirectUrl });
+  // Always use www subdomain for consistency (except localhost)
+  let normalizedHost = host;
+  if (host && !host.includes("localhost") && !host.startsWith("www.")) {
+    normalizedHost = `www.${host}`;
+  }
+  const redirectUrl = `${protocol}://${normalizedHost}/auth/callback`;
+  console.log({ redirectUrl, originalHost: host, normalizedHost });
   const signInWithMagicLink = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,

@@ -3,8 +3,10 @@ import Link from "next/link";
 
 export const LoginFail = ({
     errorMessage,
+    technicalDetails,
 }: {
     errorMessage: string | null;
+    technicalDetails?: string;
 }) => {
     const supportEmail = "team@bridgely.io";
     
@@ -20,6 +22,14 @@ export const LoginFail = ({
                     <p className="text-sm text-neutral-700 dark:text-neutral-300">
                         {errorMessage}
                     </p>
+                    
+                    {technicalDetails && (
+                        <div className="bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3">
+                            <p className="text-xs font-mono text-neutral-600 dark:text-neutral-400 break-all">
+                                {technicalDetails}
+                            </p>
+                        </div>
+                    )}
                     
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                         <div className="flex items-start gap-3">

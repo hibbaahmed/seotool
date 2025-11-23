@@ -7,8 +7,11 @@ export async function middleware(request: NextRequest) {
   const res = NextResponse.next();
   
   // Redirect non-www to www for consistent domain usage
+  // BUT skip this for auth callbacks to prevent redirect loop issues
   const url = new URL(request.url);
-  if (url.hostname === 'bridgely.io') {
+  const isAuthCallback = url.pathname.startsWith('/auth/callback') || url.pathname.startsWith('/auth/confirm');
+  
+  if (url.hostname === 'bridgely.io' && !isAuthCallback) {
     const redirectUrl = new URL(request.url);
     redirectUrl.hostname = 'www.bridgely.io';
     return NextResponse.redirect(redirectUrl, 301);

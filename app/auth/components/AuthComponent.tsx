@@ -12,10 +12,20 @@ export default function AuthComponent() {
 	const next = params.get("next") || "";
 	const handleLoginWithOAuth = (provider: "github" | "google") => {
 		const supabase = supabaseBrowser();
+		
+		// Normalize the origin to always use www subdomain (except localhost)
+		let normalizedOrigin = location.origin;
+		if (!location.hostname.includes("localhost") && !location.hostname.startsWith("www.")) {
+			normalizedOrigin = location.origin.replace("://", "://www.");
+		}
+		
+		const redirectTo = `${normalizedOrigin}/auth/callback${next ? `?next=${next}` : ""}`;
+		console.log("OAuth redirect URL:", redirectTo);
+		
 		supabase.auth.signInWithOAuth({
 			provider,
 			options: {
-				redirectTo: location.origin + "/auth/callback?next=" + next,
+				redirectTo,
 			},
 		});
 	};

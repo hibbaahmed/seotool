@@ -41,45 +41,64 @@ export async function GET(request: Request) {
 				},
 			}
 		);
-		const { error, data } = await supabase.auth.exchangeCodeForSession(code);
-		if (!error) {
-			// Check if user has completed onboarding and has a subscription
-			if (data.user) {
-				const { data: onboardingProfile } = await supabase
-					.from('user_onboarding_profiles')
-					.select('onboarding_status')
-					.eq('user_id', data.user.id)
-					.single();
-				
-				// Check if user has an active subscription
-				const { data: subscription } = await supabase
-					.from('subscriptions')
-					.select('customer_id, subscription_id')
-					.eq('user_id', data.user.id)
-					.single();
-				
-				const hasSubscription = !!subscription?.customer_id;
-				const hasCompletedOnboarding = onboardingProfile?.onboarding_status === 'completed';
-				
-				// If user has subscription but hasn't completed onboarding, redirect to onboarding
-				if (hasSubscription && !hasCompletedOnboarding) {
-					return NextResponse.redirect(`${origin}/onboarding`);
-				}
-				
-				// If user doesn't have subscription, show pricing first (before onboarding)
-				if (!hasSubscription) {
-					return NextResponse.redirect(`${origin}/price`);
-				}
-				
-				// If user has completed onboarding, proceed normally
-				if (hasCompletedOnboarding) {
-					return NextResponse.redirect(`${origin}${next}`);
-				}
+	const { error, data } = await supabase.auth.exchangeCodeForSession(code);
+	if (!error) {
+		// Check if user has completed onboarding and has a subscription
+		if (data.user) {
+			const { data: onboardingProfile } = await supabase
+				.from('user_onboarding_profiles')
+				.select('onboarding_status')
+				.eq('user_id', data.user.id)
+				.single();
+			
+			// Check if user has an active subscription
+			const { data: subscription } = await supabase
+				.from('subscriptions')
+				.select('customer_id, subscription_id')
+				.eq('user_id', data.user.id)
+				.single();
+			
+			const hasSubscription = !!subscription?.customer_id;
+			const hasCompletedOnboarding = onboardingProfile?.onboarding_status === 'completed';
+			
+			// If user has subscription but hasn't completed onboarding, redirect to onboarding
+			if (hasSubscription && !hasCompletedOnboarding) {
+				return NextResponse.redirect(`${origin}/onboarding`);
 			}
-			return NextResponse.redirect(`${origin}${next}`);
+			
+			// If user doesn't have subscription, show pricing first (before onboarding)
+			if (!hasSubscription) {
+				return NextResponse.redirect(`${origin}/price`);
+			}
+			
+			// If user has completed onboarding, proceed normally
+			if (hasCompletedOnboarding) {
+				return NextResponse.redirect(`${origin}${next}`);
+			}
 		}
+		return NextResponse.redirect(`${origin}${next}`);
+	} else {
+		// Log the actual error for debugging
+		console.error('❌ Auth code exchange failed:', {
+			error: error.message,
+			status: error.status,
+			name: error.name,
+			code: code?.substring(0, 10) + '...', // Log partial code for debugging
+			origin,
+			timestamp: new Date().toISOString(),
+		});
+		
+		// Redirect with error details
+		return NextResponse.redirect(
+			`${origin}/auth/auth-code-error?error=${encodeURIComponent(error.message)}&status=${error.status || 'unknown'}`
+		);
 	}
+}
 
-	// return the user to an error page with instructions
-	return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+// return the user to an error page with instructions
+console.error('❌ No auth code provided in callback URL:', {
+	url: request.url,
+	timestamp: new Date().toISOString(),
+});
+return NextResponse.redirect(`${origin}/auth/auth-code-error?error=no_code`);
 }
