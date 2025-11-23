@@ -1095,7 +1095,7 @@ function enhanceCostComparisonTables(
   if (remaining <= 0) return { mentions: 0 };
 
   let mentions = 0;
-  let anchor: Element | undefined;
+  let anchor: DomElement | undefined;
   const lowerBusinessName = businessName.toLowerCase();
 
   root.find('table').each((_, table) => {
@@ -1154,7 +1154,7 @@ function insertPromotionHighlight(
     highlightSentence: string;
     bulletSentences: string[];
     safeWebsiteUrl?: string;
-    anchor?: Element;
+    anchor?: DomElement;
   }
 ): number {
   if (root.find('.business-promotion-highlight').length > 0) {
