@@ -581,6 +581,69 @@ article .prose-lg a.business-promotion-link:hover,
   border-bottom-width: 2px !important;
 }
 
+.business-promotion-highlight {
+  margin: 2.5rem 0 !important;
+  padding: 2rem !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  background: linear-gradient(120deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.08)) !important;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
+}
+
+.business-promotion-eyebrow {
+  text-transform: uppercase !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.14em !important;
+  font-weight: 700 !important;
+  color: #4f46e5 !important;
+  margin-bottom: 0.35rem !important;
+  display: inline-block !important;
+}
+
+.business-promotion-highlight h3 {
+  font-size: clamp(1.5rem, 2vw, 2rem) !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-bottom: 1rem !important;
+}
+
+.business-promotion-highlight ul {
+  margin: 1.5rem 0 !important;
+  padding-left: 1.25rem !important;
+  list-style: disc !important;
+  color: #1e293b !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+
+.business-promotion-highlight li {
+  margin-bottom: 0.35rem !important;
+}
+
+.business-promotion-note {
+  margin: 1.5rem 0 !important;
+  padding: 1.1rem 1.5rem !important;
+  border-left: 4px solid #4f46e5 !important;
+  border-radius: 0 18px 18px 0 !important;
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.08), rgba(99, 102, 241, 0.03)) !important;
+  color: #1e293b !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08) !important;
+}
+
+.business-promotion-inline {
+  font-weight: 600 !important;
+  color: #4338ca !important;
+  margin-left: 0.2rem !important;
+}
+
+.business-promotion-cta {
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  margin-top: 1rem !important;
+}
+
 /* Professional Typography for Blog Posts */
 /* Bullet Points with Custom Gradient Bullets */
 .prose ul,

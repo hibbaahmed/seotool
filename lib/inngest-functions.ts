@@ -1672,7 +1672,7 @@ export const generateKeywordContent = inngest.createFunction(
             const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
               finalHtml,
               userId,
-              3 // Add up to 3 business mentions
+              4 // Add up to 4 business mentions
             );
             if (mentionsAdded > 0) {
               console.log(`✅ Successfully added ${mentionsAdded} business promotion mentions`);

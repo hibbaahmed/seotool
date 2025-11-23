@@ -4,6 +4,8 @@
  */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { load, type CheerioAPI, type Cheerio } from 'cheerio';
+import type { Element as DomElement } from 'domhandler';
 
 const STOP_WORDS = new Set([
   'the','and','that','with','from','this','than','then','when','where','which',
@@ -554,7 +556,7 @@ export async function addExternalLinksToContent(
 export async function addBusinessPromotionToContent(
   content: string,
   userId: string,
-  maxMentions: number = 3
+  maxMentions: number = 4
 ): Promise<{ linkedContent: string; mentionsAdded: number }> {
   try {
     console.log('💼 Starting business promotion process');
@@ -597,67 +599,214 @@ export async function addBusinessPromotionToContent(
     
     console.log(`💼 Found business: ${businessName}`);
     
-    // Check how many mentions already exist in the main content (excluding conclusion)
-    // Split content to exclude conclusion section
-    const conclusionMatch = content.match(/(?:^|\n)##\s+Conclusion[^\n]*/i);
-    const mainContent = conclusionMatch 
-      ? content.substring(0, conclusionMatch.index || content.length)
-      : content;
-    
-    const existingMentions = (mainContent.toLowerCase().match(new RegExp(businessName.toLowerCase(), 'g')) || []).length;
-    console.log(`💼 Found ${existingMentions} existing mentions in main content`);
-    
-    // If there are already 2+ mentions in main content, skip adding more
-    if (existingMentions >= 2) {
-      console.log('ℹ️ Business already has sufficient mentions throughout main content');
-      return { linkedContent: content, mentionsAdded: 0 };
-    }
-    
-    let linkedContent = content;
-    let mentionsAdded = 0;
+    const mentionBudget = clampMentionCount(maxMentions);
+    const isHtmlContent = looksLikeHtmlContent(content);
 
-    const desiredMentions = Math.min(Math.max(maxMentions, 0), 3);
-    const mentionBlocks = buildBusinessMentionBlocks({
+    if (isHtmlContent) {
+      return addBusinessPromotionToHtmlContent({
+        content,
+        businessName,
+        businessDescription,
+        websiteUrl,
+        maxMentions: mentionBudget,
+      });
+    }
+
+    return addBusinessPromotionToMarkdownContent({
+      content,
       businessName,
       businessDescription,
       websiteUrl,
-      maxCount: desiredMentions,
+      maxMentions: mentionBudget,
     });
-
-    if (mentionBlocks.length === 0) {
-      console.log('⚠️ No business mention blocks generated');
-      return { linkedContent: content, mentionsAdded };
-    }
-
-    const insertionPositions = findBusinessMentionPositions(linkedContent, mentionBlocks.length);
-
-    if (insertionPositions.length === 0) {
-      console.log('⚠️ No suitable insertion points for business mentions');
-      return { linkedContent: content, mentionsAdded };
-    }
-
-    const inserts = insertionPositions
-      .slice(0, mentionBlocks.length)
-      .map((position, index) => ({
-        position,
-        block: mentionBlocks[index],
-      }))
-      .sort((a, b) => b.position - a.position);
-
-    for (const { position, block } of inserts) {
-      const safePosition = adjustPositionToParagraph(linkedContent, position);
-      linkedContent =
-        linkedContent.slice(0, safePosition) + `\n\n${block}\n\n` + linkedContent.slice(safePosition);
-      mentionsAdded++;
-      console.log(`✅ Inserted business mention for "${businessName}" at position ${safePosition}`);
-    }
-    
-    console.log(`💼 Business promotion complete. Added ${mentionsAdded} mentions`);
-    return { linkedContent, mentionsAdded };
   } catch (error) {
     console.error('Error adding business promotion to content:', error);
     return { linkedContent: content, mentionsAdded: 0 };
   }
+}
+
+type PromotionResult = { linkedContent: string; mentionsAdded: number };
+
+function clampMentionCount(maxMentions: number): number {
+  const safeNumber = Number.isFinite(maxMentions) ? maxMentions : 0;
+  return Math.min(Math.max(Math.floor(safeNumber), 0), 5);
+}
+
+function looksLikeHtmlContent(content: string): boolean {
+  if (!content) return false;
+  return /<\s*(?:p|div|article|section|table|h[1-6]|ul|ol|blockquote)\b/i.test(content);
+}
+
+function addBusinessPromotionToMarkdownContent({
+  content,
+  businessName,
+  businessDescription,
+  websiteUrl,
+  maxMentions,
+}: {
+  content: string;
+  businessName: string;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  maxMentions: number;
+}): PromotionResult {
+  // Exclude conclusion section to avoid stacking CTAs
+  const conclusionMatch = content.match(/(?:^|\n)##\s+Conclusion[^\n]*/i);
+  const mainContent = conclusionMatch
+    ? content.substring(0, conclusionMatch.index || content.length)
+    : content;
+
+  const existingMentions =
+    (mainContent.toLowerCase().match(new RegExp(businessName.toLowerCase(), 'g')) || []).length;
+  console.log(`💼 Existing markdown mentions found: ${existingMentions}`);
+
+  if (existingMentions >= 2) {
+    console.log('ℹ️ Business already has sufficient mentions in markdown main content');
+    return { linkedContent: content, mentionsAdded: 0 };
+  }
+
+  const mentionBlocks = buildBusinessMentionBlocks({
+    businessName,
+    businessDescription,
+    websiteUrl,
+    maxCount: maxMentions,
+  });
+
+  if (mentionBlocks.length === 0) {
+    console.log('⚠️ No markdown business promotion blocks generated');
+    return { linkedContent: content, mentionsAdded: 0 };
+  }
+
+  let linkedContent = content;
+  let mentionsAdded = 0;
+
+  const insertionPositions = findBusinessMentionPositions(linkedContent, mentionBlocks.length);
+  if (insertionPositions.length === 0) {
+    console.log('⚠️ No markdown insertion points found for business promotion');
+    return { linkedContent: content, mentionsAdded };
+  }
+
+  const inserts = insertionPositions
+    .slice(0, mentionBlocks.length)
+    .map((position, index) => ({
+      position,
+      block: mentionBlocks[index],
+    }))
+    .sort((a, b) => b.position - a.position);
+
+  for (const { position, block } of inserts) {
+    const safePosition = adjustPositionToParagraph(linkedContent, position);
+    linkedContent =
+      linkedContent.slice(0, safePosition) + `\n\n${block}\n\n` + linkedContent.slice(safePosition);
+    mentionsAdded++;
+    console.log(`✅ Inserted markdown business mention for "${businessName}" at position ${safePosition}`);
+  }
+
+  console.log(`💼 Markdown business promotion complete. Added ${mentionsAdded} mentions`);
+  return { linkedContent, mentionsAdded };
+}
+
+function addBusinessPromotionToHtmlContent({
+  content,
+  businessName,
+  businessDescription,
+  websiteUrl,
+  maxMentions,
+}: {
+  content: string;
+  businessName: string;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  maxMentions: number;
+}): PromotionResult {
+  const mainContentHtml = extractHtmlMainContent(content);
+  const plainText = stripHtmlTags(mainContentHtml).toLowerCase();
+  const existingMentions = countOccurrences(plainText, businessName.toLowerCase());
+  console.log(`💼 Existing HTML mentions found: ${existingMentions}`);
+
+  if (existingMentions >= 2) {
+    console.log('ℹ️ Business already has sufficient mentions in HTML main content');
+    return { linkedContent: content, mentionsAdded: 0 };
+  }
+
+  const wrapperId = '__business_promo_root__';
+  const $ = load(`<div id="${wrapperId}">${content}</div>`, { decodeEntities: false });
+  const root = $(`#${wrapperId}`) as Cheerio<DomElement>;
+
+  if (!root.length) {
+    return { linkedContent: content, mentionsAdded: 0 };
+  }
+
+  const safeBusinessName = escapeHtml(businessName);
+  const safeWebsiteUrl = sanitizeUrl(websiteUrl);
+  const highlightSentence =
+    extractFirstSentence(businessDescription) ||
+    `${businessName} helps clients implement these strategies without adding more work to their internal team.`;
+  const highlightTagline = createTaglineFromSentence(businessName, highlightSentence);
+  const bulletSentences = deriveBulletSentences(businessDescription, highlightSentence);
+
+  let mentionsAdded = 0;
+  let remaining = Math.max(maxMentions, 0);
+
+  const tableResult = enhanceCostComparisonTables($, root, {
+    businessName,
+    safeBusinessName,
+    safeWebsiteUrl,
+    remaining,
+  });
+  mentionsAdded += tableResult.mentions;
+  remaining = Math.max(remaining - tableResult.mentions, 0);
+
+  if (remaining > 0) {
+    const highlightMentions = insertPromotionHighlight($, root, {
+      safeBusinessName,
+      highlightTagline,
+      highlightSentence,
+      bulletSentences,
+      safeWebsiteUrl,
+      anchor: tableResult.anchor,
+    });
+    mentionsAdded += highlightMentions;
+    remaining = Math.max(remaining - highlightMentions, 0);
+  }
+
+  if (remaining > 0) {
+    const monitoringMentions = insertMonitoringCallout($, root, {
+      safeBusinessName,
+      safeWebsiteUrl,
+    });
+    mentionsAdded += monitoringMentions;
+    remaining = Math.max(remaining - monitoringMentions, 0);
+  }
+
+  if (remaining > 0) {
+    const browserMentions = insertBrowserToolsCallout($, root, {
+      safeBusinessName,
+      safeWebsiteUrl,
+    });
+    mentionsAdded += browserMentions;
+    remaining = Math.max(remaining - browserMentions, 0);
+  }
+
+  if (remaining > 0) {
+    const fallbackMentions = insertGeneralHtmlCallouts($, root, {
+      businessName,
+      businessDescription,
+      websiteUrl,
+      remaining,
+    });
+    mentionsAdded += fallbackMentions;
+  }
+
+  if (mentionsAdded === 0) {
+    console.log('ℹ️ No suitable HTML insertion points found for business promotion');
+    return { linkedContent: content, mentionsAdded: 0 };
+  }
+
+  return {
+    linkedContent: root.html() ?? content,
+    mentionsAdded,
+  };
 }
 
 function extractFirstSentence(text?: string | null): string {
@@ -687,17 +836,20 @@ function normalizeSentenceWithBusinessName(name: string, sentence: string): stri
   return ensureSentence(`${name} ${lowerFirst}`);
 }
 
-function buildBusinessMentionBlocks({
+type BusinessMentionTemplate = {
+  intro: string;
+  sentence: string;
+};
+
+function buildBusinessMentionTemplates({
   businessName,
   businessDescription,
-  websiteUrl,
   maxCount,
 }: {
   businessName: string;
   businessDescription?: string | null;
-  websiteUrl?: string | null;
   maxCount: number;
-}): string[] {
+}): BusinessMentionTemplate[] {
   if (maxCount <= 0) return [];
   const firstSentence = extractFirstSentence(businessDescription);
   const baseSentence = firstSentence
@@ -714,14 +866,63 @@ function buildBusinessMentionBlocks({
     'Ready to accelerate your results?',
   ];
   const mentionCount = Math.min(maxCount, supportingSentences.length);
-  const blocks: string[] = [];
+  const templates: BusinessMentionTemplate[] = [];
   for (let i = 0; i < mentionCount; i++) {
-    const intro = intros[i] || intros[intros.length - 1];
-    const sentence = ensureSentence(supportingSentences[i]);
-    const cta = websiteUrl ? ` [Learn more](${websiteUrl}).` : '';
-    blocks.push(`> **${intro}** ${sentence}${cta}`);
+    templates.push({
+      intro: intros[i] || intros[intros.length - 1],
+      sentence: ensureSentence(supportingSentences[i]),
+    });
   }
-  return blocks;
+  return templates;
+}
+
+function buildBusinessMentionBlocks({
+  businessName,
+  businessDescription,
+  websiteUrl,
+  maxCount,
+}: {
+  businessName: string;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  maxCount: number;
+}): string[] {
+  const templates = buildBusinessMentionTemplates({
+    businessName,
+    businessDescription,
+    maxCount,
+  });
+
+  return templates.map(({ intro, sentence }) => {
+    const cta = websiteUrl ? ` [Learn more](${websiteUrl}).` : '';
+    return `> **${intro}** ${sentence}${cta}`;
+  });
+}
+
+function buildBusinessMentionHtmlBlocks({
+  businessName,
+  businessDescription,
+  websiteUrl,
+  maxCount,
+}: {
+  businessName: string;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  maxCount: number;
+}): string[] {
+  const templates = buildBusinessMentionTemplates({
+    businessName,
+    businessDescription,
+    maxCount,
+  });
+  const safeWebsiteUrl = sanitizeUrl(websiteUrl);
+
+  return templates.map(({ intro, sentence }) => {
+    const cta = safeWebsiteUrl
+      ? ` <a href="${safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">Learn more</a>.`
+      : '';
+    return `<div class="business-promotion-note"><strong>${escapeHtml(intro)}</strong> ${escapeHtml(sentence)}${cta}</div>`;
+  });
 }
 
 function findBusinessMentionPositions(content: string, desiredCount: number): number[] {
@@ -776,5 +977,328 @@ function adjustPositionToParagraph(content: string, position: number): number {
     return content.length;
   }
   return ahead + 2;
+}
+
+function deriveBulletSentences(
+  businessDescription?: string | null,
+  highlightSentence?: string
+): string[] {
+  const sentences = extractSentences(businessDescription);
+  const filtered = sentences.filter(
+    (sentence) => sentence && sentence !== highlightSentence
+  );
+  const defaults = [
+    'Onboard quickly with guided setup and white-glove support.',
+    'Monitor performance, spend, and quality from a single dashboard.',
+    'Scale execution without adding headcount or juggling extra tools.',
+  ];
+  return [...filtered, ...defaults].slice(0, 2);
+}
+
+function extractSentences(text?: string | null): string[] {
+  if (!text) return [];
+  return (
+    text
+      .replace(/\s+/g, ' ')
+      .match(/[^.!?]+[.!?]?/g)
+      ?.map((sentence) => sentence.trim())
+      .filter(Boolean) || []
+  );
+}
+
+function createTaglineFromSentence(businessName: string, sentence: string): string {
+  if (!sentence) return 'Your Partner for These Playbooks';
+  const sanitized = sentence
+    .replace(
+      new RegExp(
+        `^${escapeRegExp(businessName)}\\s*(?:is|offers|provides|delivers|helps|makes|lets|gives)?\\s*`,
+        'i'
+      ),
+      ''
+    )
+    .trim();
+  const base = sanitized || sentence.trim();
+  const truncated = truncateText(base.replace(/[.!?]+$/, ''));
+  return capitalizeFirstLetter(truncated || 'Your Partner for These Playbooks');
+}
+
+function truncateText(text: string, maxLength = 90): string {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
+}
+
+function capitalizeFirstLetter(text: string): string {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripHtmlTags(html: string): string {
+  if (!html) return '';
+  return html.replace(/<[^>]+>/g, ' ');
+}
+
+function extractHtmlMainContent(html: string): string {
+  if (!html) return '';
+  const headingRegex = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = headingRegex.exec(html)) !== null) {
+    const headingText = stripHtmlTags(match[1]).trim().toLowerCase();
+    if (headingText.includes('conclusion')) {
+      return html.slice(0, match.index);
+    }
+  }
+
+  return html;
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (!haystack || !needle) return 0;
+  const regex = new RegExp(escapeRegExp(needle), 'gi');
+  const matches = haystack.match(regex);
+  return matches ? matches.length : 0;
+}
+
+function sanitizeUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/"/g, '&quot;');
+}
+
+function escapeHtml(text?: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function enhanceCostComparisonTables(
+  $: CheerioAPI,
+  root: Cheerio<DomElement>,
+  options: {
+    businessName: string;
+    safeBusinessName: string;
+    safeWebsiteUrl?: string;
+    remaining: number;
+  }
+): { mentions: number; anchor?: DomElement } {
+  const { businessName, safeBusinessName, safeWebsiteUrl, remaining } = options;
+  if (remaining <= 0) return { mentions: 0 };
+
+  let mentions = 0;
+  let anchor: Element | undefined;
+  const lowerBusinessName = businessName.toLowerCase();
+
+  root.find('table').each((_, table) => {
+    if (mentions >= remaining) return false;
+
+    const tableElement = $(table);
+    const tableText = tableElement.text().toLowerCase();
+    if (
+      !(
+        tableText.includes('comparison') ||
+        tableText.includes('rate') ||
+        tableText.includes('pricing') ||
+        tableText.includes('service type') ||
+        tableText.includes('cost')
+      )
+    ) {
+      return;
+    }
+
+    tableElement.find('tr').each((__, row) => {
+      if (mentions >= remaining) return false;
+      const firstCell = $(row).find('th, td').first();
+      if (!firstCell.length) return;
+      const cellText = firstCell.text().trim();
+      if (!cellText) return;
+
+      const lowerCell = cellText.toLowerCase();
+      if (/browser|web[-\s]?based/.test(lowerCell) && !lowerCell.includes(lowerBusinessName)) {
+        const cleanedLabel = cellText.replace(/\s+/g, ' ').trim();
+        if (safeWebsiteUrl) {
+          firstCell.html(
+            `${escapeHtml(cleanedLabel)} (e.g., <a href="${safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">${safeBusinessName}</a>)`
+          );
+        } else {
+          firstCell.text(`${cleanedLabel} (e.g., ${businessName})`);
+        }
+        anchor = table;
+        mentions++;
+      }
+    });
+  });
+
+  if (mentions > 0) {
+    console.log(`💼 Updated comparison table rows with business mention (${mentions} total)`);
+  }
+
+  return { mentions, anchor };
+}
+
+function insertPromotionHighlight(
+  $: CheerioAPI,
+  root: Cheerio<DomElement>,
+  options: {
+    safeBusinessName: string;
+    highlightTagline: string;
+    highlightSentence: string;
+    bulletSentences: string[];
+    safeWebsiteUrl?: string;
+    anchor?: Element;
+  }
+): number {
+  if (root.find('.business-promotion-highlight').length > 0) {
+    return 0;
+  }
+
+  const bullets =
+    options.bulletSentences.length > 0
+      ? options.bulletSentences.map((sentence) => `<li>${escapeHtml(sentence)}</li>`).join('')
+      : '<li>White-glove execution across research, writing, and publishing.</li>';
+
+  const cta = options.safeWebsiteUrl
+    ? `<a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">See pricing</a> in seconds.`
+    : `Contact ${options.safeBusinessName} to see how we can help.`;
+
+  const highlightHtml = `
+    <section class="business-promotion-highlight">
+      <p class="business-promotion-eyebrow">Featured Partner</p>
+      <h3>${options.safeBusinessName}: ${escapeHtml(options.highlightTagline)}</h3>
+      <p>${escapeHtml(options.highlightSentence)}</p>
+      <ul>${bullets}</ul>
+      <p class="business-promotion-cta">${cta}</p>
+    </section>
+  `;
+
+  if (options.anchor) {
+    $(options.anchor).after(highlightHtml);
+  } else {
+    const firstHeading = root.find('h2').first();
+    if (firstHeading.length) {
+      firstHeading.after(highlightHtml);
+    } else {
+      root.append(highlightHtml);
+    }
+  }
+
+  console.log('💼 Added featured business promotion highlight section');
+  return 1;
+}
+
+function insertMonitoringCallout(
+  $: CheerioAPI,
+  root: Cheerio<DomElement>,
+  options: {
+    safeBusinessName: string;
+    safeWebsiteUrl?: string;
+  }
+): number {
+  const monitoringHeading = root
+    .find('h2, h3')
+    .filter((_, el) => {
+      const text = $(el).text().toLowerCase();
+      return text.includes('monitoring') && (text.includes('spending') || text.includes('managing'));
+    })
+    .first();
+
+  if (!monitoringHeading.length) {
+    return 0;
+  }
+
+  const cta = options.safeWebsiteUrl
+    ? `<a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">Open your dashboard</a>`
+    : `Ask ${options.safeBusinessName} for a walkthrough`;
+
+  const noteHtml = `<p class="business-promotion-note">${options.safeBusinessName} keeps a running tally of projected spend, sends usage alerts, and lets you preview pricing before you launch—${cta} to stay ahead of surprises.</p>`;
+  monitoringHeading.after(noteHtml);
+  console.log('💼 Added monitoring & budgeting promotion note');
+  return 1;
+}
+
+function insertBrowserToolsCallout(
+  $: CheerioAPI,
+  root: Cheerio<DomElement>,
+  options: {
+    safeBusinessName: string;
+    safeWebsiteUrl?: string;
+  }
+): number {
+  const browserParagraph = root
+    .find('p, li')
+    .filter((_, el) => /browser-based/i.test($(el).text()))
+    .first();
+
+  if (!browserParagraph.length) {
+    return 0;
+  }
+
+  const currentHtml = browserParagraph.html() || '';
+  if (currentHtml.includes('business-promotion-inline')) {
+    return 0;
+  }
+
+  const cta = options.safeWebsiteUrl
+    ? ` <a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">Try it in under a minute.</a>`
+    : '';
+
+  const inlineHtml = `<span class="business-promotion-inline">${options.safeBusinessName} runs entirely in the browser so your team can execute these workflows without extra installs.${cta}</span>`;
+  browserParagraph.append(` ${inlineHtml}`);
+  console.log('💼 Added browser-based tools promotion mention');
+  return 1;
+}
+
+function insertGeneralHtmlCallouts(
+  $: CheerioAPI,
+  root: Cheerio<DomElement>,
+  options: {
+    businessName: string;
+    businessDescription?: string | null;
+    websiteUrl?: string | null;
+    remaining: number;
+  }
+): number {
+  const blocks = buildBusinessMentionHtmlBlocks({
+    businessName: options.businessName,
+    businessDescription: options.businessDescription,
+    websiteUrl: options.websiteUrl,
+    maxCount: options.remaining,
+  });
+
+  if (blocks.length === 0) {
+    return 0;
+  }
+
+  const paragraphs = root.find('p');
+  if (!paragraphs.length) {
+    root.append(blocks.join('\n'));
+    return blocks.length;
+  }
+
+  const step = Math.max(1, Math.floor(paragraphs.length / (blocks.length + 1)));
+  let inserted = 0;
+
+  for (let i = step; i < paragraphs.length && inserted < blocks.length; i += step) {
+    const target = paragraphs.eq(i);
+    target.after(blocks[inserted]);
+    inserted++;
+  }
+
+  while (inserted < blocks.length) {
+    root.append(blocks[inserted]);
+    inserted++;
+  }
+
+  console.log(`💼 Added ${blocks.length} general HTML business promotion callout(s)`);
+  return blocks.length;
 }
 

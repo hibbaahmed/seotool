@@ -809,7 +809,7 @@ export async function POST(request: NextRequest) {
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            3
+            4
           );
           if (mentionsAdded > 0) {
             console.log(`✅ Successfully added ${mentionsAdded} business mentions`);
@@ -866,7 +866,7 @@ export async function POST(request: NextRequest) {
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            3
+            4
           );
           if (mentionsAdded > 0) {
             htmlContent = promotedContent;
@@ -985,7 +985,7 @@ export async function POST(request: NextRequest) {
         const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
           finalContent,
           user.id,
-          3
+          4
         );
         if (mentionsAdded > 0) {
           finalContent = promotedContent;

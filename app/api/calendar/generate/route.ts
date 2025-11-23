@@ -1280,7 +1280,7 @@ export async function POST(request: NextRequest) {
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            3 // Add up to 3 business mentions
+            4 // Add up to 4 business mentions
           );
           if (mentionsAdded > 0) {
             console.log(`✅ Successfully added ${mentionsAdded} business promotion mentions`);
