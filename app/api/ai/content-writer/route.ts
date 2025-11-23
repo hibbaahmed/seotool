@@ -47,17 +47,18 @@ export async function POST(request: NextRequest) {
     const contentLength = (settingsData?.content_length || 'long') as 'short' | 'medium' | 'long';
 
     // Helper function to calculate max_tokens based on content length
-    // Approximately 1 token = 0.75 words, so we add buffer for safety
+    // Approximately 1 token = 0.75 words
+    // For strict enforcement, we set tokens to match max word count exactly
     const getMaxTokens = (length: 'short' | 'medium' | 'long'): number => {
       switch (length) {
         case 'short':
-          return 2500; // ~1500 words max with buffer
+          return 2000; // 1500 words / 0.75 = 2000 tokens (STRICT LIMIT)
         case 'medium':
-          return 4500; // ~3000 words max with buffer
+          return 4000; // 3000 words / 0.75 = 4000 tokens
         case 'long':
-          return 6000; // ~4200 words max with buffer
+          return 5600; // 4200 words / 0.75 = 5600 tokens
         default:
-          return 6000;
+          return 5600;
       }
     };
 
@@ -323,34 +324,39 @@ async function handleMultiPhaseGeneration(
 ) {
   // Calculate phase-specific token limits based on content length
   // For short content, we need much smaller limits per phase
+  // Total tokens across all phases must not exceed maxTokens
   const getPhaseTokens = (phase: number): number => {
     if (contentLength === 'short') {
-      // Short: 1000-1500 words total, distribute across phases
+      // Short: 1000-1500 words total (2000 tokens max)
+      // Distribute tokens: outline gets less, content gets most
       switch (phase) {
-        case 1: return 1000; // Outline
-        case 2: return 600;  // Intro + sections 1-2
-        case 3: return 500;  // Sections 3-4
-        case 4: return 400;  // FAQ + conclusion
-        default: return 500;
+        case 1: return 800;  // Outline (keep it brief)
+        case 2: return 500;  // Intro + sections 1-2 (~375 words max)
+        case 3: return 400;  // Sections 3-4 (~300 words max)
+        case 4: return 300;  // FAQ + conclusion (~225 words max)
+        default: return 300;
       }
+      // Total: 2000 tokens = ~1500 words max
     } else if (contentLength === 'medium') {
-      // Medium: 2000-3000 words total
+      // Medium: 2000-3000 words total (4000 tokens max)
       switch (phase) {
-        case 1: return 1500; // Outline
-        case 2: return 1200; // Intro + sections 1-4
-        case 3: return 1000; // Sections 5-8
-        case 4: return 800;  // FAQ + conclusion
-        default: return 1000;
+        case 1: return 1200; // Outline
+        case 2: return 1200; // Intro + sections 1-4 (~900 words)
+        case 3: return 900;  // Sections 5-8 (~675 words)
+        case 4: return 700;  // FAQ + conclusion (~525 words)
+        default: return 700;
       }
+      // Total: 4000 tokens = ~3000 words max
     } else {
-      // Long: 3800-4200 words total (original behavior)
+      // Long: 3800-4200 words total (5600 tokens max)
       switch (phase) {
-        case 1: return 4000; // Outline
-        case 2: return 8000; // Intro + sections 1-4
-        case 3: return 8000; // Sections 5-8
-        case 4: return 8000; // FAQ + conclusion
-        default: return 8000;
+        case 1: return 2000; // Outline
+        case 2: return 1800; // Intro + sections 1-4
+        case 3: return 1200; // Sections 5-8
+        case 4: return 600;  // FAQ + conclusion
+        default: return 600;
       }
+      // Total: 5600 tokens = ~4200 words max
     }
   };
   // Note: Multi-phase is disabled for test mode, but we accept the parameter for consistency
@@ -550,7 +556,10 @@ function getOutlinePrompt(topic: string, userInput: string, businessName: string
   
   return `You are creating a comprehensive article outline for a ${targets.total} word article about: "${topic}"
 
-CRITICAL: The final article MUST be between ${targets.total} words. Do NOT exceed ${targets.total.split('-')[1]} words.
+🚨 CRITICAL WORD COUNT LIMIT: ${targets.total.split('-')[0]}-${targets.total.split('-')[1]} words MAXIMUM
+- The final article MUST be between ${targets.total} words
+- DO NOT exceed ${targets.total.split('-')[1]} words under ANY circumstances
+- ${contentLength === 'short' ? 'Keep the outline concise - limit to 4-5 H2 sections only. Do not over-plan.' : ''}
 
 User requirements: ${userInput}
 
@@ -620,7 +629,11 @@ function getSectionsPrompt(
   
   return `You are writing the ${description} for a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
-CRITICAL: TARGET LENGTH FOR THIS PHASE: ${phaseTarget} words MAXIMUM. Do NOT exceed this limit.
+🚨 CRITICAL WORD COUNT LIMIT FOR THIS PHASE: ${phaseTarget} words MAXIMUM
+- DO NOT exceed ${phaseTarget.split('-')[1]} words in this phase
+- Count your words as you write
+- ${contentLength === 'short' ? 'Keep every paragraph brief. Avoid detailed explanations. Get to the point quickly.' : ''}
+- If you reach the word limit, STOP writing immediately
 
 User requirements: ${userInput}
 
@@ -781,7 +794,11 @@ function getFinalSectionsPrompt(
   
   return `You are writing the final sections of a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
-CRITICAL: TARGET LENGTH FOR THIS PHASE: ${targets.phase} words MAXIMUM. Do NOT exceed this limit.
+🚨 CRITICAL WORD COUNT LIMIT FOR THIS PHASE: ${targets.phase} words MAXIMUM
+- DO NOT exceed ${targets.phase.split('-')[1]} words in this phase
+- ${contentLength === 'short' ? 'Keep FAQ answers very brief (30-50 words each). Keep conclusion concise (100-150 words).' : ''}
+- Count your words as you write
+- If you reach the word limit, STOP writing immediately
 
 User requirements: ${userInput}
 
