@@ -553,11 +553,11 @@ export async function POST(request: NextRequest) {
 
     // Expansion pass: if word count is too low, ask the writer to expand
     // Get minimum word count threshold based on content length preference
-    const minWordThreshold = contentLength === 'short' ? 1000 : contentLength === 'medium' ? 2000 : 3800;
+    const minWordThreshold = contentLength === 'short' ? 600 : contentLength === 'medium' ? 2000 : 3800;
     const plainWordCount = fullContent.replace(/[#>*_`|\[\]()*]/g, '').split(/\s+/).filter(Boolean).length;
     if (plainWordCount < minWordThreshold) {
       try {
-        const maxWords = contentLength === 'short' ? 1500 : contentLength === 'medium' ? 3000 : 4200;
+        const maxWords = contentLength === 'short' ? 800 : contentLength === 'medium' ? 3000 : 4200;
         console.log(`✏️ Draft length ${plainWordCount} words < ${minWordThreshold}. Requesting expansion to ${minWordThreshold}-${maxWords} words (${contentLength})...`);
         // Use shared expansion prompt function
         const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl, contentLength);

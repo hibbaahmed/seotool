@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const getMaxTokens = (length: 'short' | 'medium' | 'long'): number => {
       switch (length) {
         case 'short':
-          return 2500; // ~1500 words max with buffer
+          return 1100; // 800 words / 0.75 = ~1100 tokens (STRICT LIMIT)
         case 'medium':
           return 4500; // ~3000 words max with buffer
         case 'long':
@@ -325,14 +325,16 @@ async function handleMultiPhaseGeneration(
   // For short content, we need much smaller limits per phase
   const getPhaseTokens = (phase: number): number => {
     if (contentLength === 'short') {
-      // Short: 1000-1500 words total, distribute across phases
+      // Short: 600-800 words total (1100 tokens max)
+      // Distribute tokens: outline gets less, content gets most
       switch (phase) {
-        case 1: return 1000; // Outline
-        case 2: return 600;  // Intro + sections 1-2
-        case 3: return 500;  // Sections 3-4
-        case 4: return 400;  // FAQ + conclusion
-        default: return 500;
+        case 1: return 400;  // Outline (keep it brief)
+        case 2: return 300;  // Intro + sections 1-2 (~225 words max)
+        case 3: return 250;  // Sections 3-4 (~185 words max)
+        case 4: return 150;  // FAQ + conclusion (~110 words max)
+        default: return 150;
       }
+      // Total: 1100 tokens = ~800 words max
     } else if (contentLength === 'medium') {
       // Medium: 2000-3000 words total
       switch (phase) {
@@ -542,7 +544,7 @@ async function streamText(
 
 function getOutlinePrompt(topic: string, userInput: string, businessName: string = 'our company', contentLength: 'short' | 'medium' | 'long' = 'long'): string {
   const wordTargets = {
-    short: { total: '1,000-1,500', h2s: '4-5', h2Words: '150-250', intro: '100-150', faq: '5-7', conclusion: '100-150' },
+    short: { total: '600-800', h2s: '3-4', h2Words: '100-150', intro: '60-80', faq: '3-5', conclusion: '60-80' },
     medium: { total: '2,000-3,000', h2s: '5-6', h2Words: '250-350', intro: '150-200', faq: '6-8', conclusion: '150-200' },
     long: { total: '3,800-4,200', h2s: '6-8', h2Words: '400-500', intro: '200-250', faq: '8-10', conclusion: '200-250' }
   };
@@ -569,7 +571,7 @@ DO NOT write "Meta Description:" as a label in the output - just write the descr
 - Why this topic matters
 - What readers will learn
 
-4. **Main Content: ${targets.h2s} H2 Sections** (target: ${contentLength === 'short' ? '800-1,000' : contentLength === 'medium' ? '1,500-2,000' : '3,000-3,500'} words total)
+4. **Main Content: ${targets.h2s} H2 Sections** (target: ${contentLength === 'short' ? '400-550' : contentLength === 'medium' ? '1,500-2,000' : '3,000-3,500'} words total)
 For EACH H2 section:
 - Create a descriptive H2 title with secondary keywords
 - List 2-3 specific H3 subsections${contentLength === 'long' ? ' (4-5 for long articles)' : ''}
@@ -585,7 +587,7 @@ Example H2 structure:
 ### [H3: Related technique]  
 ${contentLength === 'long' ? '### [H3: Advanced strategy]\n### [H3: Common mistakes]\n### [H3: Best practices]' : ''}
 
-5. **FAQ Section** (target: ${contentLength === 'short' ? '200-300' : contentLength === 'medium' ? '400-600' : '800-1,000'} words)
+5. **FAQ Section** (target: ${contentLength === 'short' ? '120-180' : contentLength === 'medium' ? '400-600' : '800-1,000'} words)
 - List ${targets.faq} specific questions
 - Questions should cover: How, Why, What, When, Where, Who
 - Mix basic and advanced questions
@@ -618,7 +620,7 @@ function getSectionsPrompt(
   const targets = phaseTargets[contentLength];
   const phaseTarget = sectionRange === '1-4' ? targets.phase2 : sectionRange === '5-8' ? targets.phase3 : targets.phase4;
   
-  return `You are writing the ${description} for a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
+  return `You are writing the ${description} for a ${contentLength === 'short' ? '600-800 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
 CRITICAL: TARGET LENGTH FOR THIS PHASE: ${phaseTarget} words MAXIMUM. Do NOT exceed this limit.
 
@@ -773,13 +775,13 @@ function getFinalSectionsPrompt(
   contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
   const phaseTargets = {
-    short: { phase: '200-300', h2: '150-250', faq: '200-300', conclusion: '100-150', faqCount: '5-7', faqWords: '30-50' },
+    short: { phase: '150-200', h2: '100-150', faq: '120-180', conclusion: '60-80', faqCount: '3-5', faqWords: '25-40' },
     medium: { phase: '400-600', h2: '250-350', faq: '400-600', conclusion: '150-200', faqCount: '6-8', faqWords: '50-70' },
     long: { phase: '1,500-1,800', h2: '400-550', faq: '800-1,000', conclusion: '200-250', faqCount: '8-10', faqWords: '50-70' }
   };
   const targets = phaseTargets[contentLength];
   
-  return `You are writing the final sections of a ${contentLength === 'short' ? '1,000-1,500 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
+  return `You are writing the final sections of a ${contentLength === 'short' ? '600-800 word' : contentLength === 'medium' ? '2,000-3,000 word' : '3,800-4,200 word'} article about: "${topic}"
 
 CRITICAL: TARGET LENGTH FOR THIS PHASE: ${targets.phase} words MAXIMUM. Do NOT exceed this limit.
 
