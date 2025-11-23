@@ -1359,21 +1359,6 @@ export const generateKeywordContent = inngest.createFunction(
           const { generateExpansionPrompt } = await import('@/lib/content-generation-prompts');
           const expansionPrompt = generateExpansionPrompt(fullContent, businessName, websiteUrl, contentLength);
 
-          // Calculate max_tokens based on content length for expansion
-          // Approximately 1 token = 0.75 words
-          const getExpansionMaxTokens = (length: 'short' | 'medium' | 'long'): number => {
-            switch (length) {
-              case 'short':
-                return 2000; // 1500 words / 0.75 = 2000 tokens (STRICT LIMIT)
-              case 'medium':
-                return 4000; // 3000 words / 0.75 = 4000 tokens
-              case 'long':
-                return 5600; // 4200 words / 0.75 = 5600 tokens
-              default:
-                return 5600;
-            }
-          };
-          
           // Call Claude API directly for expansion (since we're in Inngest, no timeout issues)
           const expandResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -1384,7 +1369,7 @@ export const generateKeywordContent = inngest.createFunction(
             },
             body: JSON.stringify({
               model: 'claude-3-5-sonnet-20241022',
-              max_tokens: getExpansionMaxTokens(contentLength),
+              max_tokens: 16000,
               temperature: 0.7,
               messages: [
                 { role: 'user', content: expansionPrompt }

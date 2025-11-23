@@ -297,14 +297,7 @@ FORMATTING:
 - Embed videos: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
-
-🚨 CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${config.minWords} words
-- MAXIMUM: ${config.maxWords} words
-- DO NOT EXCEED ${config.maxWords} words under ANY circumstances
-- If you reach ${config.maxWords} words, STOP writing immediately
-- Count your words as you write and stay within the limit
-- ${contentLength === 'short' ? 'Keep every section brief and concise. Avoid unnecessary expansion.' : ''}
+CRITICAL: The article MUST be between ${config.minWords} and ${config.maxWords} words. DO NOT exceed ${config.maxWords} words under any circumstances. If you reach ${config.maxWords} words, stop writing immediately.
 
 ${isTestMode 
   ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only.'
@@ -459,20 +452,10 @@ TARGET AUDIENCE: ${targetAudience}
 TONE: ${tone}
 WORD COUNT: ${targetWordCount.replace(' words', '')}${isTestMode ? ' (TEST MODE - Quick Preview)' : ` (FULL GENERATION - ${contentLength.toUpperCase()})`}
 
-🚨 CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${config.minWords} words
-- MAXIMUM: ${config.maxWords} words  
-- DO NOT EXCEED ${config.maxWords} words under ANY circumstances
-- If you reach ${config.maxWords} words, STOP writing immediately
-- Count your words as you write and stay within the limit
-
+TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
 ${isTestMode 
   ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only. This is for testing purposes.'
-  : contentLength === 'short'
-    ? 'Keep every section brief and concise. Avoid unnecessary expansion or detailed explanations. Get to the point quickly. Target 1,000-1,500 words EXACTLY.'
-    : contentLength === 'medium'
-      ? 'Provide balanced depth and coverage. Target 2,000-3,000 words EXACTLY. Do not exceed 3,000 words.'
-      : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights. Target 3,800-4,200 words EXACTLY.'}
+  : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights.'}
 
 ${primaryKeywords.length > 0 ? `
 PRIMARY KEYWORDS (use in title, H1, first paragraph, conclusion):
@@ -525,12 +508,6 @@ export function generateExpansionPrompt(
   
   return `Expand the following draft to ${config.expansionMinWords}-${config.expansionMaxWords} words while preserving structure.
 
-🚨 CRITICAL WORD COUNT REQUIREMENT:
-- TARGET: ${config.expansionMinWords}-${config.expansionMaxWords} words
-- MAXIMUM: ${config.expansionMaxWords} words - DO NOT EXCEED THIS LIMIT
-- ${contentLength === 'short' ? 'Keep expansion brief and concise. Add depth but stay within 1,500 words.' : ''}
-- Count your words as you expand and STOP at ${config.expansionMaxWords} words
-
 CRITICAL EXPANSION REQUIREMENTS:
 - Ensure you have ${config.h2Sections} H2 sections total (add more if needed)
 - Every H2 MUST have at least ${config.h3PerH2} H3 subsections
@@ -556,11 +533,7 @@ MANDATORY CONCLUSION STRUCTURE:
   * Include a clear call-to-action: "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]"
 - If the draft doesn't have this, ADD IT at the end
 
-🚨 CRITICAL: TARGET WORD COUNT: ${config.expansionMinWords}-${config.expansionMaxWords} words MAXIMUM
-- DO NOT exceed ${config.expansionMaxWords} words under ANY circumstances
-- If you reach ${config.expansionMaxWords} words, STOP expanding immediately
-- ${contentLength === 'short' ? 'Keep expansion brief and concise. Do not over-expand sections.' : ''}
-- Count your words as you write and stay within the limit
+TARGET: This should be a well-structured article of ${config.expansionMinWords}-${config.expansionMaxWords} words (${contentLength.toUpperCase()} LENGTH).
 
 DRAFT TO EXPAND (Markdown):
 
