@@ -837,8 +837,9 @@ export async function POST(request: NextRequest) {
           const match = contentOutput.match(pattern);
           if (match && match[1]) {
             const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
-            // Validate: title should be meaningful (not just "Title" or the keyword)
-            if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== keywordText.toLowerCase()) {
+            // Accept titles that are longer than just "title" itself
+            // Allow AI-generated titles that include the keyword with added value
+            if (candidate.length > 5 && candidate.toLowerCase() !== 'title') {
               extractedTitle = candidate;
               break;
             }
@@ -853,10 +854,9 @@ export async function POST(request: NextRequest) {
             const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
             if (h1Match && h1Match[1]) {
               const h1Title = h1Match[1].trim();
-              // Validate: should be a real title, not section markers
+              // Accept any H1 that's not a section marker
               if (h1Title.length > 5 && 
-                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
-                  h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+                  !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)$/i)) {
                 extractedTitle = h1Title;
               }
             }
@@ -874,9 +874,9 @@ export async function POST(request: NextRequest) {
             for (const match of matches) {
               if (match && match[1]) {
                 const h1Title = match[1].trim();
+                // Accept any H1 that's not a section marker
                 if (h1Title.length > 5 && 
-                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
-                    h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+                    !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)$/i)) {
                   extractedTitle = h1Title;
                   break;
                 }

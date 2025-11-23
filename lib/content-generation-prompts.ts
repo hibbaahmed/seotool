@@ -297,15 +297,9 @@ FORMATTING:
 - Embed videos: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 TARGET LENGTH: This should be a ${wordCountDescription} (${targetWordCount}). 
-CRITICAL: The article MUST be between ${config.minWords} and ${config.maxWords} words. DO NOT exceed ${config.maxWords} words under any circumstances. If you reach ${config.maxWords} words, stop writing immediately.
-
 ${isTestMode 
   ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only.'
-  : contentLength === 'short' 
-    ? 'Keep content focused and concise. Provide valuable information but stay within the 1,000-1,500 word limit. Do not expand unnecessarily.'
-    : contentLength === 'medium'
-      ? 'Provide balanced depth and coverage. Stay within the 2,000-3,000 word limit.'
-      : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights. Stay within the 3,800-4,200 word limit.'}
+  : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights.'}
 
 STRICT OUTPUT FORMAT:
 1. **Title**
@@ -539,4 +533,3 @@ DRAFT TO EXPAND (Markdown):
 
 ${currentContent}`;
 }
-

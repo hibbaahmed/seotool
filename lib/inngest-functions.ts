@@ -114,8 +114,10 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
     const h1Match = contentOutput.match(/^#\s+([^\n]+)/m);
     if (h1Match && h1Match[1]) {
       const h1Title = h1Match[1].trim();
+      // Accept any H1 that's not a section marker
+      // This allows AI-generated titles that include the keyword
       if (h1Title.length > 5 && 
-          !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i)) {
+          !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)$/i)) {
         extractedTitle = h1Title;
       }
     }
@@ -151,7 +153,9 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
     const match = contentOutput.match(pattern);
     if (match && match[1]) {
       const candidate = match[1].trim().replace(/^["']|["']$/g, '').replace(/^\*\*|\*\*$/g, '');
-      if (candidate.length > 5 && candidate.toLowerCase() !== 'title' && candidate.toLowerCase() !== keywordText.toLowerCase()) {
+      // Accept titles that are longer than just the keyword itself (indicates added value)
+      // Only reject if it's literally just "title" or is suspiciously short
+      if (candidate.length > 5 && candidate.toLowerCase() !== 'title') {
         extractedTitle = candidate;
         break;
       }
@@ -166,9 +170,9 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
       const h1Match = afterContent.match(/^#\s+([^\n]+)/m);
       if (h1Match && h1Match[1]) {
         const h1Title = h1Match[1].trim();
+        // Accept any H1 that's not a section marker
         if (h1Title.length > 5 && 
-            !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)/i) &&
-            h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+            !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction)$/i)) {
           extractedTitle = h1Title;
         }
       }
@@ -186,9 +190,9 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
       for (const match of matches) {
         if (match && match[1]) {
           const h1Title = match[1].trim();
+          // Accept any H1 that's not a section marker (use $ to match end of string)
           if (h1Title.length > 5 && 
-              !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)/i) &&
-              h1Title.toLowerCase() !== keywordText.toLowerCase()) {
+              !h1Title.match(/^(Content|Title|Meta Description|SEO|Image|Call-to-Action|Introduction|\d+\.)$/i)) {
             extractedTitle = h1Title;
             break;
           }
