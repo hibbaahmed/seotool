@@ -47,22 +47,22 @@ function getContentLengthConfig(contentLength: ContentLength, isTest: boolean) {
   switch (contentLength) {
     case 'short':
       return {
-        targetWordCount: '600-800 words',
-        wordCountDescription: 'concise, snackable article (600-800 words) perfect for quick engagement',
-        minWords: 600,
-        maxWords: 800,
-        h2Sections: '3-4',
-        h3PerH2: '2',
-        examplesCount: '2-3',
-        tablesCount: '0-1 (optional)',
-        faqCount: '3-5',
-        proTipsCount: '1-2',
-        introWords: '60-80',
-        h2Words: '100-150',
-        conclusionWords: '60-80',
-        h3Words: '40-60',
-        expansionMinWords: 600,
-        expansionMaxWords: 800
+        targetWordCount: '1,000-1,500 words',
+        wordCountDescription: 'concise, snackable article (1,000-1,500 words) perfect for quick engagement',
+        minWords: 1000,
+        maxWords: 1500,
+        h2Sections: '4-5',
+        h3PerH2: '2-3',
+        examplesCount: '4-6',
+        tablesCount: '1-2 (optional)',
+        faqCount: '5-7',
+        proTipsCount: '2-3',
+        introWords: '100-150',
+        h2Words: '150-250',
+        conclusionWords: '100-150',
+        h3Words: '50-80',
+        expansionMinWords: 1000,
+        expansionMaxWords: 1500
       };
     case 'medium':
       return {
@@ -302,7 +302,7 @@ CRITICAL: The article MUST be between ${config.minWords} and ${config.maxWords} 
 ${isTestMode 
   ? 'Keep it very concise and focused. Provide a quick preview of the topic with essential information only.'
   : contentLength === 'short' 
-    ? 'Keep content focused and concise. Provide valuable information but stay within the 600-800 word limit. Do not expand unnecessarily.'
+    ? 'Keep content focused and concise. Provide valuable information but stay within the 1,000-1,500 word limit. Do not expand unnecessarily.'
     : contentLength === 'medium'
       ? 'Provide balanced depth and coverage. Stay within the 2,000-3,000 word limit.'
       : 'Provide comprehensive, in-depth coverage. Every section should provide substantial value with detailed explanations, examples, and actionable insights. Stay within the 3,800-4,200 word limit.'}

@@ -94,7 +94,7 @@ export default function SettingsPage() {
       value: 'short',
       label: 'Short',
       description: 'Quick, snackable content perfect for social engagement',
-      wordCount: '600-800 words',
+      wordCount: '1,000-1,500 words',
     },
     {
       value: 'medium',
