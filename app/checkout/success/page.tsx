@@ -18,50 +18,60 @@ function CheckoutSuccessContent() {
   const value = searchParams.get('value') || '69';
 
   useEffect(() => {
-    // Track successful purchase with enhanced Facebook tracking
-    const numericValue = parseFloat(value);
-    const eventId = `purchase_${sessionId || Date.now()}`;
-    
-    const trackingData = {
-      value: numericValue,
-      currency: 'USD',
-      content_type: 'subscription',
-      content_name: `${plan} Plan`,
-      content_category: 'SEO Tool',
-      content_ids: [plan.toLowerCase()],
-      num_items: 1,
-    };
-
-    // Initial tracking without user data
-    trackEnhancedFacebookEvent('Purchase', trackingData, undefined, eventId);
-
-    // Enhanced user data for better matching (fetched separately for privacy)
-    if (sessionId) {
-      fetch(`/api/get-session-data?session_id=${sessionId}`)
-        .then(response => response.json())
-        .then(sessionData => {
-          if (sessionData.email) {
-            // Enhanced user data for better match quality
-            const userData = {
-              em: sessionData.email,
-              ...(sessionData.firstName && { fn: sessionData.firstName }),
-              ...(sessionData.lastName && { ln: sessionData.lastName }),
-              ...(sessionData.city && { ct: sessionData.city }),
-              ...(sessionData.state && { st: sessionData.state }),
-              ...(sessionData.zipCode && { zp: sessionData.zipCode }),
-              ...(sessionData.country && { country: sessionData.country }),
-            };
-
-            // Track enhanced purchase event with user data
-            trackEnhancedFacebookEvent('Purchase', trackingData, userData, eventId);
-            
-            console.log('🎯 Enhanced Facebook Purchase event tracked with complete user data');
-          }
-        })
-        .catch(err => {
-          console.warn('⚠️ Could not fetch session data for enhanced tracking:', err);
-        });
+    // Only track Purchase event if we have a valid session ID
+    // The server-side webhook is the primary source, this is just a backup
+    // We validate the session to ensure it's a real purchase
+    if (!sessionId) {
+      console.warn('⚠️ No session ID provided, skipping Purchase event tracking');
+      return;
     }
+
+    // Verify the session is valid and payment was completed before tracking
+    fetch(`/api/get-session-data?session_id=${sessionId}`)
+      .then(response => response.json())
+      .then(sessionData => {
+        // Only track if we have valid session data (indicates real purchase)
+        if (sessionData.error) {
+          console.warn('⚠️ Invalid session, skipping Purchase event:', sessionData.error);
+          return;
+        }
+
+        const numericValue = parseFloat(value);
+        const eventId = `purchase_${sessionId}`; // Use sessionId for deduplication with server-side
+        
+        const trackingData = {
+          value: numericValue,
+          currency: 'USD',
+          content_type: 'subscription',
+          content_name: `${plan} Plan`,
+          content_category: 'SEO Tool',
+          content_ids: [plan.toLowerCase()],
+          num_items: 1,
+        };
+
+        // Enhanced user data for better match quality
+        const userData = sessionData.email ? {
+          em: sessionData.email,
+          ...(sessionData.firstName && { fn: sessionData.firstName }),
+          ...(sessionData.lastName && { ln: sessionData.lastName }),
+          ...(sessionData.city && { ct: sessionData.city }),
+          ...(sessionData.state && { st: sessionData.state }),
+          ...(sessionData.zipCode && { zp: sessionData.zipCode }),
+          ...(sessionData.country && { country: sessionData.country }),
+        } : undefined;
+
+        // Track Purchase event ONCE with user data (server-side webhook also sends, but event_id will deduplicate)
+        trackEnhancedFacebookEvent('Purchase', trackingData, userData, eventId);
+        
+        console.log('🎯 Facebook Purchase event tracked (client-side backup):', {
+          eventId,
+          hasUserData: !!userData,
+          email: sessionData.email ? 'present' : 'missing'
+        });
+      })
+      .catch(err => {
+        console.warn('⚠️ Could not verify session or fetch session data, skipping Purchase event:', err);
+      });
 
     // Auto-redirect countdown - redirect to onboarding after purchase
     const timer = setInterval(() => {

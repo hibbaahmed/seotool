@@ -61,7 +61,29 @@ export function getFbcCookie(): string | null {
   }
   
   /**
+   * Check if we're in development/localhost environment
+   * Client-side events don't support test_event_code, so we skip tracking in dev
+   */
+  function isDevelopmentEnvironment(): boolean {
+    if (typeof window === 'undefined') {
+      // Server-side: check NODE_ENV
+      return process.env.NODE_ENV === 'development';
+    }
+    // Client-side: check if we're on localhost
+    const hostname = window.location.hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      process.env.NODE_ENV === 'development'
+    );
+  }
+
+  /**
    * Track enhanced Facebook event with maximum match quality
+   * NOTE: Client-side events are skipped in development/localhost to prevent test events
+   * from being counted as real purchases. Server-side webhook handles test events properly.
    */
   export function trackEnhancedFacebookEvent(
     eventName: string,
@@ -71,6 +93,12 @@ export function getFbcCookie(): string | null {
   ) {
     if (typeof window === 'undefined' || !window.fbq) {
       console.warn('⚠️ Facebook Pixel not available');
+      return;
+    }
+
+    // Skip tracking in development/localhost to prevent test events from being counted
+    if (isDevelopmentEnvironment()) {
+      console.log(`🚫 Skipping Facebook ${eventName} event in development/localhost to prevent test events`);
       return;
     }
   

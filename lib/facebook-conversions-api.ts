@@ -91,8 +91,13 @@ class FacebookConversionsAPI {
         value: planValue
       }],
       
-      // Test event flag (remove in production)
-      test_event_code: process.env.NODE_ENV === 'development' ? 'TEST12345' : undefined
+      // Test event flag - mark as test if development OR localhost
+      // This prevents localhost test purchases from being counted as real events
+      test_event_code: (process.env.NODE_ENV === 'development' || 
+                       (process.env.NEXT_PUBLIC_URL && (
+                         process.env.NEXT_PUBLIC_URL.includes('localhost') ||
+                         process.env.NEXT_PUBLIC_URL.includes('127.0.0.1')
+                       ))) ? 'TEST12345' : undefined
     };
 
     try {

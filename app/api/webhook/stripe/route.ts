@@ -218,13 +218,22 @@ export async function POST(req: any) {
                         });
 						
 						// Create enhanced Facebook event data
+						const eventSourceUrl = `${process.env.NEXT_PUBLIC_URL}/checkout/success`;
+						
+						// Determine if this is a test event (development or localhost)
+						const isDevelopment = process.env.NODE_ENV === 'development';
+						const isLocalhost = eventSourceUrl.includes('localhost') || 
+											eventSourceUrl.includes('127.0.0.1') ||
+											eventSourceUrl.includes('192.168.') ||
+											eventSourceUrl.includes('10.');
+						
 						const facebookEventData = {
 							data: [{
 								event_name: 'Purchase',
 								event_time: Math.floor(Date.now() / 1000),
 								event_id: `purchase_${sessionId}`, // Match client-side event ID for deduplication
 								action_source: 'website',
-								event_source_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success`,
+								event_source_url: eventSourceUrl,
 								
 								// Enhanced user data for matching
 								user_data: userData,
@@ -247,8 +256,9 @@ export async function POST(req: any) {
 								value: checkoutAmount
 							}],
 							
-							// Test event flag (remove in production)
-							test_event_code: process.env.NODE_ENV === 'development' ? 'TEST12345' : undefined
+							// Test event flag - mark as test if development OR localhost
+							// This prevents localhost test purchases from being counted as real events
+							test_event_code: (isDevelopment || isLocalhost) ? 'TEST12345' : undefined
 						};
 						
 						console.log('📤 Sending Purchase event to Facebook from checkout.session.completed:', JSON.stringify(facebookEventData, null, 2));
