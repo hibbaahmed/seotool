@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Search, 
@@ -79,6 +79,31 @@ export default function KeywordsDashboard() {
   const [timeMinute, setTimeMinute] = useState<string>('00');
   const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
   const [autoSchedulingKeywordId, setAutoSchedulingKeywordId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    setNotification({ message, type });
+    notificationTimeoutRef.current = setTimeout(() => setNotification(null), 4500);
+  };
+
+  const dismissNotification = () => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    setNotification(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Add Keywords Modal State
   const [showAddKeywordsModal, setShowAddKeywordsModal] = useState(false);
@@ -355,10 +380,10 @@ export default function KeywordsDashboard() {
         return updated;
       });
 
-      alert(`Keyword scheduled for ${formatScheduledDateTime(data.scheduled_date, data.scheduled_time)}.`);
+      showNotification(`Keyword scheduled for ${formatScheduledDateTime(data.scheduled_date, data.scheduled_time)}.`, 'success');
     } catch (error) {
       console.error('Error auto-scheduling keyword:', error);
-      alert(error instanceof Error ? error.message : 'Failed to schedule keyword');
+      showNotification(error instanceof Error ? error.message : 'Failed to schedule keyword', 'error');
     } finally {
       setAutoSchedulingKeywordId(null);
     }
@@ -440,14 +465,14 @@ export default function KeywordsDashboard() {
         setTimeMinute('00');
         setTimePeriod('AM');
         
-        alert(`Keyword ${isEditingSchedule ? 'rescheduled' : 'scheduled'} successfully! It will be generated on ${scheduledAt.toLocaleString()}.`);
+        showNotification(`Keyword ${isEditingSchedule ? 'rescheduled' : 'scheduled'} successfully! It will be generated on ${scheduledAt.toLocaleString()}.`, 'success');
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to schedule keyword');
+        showNotification(error.message || 'Failed to schedule keyword', 'error');
       }
     } catch (error) {
       console.error('Error scheduling keyword:', error);
-      alert('Failed to schedule keyword');
+      showNotification('Failed to schedule keyword', 'error');
     }
   };
 
@@ -488,13 +513,14 @@ export default function KeywordsDashboard() {
 
       if (error) throw error;
 
-      setProfiles(data || []);
+      const typedProfiles = (data || []) as Array<{ id: string; business_name?: string; website_url: string; industry?: string }>;
+      setProfiles(typedProfiles);
       
       // If we have an onboardingId in URL, use it; otherwise use first profile
-      if (onboardingId && data?.some(p => p.id === onboardingId)) {
+      if (onboardingId && typedProfiles.some(p => p.id === onboardingId)) {
         setSelectedProfileId(onboardingId);
-      } else if (data && data.length > 0) {
-        setSelectedProfileId(data[0].id);
+      } else if (typedProfiles.length > 0) {
+        setSelectedProfileId(typedProfiles[0].id);
       }
     } catch (err: any) {
       console.error('Error loading profiles:', err);
@@ -1212,11 +1238,35 @@ export default function KeywordsDashboard() {
       </div>
     </div>
 
-    <OutOfCreditsDialog
-      open={showOutOfCreditsDialog}
-      onOpenChange={setShowOutOfCreditsDialog}
-      requiredCredits={requiredCreditsForDialog}
-    />
+     {notification && (
+       <div
+         className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border px-4 py-3 shadow-lg backdrop-blur bg-white/95 flex items-start gap-3 ${
+           notification.type === 'success'
+             ? 'border-emerald-200'
+             : 'border-red-200'
+         }`}
+       >
+         {notification.type === 'success' ? (
+           <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+         ) : (
+           <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+         )}
+         <div className="flex-1 text-sm text-slate-800">{notification.message}</div>
+         <button
+           onClick={dismissNotification}
+           className="text-slate-400 hover:text-slate-600 transition-colors font-semibold"
+           aria-label="Dismiss notification"
+         >
+           X
+         </button>
+       </div>
+     )}
+
+     <OutOfCreditsDialog
+       open={showOutOfCreditsDialog}
+       onOpenChange={setShowOutOfCreditsDialog}
+       requiredCredits={requiredCreditsForDialog}
+     />
     </>
   );
 }
