@@ -2,6 +2,55 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { inngest } from '@/lib/inngest';
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+const DEFAULT_AUTO_SCHEDULE_TIME = '09:00:00';
+
+const formatDateForDb = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+async function findNextAvailableSlot(
+  supabase: SupabaseServerClient,
+  userId: string,
+  preferredTime: string = DEFAULT_AUTO_SCHEDULE_TIME,
+  searchWindowDays = 365
+) {
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() + 1); // Begin with tomorrow
+
+  for (let i = 0; i < searchWindowDays; i++) {
+    const candidateDate = new Date(startDate);
+    candidateDate.setDate(startDate.getDate() + i);
+    const candidateString = formatDateForDb(candidateDate);
+
+    const { count, error } = await supabase
+      .from('discovered_keywords')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('scheduled_for_generation', true)
+      .eq('scheduled_date', candidateString)
+      .eq('scheduled_time', preferredTime);
+
+    if (error) {
+      throw new Error(error.message || 'Failed to check existing schedules');
+    }
+
+    if (!count) {
+      return {
+        scheduledDate: candidateString,
+        scheduledTime: preferredTime,
+      };
+    }
+  }
+
+  throw new Error('No available calendar slots found');
+}
+
 // GET /api/calendar/keywords - Fetch keywords scheduled for specific dates
 export async function GET(request: NextRequest) {
   try {
@@ -234,9 +283,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('📦 Request body parsed:', JSON.stringify(body, null, 2));
     
-    const { keyword_id, scheduled_date, scheduled_time = '06:00:00' } = body;
+    let { keyword_id, scheduled_date, scheduled_time } = body;
+    const autoSchedule = Boolean(body.auto_schedule);
 
-    console.log('📥 Extracted fields:', { keyword_id, scheduled_date, scheduled_time });
+    if (autoSchedule) {
+      console.log('🤖 Auto-scheduling enabled, finding next available slot...');
+      try {
+        const slot = await findNextAvailableSlot(supabase, user.id, DEFAULT_AUTO_SCHEDULE_TIME);
+        scheduled_date = slot.scheduledDate;
+        scheduled_time = slot.scheduledTime;
+        console.log('✅ Auto-schedule slot found:', slot);
+      } catch (slotError) {
+        console.error('❌ Failed to find available slot:', slotError);
+        return NextResponse.json(
+          { error: slotError instanceof Error ? slotError.message : 'No available calendar slots' },
+          { status: 500 }
+        );
+      }
+    } else if (!scheduled_time) {
+      scheduled_time = '06:00:00';
+    }
+
+    console.log('📥 Extracted fields:', { keyword_id, scheduled_date, scheduled_time, autoSchedule });
 
     if (!keyword_id || !scheduled_date) {
       console.error('❌ Missing required fields:', { keyword_id, scheduled_date });
