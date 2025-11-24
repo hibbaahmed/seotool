@@ -127,6 +127,12 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
       extractedTitle = keywordText;
     }
     
+    // Replace any old years (2020-2024) in title with current year
+    const currentYear = new Date().getFullYear();
+    if (extractedTitle) {
+      extractedTitle = extractedTitle.replace(/\b(202[0-4])\b/g, String(currentYear));
+    }
+    
     console.log(`✅ Using cleaned content as-is WITHOUT any processing. Title: ${extractedTitle}, Content length: ${contentOutput.length} chars`);
     console.log(`📊 Returning full content: ${contentOutput.length} characters`);
     return {
@@ -205,6 +211,13 @@ function extractTitleAndContentForWordPress(contentOutput: string, keywordText: 
   // Final fallback: use keyword
   if (!extractedTitle) {
     extractedTitle = keywordText;
+  }
+  
+  // Replace any old years (2020-2024) in title with current year
+  const currentYear = new Date().getFullYear();
+  if (extractedTitle) {
+    extractedTitle = extractedTitle.replace(/\b(202[0-4])\b/g, String(currentYear));
+    console.log(`📅 Updated title year to ${currentYear}: ${extractedTitle}`);
   }
   
   console.log(`✅ Extracted title: ${extractedTitle}`);

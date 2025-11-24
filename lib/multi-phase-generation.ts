@@ -209,7 +209,8 @@ Generate a detailed outline with:
 1. **Title**
 Create an engaging, benefit-driven title (55-65 characters) that includes "${topic}" naturally but is NOT just the keyword alone.
 Add value with numbers, outcomes, year, or authority terms.
-Examples: "10 ${topic} That Drive Real Results", "${topic}: Complete 2024 Guide", "Proven ${topic} for Maximum Impact"
+Examples: "10 ${topic} That Drive Real Results", "${topic}: Complete ${new Date().getFullYear()} Guide", "Proven ${topic} for Maximum Impact"
+CRITICAL: Always use the current year (${new Date().getFullYear()}) when referencing years in titles - NEVER use past years like 2024, 2023, etc.
 AVOID: Just using "${topic}" as the title
 DO NOT write "Title:" as a label in the output - just write the title text itself.
 

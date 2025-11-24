@@ -606,6 +606,13 @@ export async function POST(request: NextRequest) {
           console.log(`✅ Final extracted title: ${extractedTitle}`);
         }
         
+        // Replace any old years (2020-2024) in title with current year
+        const currentYear = new Date().getFullYear();
+        if (extractedTitle) {
+          extractedTitle = extractedTitle.replace(/\b(202[0-4])\b/g, String(currentYear));
+          console.log(`📅 Updated title year to ${currentYear}: ${extractedTitle}`);
+        }
+        
         // Extract clean content from AI output (removes title, meta description, etc.)
         console.log(`\n========== WORDPRESS PUBLISHING: CONTENT EXTRACTION ==========`);
         console.log(`📝 Original database content length: ${contentOutput.length} characters`);

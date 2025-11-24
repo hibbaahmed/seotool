@@ -147,7 +147,7 @@ ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title || 'Video'} - Video ID: ${v.i
 
 Your articles follow this proven structure:
 
-1. **Engaging Title**: Create a compelling, benefit-driven title with the keyword PLUS value proposition (e.g., numbers, outcomes, years). NEVER just use the keyword alone.
+1. **Engaging Title**: Create a compelling, benefit-driven title with the keyword PLUS value proposition (e.g., numbers, outcomes, years). NEVER just use the keyword alone. CRITICAL: Always use the current year (${new Date().getFullYear()}) in titles when referencing years - NEVER use past years like 2024, 2023, etc.
 2. **Hook Introduction**: Start with a pain point or surprising fact
 3. **Hierarchical Content**: H2 sections with 3-5 H3 subsections each
 4. **Data-Driven Examples**: Include specific numbers, tool names, real scenarios
@@ -307,7 +307,7 @@ STRICT OUTPUT FORMAT:
 - Includes the primary keyword naturally (not just the keyword alone)
 - Promises a specific benefit, number, or outcome
 - Uses power words like "Proven", "Ultimate", "Complete", "Essential", etc.
-- Examples: "10 Proven SEO Tips to Boost Your Sales by 40%", "The Complete Guide to SEO Tips That Actually Boost Sales", "SEO Tips to Boost Your Sales: 2024 Expert Strategies"
+- Examples: "10 Proven SEO Tips to Boost Your Sales by 40%", "The Complete Guide to SEO Tips That Actually Boost Sales", "SEO Tips to Boost Your Sales: ${new Date().getFullYear()} Expert Strategies"
 - AVOID: Just using the keyword as-is (e.g., "seo tips to boost your sales")]
 
 2. **Meta Description**
@@ -477,7 +477,7 @@ TITLE REQUIREMENTS (CRITICAL):
 - DO NOT just use the keyword as the title (e.g., avoid: "${keyword}")
 - Instead, create an engaging title that includes the keyword PLUS value:
   * Add numbers: "10 ${keyword} That Actually Work"
-  * Add year/timeframe: "${keyword}: 2024 Expert Guide"
+  * Add year/timeframe: "${keyword}: ${new Date().getFullYear()} Expert Guide"
   * Add benefit/outcome: "${keyword} to Increase Revenue by 40%"
   * Add authority: "The Ultimate Guide to ${keyword}"
   * Add specificity: "Proven ${keyword} for Small Businesses"
