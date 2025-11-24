@@ -16,9 +16,15 @@ import {
   Clock,
   DollarSign,
   Users,
-  Globe
+  Globe,
+  X,
+  Loader2,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { checkCredits } from '@/app/utils/creditCheck';
+import OutOfCreditsDialog from '@/components/OutOfCreditsDialog';
 
 interface Keyword {
   id: string;
@@ -48,7 +54,8 @@ export default function KeywordsDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onboardingId = searchParams.get('onboarding');
-  
+  const REQUIRED_CREDITS_FOR_KEYWORD_GENERATION = 1;
+
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [stats, setStats] = useState<KeywordStats>({
     totalKeywords: 0,
@@ -63,13 +70,47 @@ export default function KeywordsDashboard() {
   const [sortBy, setSortBy] = useState<'relevance' | 'volume' | 'difficulty' | 'opportunity'>('relevance');
   const [activeFilterCard, setActiveFilterCard] = useState<'all' | 'recommended' | 'starred' | 'queued' | 'generated'>('all');
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>('');
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  // Sleek segmented time picker: hour / minute / period
+  const [timeHour, setTimeHour] = useState<string>('06');
+  const [timeMinute, setTimeMinute] = useState<string>('00');
+  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
+
+  // Add Keywords Modal State
+  const [showAddKeywordsModal, setShowAddKeywordsModal] = useState(false);
+  const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string; website_url: string; industry?: string }>>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [seedKeywords, setSeedKeywords] = useState<string[]>(['']);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generateSuccess, setGenerateSuccess] = useState<any>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [minSearchVolume, setMinSearchVolume] = useState(0);
+  const [maxDifficulty, setMaxDifficulty] = useState(100);
+  const [maxKeywordsPerSeed, setMaxKeywordsPerSeed] = useState(30);
+  const [includeQuestions, setIncludeQuestions] = useState(true);
+  const [includeRelated, setIncludeRelated] = useState(true);
+  const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
+  const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
+
   useEffect(() => {
     if (onboardingId) {
       loadKeywords(onboardingId);
+      setSelectedProfileId(onboardingId);
     } else {
       loadAllOnboardingKeywords();
     }
   }, [onboardingId]);
+
+  // Load profiles when modal opens
+  useEffect(() => {
+    if (showAddKeywordsModal) {
+      loadProfiles();
+    }
+  }, [showAddKeywordsModal]);
 
   const loadAllOnboardingKeywords = async () => {
     try {
@@ -261,14 +302,6 @@ export default function KeywordsDashboard() {
     }
   };
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedKeywordId, setSelectedKeywordId] = useState<string | null>(null);
-  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>('');
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
-  // Sleek segmented time picker: hour / minute / period
-  const [timeHour, setTimeHour] = useState<string>('06');
-  const [timeMinute, setTimeMinute] = useState<string>('00');
-  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
 
   const to24Hour = (hour12: string, period: 'AM' | 'PM') => {
     let h = parseInt(hour12, 10) % 12;
@@ -400,6 +433,131 @@ export default function KeywordsDashboard() {
     }
   };
 
+  // Load profiles for keyword generation
+  const loadProfiles = async () => {
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('user_onboarding_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setProfiles(data || []);
+      
+      // If we have an onboardingId in URL, use it; otherwise use first profile
+      if (onboardingId && data?.some(p => p.id === onboardingId)) {
+        setSelectedProfileId(onboardingId);
+      } else if (data && data.length > 0) {
+        setSelectedProfileId(data[0].id);
+      }
+    } catch (err: any) {
+      console.error('Error loading profiles:', err);
+      setGenerateError(err.message);
+    }
+  };
+
+  // Add/remove seed keywords
+  const addSeedKeyword = () => {
+    setSeedKeywords([...seedKeywords, '']);
+  };
+
+  const removeSeedKeyword = (index: number) => {
+    if (seedKeywords.length > 1) {
+      setSeedKeywords(seedKeywords.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateSeedKeyword = (index: number, value: string) => {
+    const updated = [...seedKeywords];
+    updated[index] = value;
+    setSeedKeywords(updated);
+  };
+
+  // Generate keywords
+  const handleGenerateKeywords = async () => {
+    if (!selectedProfileId) {
+      setGenerateError('Please select a project');
+      return;
+    }
+
+    const validSeeds = seedKeywords.filter(k => k.trim().length > 0);
+    if (validSeeds.length === 0) {
+      setGenerateError('Please enter at least one seed keyword');
+      return;
+    }
+
+    setGenerateError(null);
+    setGenerateSuccess(null);
+
+    const creditResult = await checkCredits(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
+    if (!creditResult || creditResult.error || !creditResult.hasEnoughCredits) {
+      setRequiredCreditsForDialog(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
+      setShowOutOfCreditsDialog(true);
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch('/api/keywords/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seedKeywords: validSeeds,
+          profileId: selectedProfileId,
+          minSearchVolume,
+          maxDifficulty,
+          maxKeywordsPerSeed,
+          includeQuestions,
+          includeRelated
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to generate keywords');
+      }
+
+      setGenerateSuccess(data);
+      // Reload keywords after successful generation
+      if (onboardingId) {
+        await loadKeywords(onboardingId);
+      } else {
+        await loadAllOnboardingKeywords();
+      }
+
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setSeedKeywords(['']);
+        setGenerateSuccess(null);
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error generating keywords:', err);
+      setGenerateError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Close modal and reset state
+  const closeAddKeywordsModal = () => {
+    setShowAddKeywordsModal(false);
+    setSeedKeywords(['']);
+    setGenerateError(null);
+    setGenerateSuccess(null);
+    setShowAdvanced(false);
+    setIsGenerating(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center">
@@ -495,7 +653,10 @@ export default function KeywordsDashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                <button 
+                  onClick={() => setShowAddKeywordsModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                >
                   <Plus className="h-4 w-4" />
                   Add Keywords
                 </button>
@@ -666,6 +827,240 @@ export default function KeywordsDashboard() {
             </div>
           )}
 
+          {/* Add Keywords Modal */}
+          {showAddKeywordsModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-slate-900">Add Keywords</h3>
+                  <button
+                    onClick={closeAddKeywordsModal}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                {/* Profile Selection */}
+                {profiles.length > 0 ? (
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Select Project
+                    </label>
+                    <select
+                      value={selectedProfileId}
+                      onChange={(e) => setSelectedProfileId(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                      {profiles.map(profile => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.business_name || profile.website_url} {profile.industry ? `(${profile.industry})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-amber-900">No Projects Found</h3>
+                        <p className="text-sm text-amber-700 mt-1">
+                          You need to complete onboarding first to generate keywords.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Seed Keywords */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Seed Keywords
+                    </label>
+                    <button
+                      onClick={addSeedKeyword}
+                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Keyword
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {seedKeywords.map((keyword, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <input
+                          type="text"
+                          value={keyword}
+                          onChange={(e) => updateSeedKeyword(index, e.target.value)}
+                          placeholder={`e.g., ${index === 0 ? 'seo tools' : index === 1 ? 'keyword research' : 'content marketing'}`}
+                          className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                        {seedKeywords.length > 1 && (
+                          <button
+                            onClick={() => removeSeedKeyword(index)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    💡 Tip: Use specific topics related to your industry for best results
+                  </p>
+                </div>
+
+                {/* Advanced Options */}
+                <div className="mb-6">
+                  <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center justify-between w-full text-left mb-4"
+                  >
+                    <h4 className="text-lg font-semibold text-slate-900">Advanced Options</h4>
+                    <span className="text-slate-400 text-xl">{showAdvanced ? '−' : '+'}</span>
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="space-y-4 p-4 bg-slate-50 rounded-lg">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Min Search Volume
+                          </label>
+                          <input
+                            type="number"
+                            value={minSearchVolume}
+                            onChange={(e) => setMinSearchVolume(parseInt(e.target.value) || 0)}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Max Difficulty (0-100)
+                          </label>
+                          <input
+                            type="number"
+                            value={maxDifficulty}
+                            onChange={(e) => setMaxDifficulty(Math.min(100, parseInt(e.target.value) || 100))}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Max Keywords per Seed
+                        </label>
+                        <input
+                          type="number"
+                          value={maxKeywordsPerSeed}
+                          onChange={(e) => setMaxKeywordsPerSeed(parseInt(e.target.value) || 30)}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={includeQuestions}
+                            onChange={(e) => setIncludeQuestions(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                          />
+                          <span className="text-sm text-slate-700">Include question-based keywords</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={includeRelated}
+                            onChange={(e) => setIncludeRelated(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                          />
+                          <span className="text-sm text-slate-700">Include related keywords</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Error Message */}
+                {generateError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-red-900">Error</h3>
+                        <p className="text-sm text-red-700 mt-1">{generateError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {generateSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-green-900">Success!</h3>
+                        <p className="text-sm text-green-700 mt-1">
+                          {generateSuccess.message || `Successfully generated ${generateSuccess.keywords?.total || 0} keywords`}
+                        </p>
+                        {generateSuccess.keywords && (
+                          <div className="grid grid-cols-3 gap-2 mt-3">
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-indigo-600">{generateSuccess.keywords.saved || 0}</div>
+                              <div className="text-xs text-slate-600">Saved</div>
+                            </div>
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-purple-600">{generateSuccess.keywords.byType?.primary || 0}</div>
+                              <div className="text-xs text-slate-600">Primary</div>
+                            </div>
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-orange-600">{generateSuccess.keywords.byType?.longTail || 0}</div>
+                              <div className="text-xs text-slate-600">Long-tail</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeAddKeywordsModal}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleGenerateKeywords}
+                    disabled={isGenerating || seedKeywords.filter(k => k.trim()).length === 0 || !selectedProfileId}
+                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-4 w-4" />
+                        Generate Keywords
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Date Picker Modal */}
           {showDatePicker && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -770,5 +1165,11 @@ export default function KeywordsDashboard() {
         </div>
       </div>
     </div>
+
+      <OutOfCreditsDialog
+        open={showOutOfCreditsDialog}
+        onOpenChange={setShowOutOfCreditsDialog}
+        requiredCredits={requiredCreditsForDialog}
+      />
   );
 }

@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { fetchKeywordsFromDataForSEO } from '@/lib/dataforseo-keywords';
 
+const REQUIRED_CREDITS = 1;
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -48,6 +50,39 @@ export async function POST(request: NextRequest) {
 
     if (profileError || !profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
+    // Check credits/trial status
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('credits')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (creditsError || !creditsData) {
+      return NextResponse.json({ error: 'Could not fetch user credits' }, { status: 500 });
+    }
+
+    const { data: subscriptionData, error: subscriptionError } = await supabase
+      .from('subscription')
+      .select('trial_ends_at')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    if (subscriptionError) {
+      console.warn('⚠️ Failed to fetch subscription data for trial check:', subscriptionError);
+    }
+
+    const currentCredits = creditsData.credits || 0;
+    const now = new Date();
+    const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null;
+    const isInTrial = !!(trialEndsAt && now < trialEndsAt);
+
+    if (!isInTrial && currentCredits < REQUIRED_CREDITS) {
+      return NextResponse.json(
+        { error: `Insufficient credits. You need ${REQUIRED_CREDITS} credit(s) to generate more keywords. You currently have ${currentCredits} credit(s).` },
+        { status: 402 }
+      );
     }
 
     console.log(`🔍 Generating keywords for ${seedKeywords.length} seed keywords`);
@@ -145,6 +180,22 @@ export async function POST(request: NextRequest) {
     const primaryKeywords = allNewKeywords.filter(k => k.keyword_type === 'primary');
     const secondaryKeywords = allNewKeywords.filter(k => k.keyword_type === 'secondary');
     const longTailKeywords = allNewKeywords.filter(k => k.keyword_type === 'long-tail');
+
+    // Deduct credits if not in trial
+    if (!isInTrial) {
+      const { error: deductError } = await supabase
+        .from('credits')
+        .update({ credits: currentCredits - REQUIRED_CREDITS })
+        .eq('user_id', user.id);
+
+      if (deductError) {
+        console.error('⚠️ Failed to deduct credits after keyword generation:', deductError);
+      } else {
+        console.log(`✅ Deducted ${REQUIRED_CREDITS} credit(s) from user ${user.id}. Remaining: ${currentCredits - REQUIRED_CREDITS}`);
+      }
+    } else {
+      console.log('🎉 User is in trial period - skipping credit deduction for keyword generation');
+    }
 
     return NextResponse.json({
       success: true,
