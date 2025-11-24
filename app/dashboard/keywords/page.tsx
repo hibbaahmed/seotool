@@ -78,6 +78,7 @@ export default function KeywordsDashboard() {
   const [timeHour, setTimeHour] = useState<string>('06');
   const [timeMinute, setTimeMinute] = useState<string>('00');
   const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
+  const [autoSchedulingKeywordId, setAutoSchedulingKeywordId] = useState<string | null>(null);
 
   // Add Keywords Modal State
   const [showAddKeywordsModal, setShowAddKeywordsModal] = useState(false);
@@ -317,12 +318,57 @@ export default function KeywordsDashboard() {
     return { hour: String(h).padStart(2, '0'), minute: minutes, period };
   };
 
+  const formatScheduledDateTime = (date?: string, time?: string) => {
+    if (!date) return 'the next available slot';
+    const scheduleTime = time || '09:00:00';
+    const scheduledAt = new Date(`${date}T${scheduleTime}`);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      return `${date} ${scheduleTime}`;
+    }
+    return scheduledAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  };
+
+  const autoScheduleKeyword = async (keywordId: string) => {
+    setAutoSchedulingKeywordId(keywordId);
+
+    try {
+      const response = await fetch('/api/calendar/keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword_id: keywordId,
+          auto_schedule: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to schedule keyword');
+      }
+
+      setKeywords(prev => {
+        const updated = prev.map(k => 
+          k.id === keywordId ? { ...k, queued: true } : k
+        );
+        calculateStats(updated);
+        return updated;
+      });
+
+      alert(`Keyword scheduled for ${formatScheduledDateTime(data.scheduled_date, data.scheduled_time)}.`);
+    } catch (error) {
+      console.error('Error auto-scheduling keyword:', error);
+      alert(error instanceof Error ? error.message : 'Failed to schedule keyword');
+    } finally {
+      setAutoSchedulingKeywordId(null);
+    }
+  };
+
   const addToQueue = async (keywordId: string) => {
     const keyword = keywords.find(k => k.id === keywordId);
     
-    setSelectedKeywordId(keywordId);
-    
     if (keyword?.queued) {
+      setSelectedKeywordId(keywordId);
       // Editing existing schedule - fetch current schedule data BEFORE opening modal
       setIsEditingSchedule(true);
       try {
@@ -356,15 +402,8 @@ export default function KeywordsDashboard() {
       }
       // Open modal AFTER data is loaded
       setShowDatePicker(true);
-    } else {
-      // New schedule - reset to defaults
-      setIsEditingSchedule(false);
-      setSelectedScheduleDate('');
-      setTimeHour('06');
-      setTimeMinute('00');
-      setTimePeriod('AM');
-      // Open modal immediately for new schedules
-      setShowDatePicker(true);
+    } else if (keyword) {
+      await autoScheduleKeyword(keywordId);
     }
   };
 
@@ -570,6 +609,7 @@ export default function KeywordsDashboard() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <div className="pt-28 md:pt-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -787,7 +827,8 @@ export default function KeywordsDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => addToQueue(keyword.id)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 shadow-sm ${
+                          disabled={!keyword.queued && autoSchedulingKeywordId === keyword.id}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${
                             keyword.queued
                               ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100'
                               : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100'
@@ -797,6 +838,11 @@ export default function KeywordsDashboard() {
                             <>
                               <Clock className="h-3 w-3" />
                               Edit Schedule
+                            </>
+                          ) : autoSchedulingKeywordId === keyword.id ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Scheduling...
                             </>
                           ) : (
                             <>
@@ -1166,10 +1212,11 @@ export default function KeywordsDashboard() {
       </div>
     </div>
 
-      <OutOfCreditsDialog
-        open={showOutOfCreditsDialog}
-        onOpenChange={setShowOutOfCreditsDialog}
-        requiredCredits={requiredCreditsForDialog}
-      />
+    <OutOfCreditsDialog
+      open={showOutOfCreditsDialog}
+      onOpenChange={setShowOutOfCreditsDialog}
+      requiredCredits={requiredCreditsForDialog}
+    />
+    </>
   );
 }
