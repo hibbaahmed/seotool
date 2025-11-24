@@ -901,28 +901,31 @@ export default function KeywordsDashboard() {
 
           {/* Add Keywords Modal */}
           {showAddKeywordsModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-slate-900">Add Keywords</h3>
+            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-8 my-8 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">Add Keywords</h3>
+                    <p className="text-sm text-slate-500">Generate new keywords using DataForSEO</p>
+                  </div>
                   <button
                     onClick={closeAddKeywordsModal}
-                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition-colors"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
 
                 {/* Profile Selection */}
                 {profiles.length > 0 ? (
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Select Project
                     </label>
                     <select
                       value={selectedProfileId}
                       onChange={(e) => setSelectedProfileId(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 transition-colors"
                     >
                       {profiles.map(profile => (
                         <option key={profile.id} value={profile.id}>
@@ -948,12 +951,12 @@ export default function KeywordsDashboard() {
                 {/* Seed Keywords */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-slate-700">
+                    <label className="block text-sm font-semibold text-slate-700">
                       Seed Keywords
                     </label>
                     <button
                       onClick={addSeedKeyword}
-                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium text-sm rounded-lg transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Add Keyword
@@ -968,12 +971,13 @@ export default function KeywordsDashboard() {
                           value={keyword}
                           onChange={(e) => updateSeedKeyword(index, e.target.value)}
                           placeholder={`e.g., ${index === 0 ? 'seo tools' : index === 1 ? 'keyword research' : 'content marketing'}`}
-                          className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 placeholder-slate-400 transition-colors"
                         />
                         {seedKeywords.length > 1 && (
                           <button
                             onClick={() => removeSeedKeyword(index)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            aria-label="Remove keyword"
                           >
                             <X className="h-5 w-5" />
                           </button>
@@ -981,8 +985,9 @@ export default function KeywordsDashboard() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    💡 Tip: Use specific topics related to your industry for best results
+                  <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
+                    <span>💡</span>
+                    <span>Tip: Use specific topics related to your industry for best results</span>
                   </p>
                 </div>
 
@@ -990,14 +995,14 @@ export default function KeywordsDashboard() {
                 <div className="mb-6">
                   <button
                     onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="flex items-center justify-between w-full text-left mb-4"
+                    className="flex items-center justify-between w-full text-left mb-4 p-3 hover:bg-slate-50 rounded-lg transition-colors"
                   >
-                    <h4 className="text-lg font-semibold text-slate-900">Advanced Options</h4>
-                    <span className="text-slate-400 text-xl">{showAdvanced ? '−' : '+'}</span>
+                    <h4 className="text-base font-semibold text-slate-900">Advanced Options</h4>
+                    <span className={`text-slate-400 text-xl transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>{showAdvanced ? '−' : '+'}</span>
                   </button>
 
                   {showAdvanced && (
-                    <div className="space-y-4 p-4 bg-slate-50 rounded-lg">
+                    <div className="space-y-4 p-5 bg-slate-50 rounded-lg border border-slate-200">
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -1104,17 +1109,17 @@ export default function KeywordsDashboard() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-4 border-t border-slate-200">
                   <button
                     onClick={closeAddKeywordsModal}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleGenerateKeywords}
                     disabled={isGenerating || seedKeywords.filter(k => k.trim()).length === 0 || !selectedProfileId}
-                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     {isGenerating ? (
                       <>
