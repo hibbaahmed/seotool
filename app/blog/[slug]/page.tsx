@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { Calendar, Clock, User, ArrowLeft, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import RelatedPosts from '@/components/RelatedPosts';
 import LinkedContent from '@/components/LinkedContent';
 
 interface Post {
@@ -279,8 +278,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </div>
             </article>
 
-            {/* Related Posts Section */}
-            <RelatedPosts currentSlug={slug} limit={6} />
           </div>
         </div>
       </div>
