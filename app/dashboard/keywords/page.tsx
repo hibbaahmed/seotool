@@ -107,6 +107,8 @@ export default function KeywordsDashboard() {
 
   // Add Keywords Modal State
   const [showAddKeywordsModal, setShowAddKeywordsModal] = useState(false);
+  const [showQuickAddWebsiteModal, setShowQuickAddWebsiteModal] = useState(false);
+  const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string; website_url: string; industry?: string }>>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [seedKeywords, setSeedKeywords] = useState<string[]>(['']);
@@ -119,6 +121,18 @@ export default function KeywordsDashboard() {
   const [maxKeywordsPerSeed, setMaxKeywordsPerSeed] = useState(30);
   const [includeQuestions, setIncludeQuestions] = useState(true);
   const [includeRelated, setIncludeRelated] = useState(true);
+
+  // Quick Add Website Modal State
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [isAnalyzingWebsite, setIsAnalyzingWebsite] = useState(false);
+
+  // Manual Add Modal State
+  const [manualKeywords, setManualKeywords] = useState('');
+  const [selectedProfileForManual, setSelectedProfileForManual] = useState<string>('');
+  const [enrichWithDataForSEO, setEnrichWithDataForSEO] = useState(false);
+  const [isAddingManual, setIsAddingManual] = useState(false);
   const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
   const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
 
@@ -623,6 +637,160 @@ export default function KeywordsDashboard() {
     setIsGenerating(false);
   };
 
+  // Quick Add Website handlers
+  const handleQuickAddWebsite = async () => {
+    if (!websiteUrl.trim()) {
+      setGenerateError('Please enter a website URL');
+      return;
+    }
+
+    setIsAnalyzingWebsite(true);
+    setGenerateError(null);
+    setGenerateSuccess(null);
+
+    // Check credits
+    const creditResult = await checkCredits(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
+    if (!creditResult || creditResult.error || !creditResult.hasEnoughCredits) {
+      setRequiredCreditsForDialog(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
+      setShowOutOfCreditsDialog(true);
+      setIsAnalyzingWebsite(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/keywords/quick-add-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteUrl: websiteUrl.trim(),
+          businessName: businessName.trim() || undefined,
+          industry: industry.trim() || undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze website');
+      }
+
+      setGenerateSuccess(data);
+      
+      // Reload keywords
+      if (onboardingId) {
+        await loadKeywords(onboardingId);
+      } else {
+        await loadAllOnboardingKeywords();
+        await loadProfiles(); // Refresh profiles list
+      }
+
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setWebsiteUrl('');
+        setBusinessName('');
+        setIndustry('');
+        setGenerateSuccess(null);
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error analyzing website:', err);
+      setGenerateError(err.message);
+    } finally {
+      setIsAnalyzingWebsite(false);
+    }
+  };
+
+  const closeQuickAddWebsiteModal = () => {
+    setShowQuickAddWebsiteModal(false);
+    setWebsiteUrl('');
+    setBusinessName('');
+    setIndustry('');
+    setGenerateError(null);
+    setGenerateSuccess(null);
+    setIsAnalyzingWebsite(false);
+  };
+
+  // Manual Add handlers
+  const handleManualAdd = async () => {
+    if (!selectedProfileForManual) {
+      setGenerateError('Please select a project');
+      return;
+    }
+
+    const keywordList = manualKeywords
+      .split('\n')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    if (keywordList.length === 0) {
+      setGenerateError('Please enter at least one keyword');
+      return;
+    }
+
+    setIsAddingManual(true);
+    setGenerateError(null);
+    setGenerateSuccess(null);
+
+    try {
+      const response = await fetch('/api/keywords/manual-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: selectedProfileForManual,
+          keywords: keywordList,
+          enrichWithDataForSEO
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add keywords');
+      }
+
+      setGenerateSuccess(data);
+      
+      // Reload keywords
+      if (onboardingId) {
+        await loadKeywords(onboardingId);
+      } else {
+        await loadAllOnboardingKeywords();
+      }
+
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setManualKeywords('');
+        setGenerateSuccess(null);
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error adding keywords:', err);
+      setGenerateError(err.message);
+    } finally {
+      setIsAddingManual(false);
+    }
+  };
+
+  const closeManualAddModal = () => {
+    setShowManualAddModal(false);
+    setManualKeywords('');
+    setSelectedProfileForManual('');
+    setEnrichWithDataForSEO(false);
+    setGenerateError(null);
+    setGenerateSuccess(null);
+    setIsAddingManual(false);
+  };
+
+  // Load profiles for manual add
+  useEffect(() => {
+    if (showManualAddModal) {
+      loadProfiles();
+      if (profiles.length > 0 && !selectedProfileForManual) {
+        setSelectedProfileForManual(profiles[0].id);
+      }
+    }
+  }, [showManualAddModal]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center">
@@ -719,13 +887,29 @@ export default function KeywordsDashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <button 
-                  onClick={() => setShowAddKeywordsModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Keywords
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowAddKeywordsModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Generate Keywords
+                  </button>
+                  <button 
+                    onClick={() => setShowQuickAddWebsiteModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Quick Add Website
+                  </button>
+                  <button 
+                    onClick={() => setShowManualAddModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Manual Entry
+                  </button>
+                </div>
                 
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1265,13 +1449,256 @@ export default function KeywordsDashboard() {
            X
          </button>
        </div>
-     )}
+          )}
 
-     <OutOfCreditsDialog
-       open={showOutOfCreditsDialog}
-       onOpenChange={setShowOutOfCreditsDialog}
-       requiredCredits={requiredCreditsForDialog}
-     />
+          {/* Quick Add Website Modal */}
+          {showQuickAddWebsiteModal && (
+            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-8 my-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">Quick Add Website</h3>
+                    <p className="text-sm text-slate-500">Analyze a website and discover keywords automatically</p>
+                  </div>
+                  <button
+                    onClick={closeQuickAddWebsiteModal}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Website URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="example.com or https://example.com"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Business Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="My Law Firm"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Industry (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={industry}
+                      onChange={(e) => setIndustry(e.target.value)}
+                      placeholder="legal, technology, healthcare, etc."
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {generateError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700">{generateError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {generateSuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-green-900">Success!</p>
+                          <p className="text-sm text-green-700 mt-1">
+                            Generated {generateSuccess.keywordsGenerated} keywords for the website.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                    <button
+                      onClick={closeQuickAddWebsiteModal}
+                      className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleQuickAddWebsite}
+                      disabled={isAnalyzingWebsite || !websiteUrl.trim()}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      {isAnalyzingWebsite ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4" />
+                          Analyze Website
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Keyword Entry Modal */}
+          {showManualAddModal && (
+            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-8 my-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">Manual Keyword Entry</h3>
+                    <p className="text-sm text-slate-500">Add keywords you're already targeting</p>
+                  </div>
+                  <button
+                    onClick={closeManualAddModal}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {profiles.length > 0 ? (
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Select Project <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedProfileForManual}
+                        onChange={(e) => setSelectedProfileForManual(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-slate-900"
+                      >
+                        {profiles.map(profile => (
+                          <option key={profile.id} value={profile.id}>
+                            {profile.business_name || profile.website_url} {profile.industry ? `(${profile.industry})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-700">
+                          No projects found. Please add a website first.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Keywords <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-xs text-slate-500 mb-2">Enter one keyword per line</p>
+                    <textarea
+                      value={manualKeywords}
+                      onChange={(e) => setManualKeywords(e.target.value)}
+                      placeholder="personal injury lawyer&#10;car accident attorney&#10;workers compensation lawyer"
+                      rows={8}
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-900 placeholder-slate-400 font-mono text-sm"
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      {manualKeywords.split('\n').filter(k => k.trim()).length} keyword(s) entered
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enrichWithDataForSEO}
+                        onChange={(e) => setEnrichWithDataForSEO(e.target.checked)}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-slate-700">Enrich with DataForSEO metrics</span>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Fetch search volume, difficulty, and CPC for each keyword (uses DataForSEO API)
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {generateError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700">{generateError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {generateSuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-green-900">Success!</p>
+                          <p className="text-sm text-green-700 mt-1">
+                            Added {generateSuccess.added} keyword(s) to your project.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                    <button
+                      onClick={closeManualAddModal}
+                      className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleManualAdd}
+                      disabled={isAddingManual || !selectedProfileForManual || !manualKeywords.trim()}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      {isAddingManual ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          Add Keywords
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+      <OutOfCreditsDialog
+        open={showOutOfCreditsDialog}
+        onOpenChange={setShowOutOfCreditsDialog}
+        requiredCredits={requiredCreditsForDialog}
+      />
     </>
   );
 }

@@ -61,7 +61,7 @@ export default function CalendarPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingKeywordId, setGeneratingKeywordId] = useState<string | null>(null); // Track which keyword is generating
   const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
-  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high'; starred?: boolean; scheduled_for_generation?: boolean; generation_status?: 'pending'|'generating'|'generated'|'failed' }>>([]);
+  const [availableKeywords, setAvailableKeywords] = useState<Array<{ id: string; keyword: string; search_volume?: number; difficulty_score?: number; opportunity_level?: 'low'|'medium'|'high'; starred?: boolean; scheduled_for_generation?: boolean; generation_status?: 'pending'|'generating'|'generated'|'failed'; onboarding_profile_id?: string }>>([]);
   const [modalFilter, setModalFilter] = useState<'all'|'recommended'|'starred'>('all');
   const [keywordSearch, setKeywordSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -83,6 +83,11 @@ export default function CalendarPage() {
   const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
   const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(1);
 
+  // Website/Project filtering
+  const [websites, setWebsites] = useState<Array<{ id: string; business_name?: string; website_url: string; industry?: string }>>([]);
+  const [selectedWebsiteId, setSelectedWebsiteId] = useState<string>('all'); // 'all' or specific profile ID
+  const [websiteMap, setWebsiteMap] = useState<Map<string, { name: string; url: string }>>(new Map());
+
   // Debug: Track dialog state changes
   useEffect(() => {
     console.log('📊 Calendar - Dialog state changed:', showOutOfCreditsDialog, 'requiredCredits:', requiredCreditsForDialog);
@@ -94,7 +99,43 @@ export default function CalendarPage() {
     return String(h).padStart(2, '0');
   };
 
-  // Load keyword stats
+  // Load websites/profiles
+  useEffect(() => {
+    const loadWebsites = async () => {
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('user_onboarding_profiles')
+          .select('id, business_name, website_url, industry')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setWebsites(data || []);
+        
+        // Create map for quick lookups
+        const map = new Map<string, { name: string; url: string }>();
+        (data || []).forEach(profile => {
+          map.set(profile.id, {
+            name: profile.business_name || profile.website_url,
+            url: profile.website_url
+          });
+        });
+        setWebsiteMap(map);
+      } catch (err) {
+        console.error('Error loading websites:', err);
+      }
+    };
+
+    loadWebsites();
+  }, []);
+
+  // Load keyword stats (filtered by website if selected)
   useEffect(() => {
     const loadKeywordStats = async () => {
       try {
@@ -113,10 +154,17 @@ export default function CalendarPage() {
           return;
         }
 
-        const { data: keywords, error } = await supabase
+        let query = supabase
           .from('discovered_keywords')
           .select('opportunity_level, starred, scheduled_for_generation, generation_status')
           .eq('user_id', user.id);
+
+        // Filter by website if one is selected
+        if (selectedWebsiteId !== 'all') {
+          query = query.eq('onboarding_profile_id', selectedWebsiteId);
+        }
+
+        const { data: keywords, error } = await query;
 
         if (error) {
           console.error('Error loading keyword stats:', error);
@@ -141,7 +189,7 @@ export default function CalendarPage() {
     };
 
     loadKeywordStats();
-  }, []);
+  }, [selectedWebsiteId]);
 
   const [showPublicationModal, setShowPublicationModal] = useState(false);
   const [publicationInfo, setPublicationInfo] = useState<{
@@ -177,11 +225,19 @@ export default function CalendarPage() {
         if (!user) {
           setAvailableKeywords([]);
         } else {
-          const { data } = await supabase
+          let query = supabase
             .from('discovered_keywords')
-            .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level, starred')
+            .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level, starred, onboarding_profile_id')
             .eq('user_id', user.id)
+            .eq('scheduled_for_generation', false) // Only unscheduled keywords
             .order('created_at', { ascending: false });
+
+          // Filter by website if one is selected
+          if (selectedWebsiteId !== 'all') {
+            query = query.eq('onboarding_profile_id', selectedWebsiteId);
+          }
+
+          const { data } = await query;
           const allKeywords = (data || []);
           setAvailableKeywords(allKeywords.map((k: any) => ({ 
             id: k.id, 
@@ -191,7 +247,8 @@ export default function CalendarPage() {
             opportunity_level: k.opportunity_level,
             starred: !!k.starred,
             scheduled_for_generation: !!k.scheduled_for_generation,
-            generation_status: k.generation_status
+            generation_status: k.generation_status,
+            onboarding_profile_id: k.onboarding_profile_id
           })));
           setSelectedIds([]);
         }
@@ -344,6 +401,36 @@ export default function CalendarPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          {/* Website Selector */}
+          {websites.length > 0 && (
+            <div className="mb-6 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+                  Filter by Website:
+                </label>
+                <select
+                  value={selectedWebsiteId}
+                  onChange={(e) => setSelectedWebsiteId(e.target.value)}
+                  className="flex-1 max-w-xs px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
+                >
+                  <option value="all">All Websites</option>
+                  {websites.map(website => (
+                    <option key={website.id} value={website.id}>
+                      {website.business_name || website.website_url} {website.industry ? `(${website.industry})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedWebsiteId !== 'all' && websiteMap.has(selectedWebsiteId) && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">
+                      {websiteMap.get(selectedWebsiteId)?.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
@@ -448,6 +535,8 @@ export default function CalendarPage() {
                 onKeywordClick={handleKeywordClick}
                 onGenerateKeyword={handleGenerateNow}
                 generatingKeywordId={generatingKeywordId}
+                selectedWebsiteId={selectedWebsiteId}
+                websiteMap={websiteMap}
               />
             </div>
 

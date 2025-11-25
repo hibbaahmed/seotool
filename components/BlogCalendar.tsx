@@ -44,10 +44,12 @@ interface CalendarProps {
   onKeywordClick?: (keyword: ScheduledKeyword) => void;
   onGenerateKeyword?: (keyword: ScheduledKeyword) => void;
   generatingKeywordId?: string | null; // Track which keyword is currently generating
+  selectedWebsiteId?: string; // Filter by website
+  websiteMap?: Map<string, { name: string; url: string }>; // Map of website IDs to names
   className?: string;
 }
 
-export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, className = '' }: CalendarProps) {
+export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, selectedWebsiteId, websiteMap, className = '' }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
@@ -118,7 +120,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
       setLoading(false);
     };
     fetchData();
-  }, [currentDate]);
+  }, [currentDate, selectedWebsiteId]);
 
   // Get posts for a specific date
   const getPostsForDate = (date: Date) => {
