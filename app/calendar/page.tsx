@@ -120,13 +120,21 @@ export default function CalendarPage() {
           id: string;
           business_name?: string | null;
           website_url: string;
+          industry?: string | null;
         }>;
 
-        setWebsites(profiles);
+        const normalizedProfiles = profiles.map(profile => ({
+          id: profile.id,
+          business_name: profile.business_name ?? undefined,
+          website_url: profile.website_url,
+          industry: profile.industry ?? undefined,
+        }));
+
+        setWebsites(normalizedProfiles);
         
         // Create map for quick lookups
         const map = new Map<string, { name: string; url: string }>();
-        profiles.forEach(profile => {
+        normalizedProfiles.forEach(profile => {
           map.set(profile.id, {
             name: profile.business_name || profile.website_url,
             url: profile.website_url
