@@ -116,11 +116,17 @@ export default function CalendarPage() {
 
         if (error) throw error;
 
-        setWebsites(data || []);
+        const profiles = (data || []) as Array<{
+          id: string;
+          business_name?: string | null;
+          website_url: string;
+        }>;
+
+        setWebsites(profiles);
         
         // Create map for quick lookups
         const map = new Map<string, { name: string; url: string }>();
-        (data || []).forEach(profile => {
+        profiles.forEach(profile => {
           map.set(profile.id, {
             name: profile.business_name || profile.website_url,
             url: profile.website_url
