@@ -151,7 +151,7 @@ const HomePage = () => {
                         <div className="w-full max-w-4xl mx-auto mb-16">
                             <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
                                 <iframe
-                                    src="https://www.youtube.com/embed/Pr6s3PYr9_o"
+                                    src="https://www.youtube.com/embed/ddAeC8i8MPo"
                                     title="Bridgely product walkthrough"
                                     loading="lazy"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
