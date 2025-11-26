@@ -1167,7 +1167,7 @@ function insertPromotionHighlight(
       : '<li>White-glove execution across research, writing, and publishing.</li>';
 
   const cta = options.safeWebsiteUrl
-    ? `<a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">See pricing</a> in seconds.`
+    ? `<a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">Request a walkthrough</a> in minutes.`
     : `Contact ${options.safeBusinessName} to see how we can help.`;
 
   const highlightHtml = `
@@ -1219,7 +1219,7 @@ function insertMonitoringCallout(
     ? `<a href="${options.safeWebsiteUrl}" class="business-promotion-link" target="_blank" rel="noopener noreferrer">Open your dashboard</a>`
     : `Ask ${options.safeBusinessName} for a walkthrough`;
 
-  const noteHtml = `<p class="business-promotion-note">${options.safeBusinessName} keeps a running tally of projected spend, sends usage alerts, and lets you preview pricing before you launch—${cta} to stay ahead of surprises.</p>`;
+  const noteHtml = `<p class="business-promotion-note">${options.safeBusinessName} keeps a running tally of projected spend, sends usage alerts, and lets you review campaign plans before you launch—${cta} to stay ahead of surprises.</p>`;
   monitoringHeading.after(noteHtml);
   console.log('💼 Added monitoring & budgeting promotion note');
   return 1;
