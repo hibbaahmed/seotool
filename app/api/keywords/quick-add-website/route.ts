@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
     // Extract seed keywords from website (simplified approach)
     // Use domain name and common terms as seed keywords
     const domainParts = domain.split('.').filter(p => p.length > 2);
+    const normalizedBrand = normalizeKeyword(domainParts[0] || '');
     const seedKeywords = [
       domainParts[0], // Main domain name
       `${domainParts[0]} ${industry || 'services'}`,
@@ -113,28 +114,33 @@ export async function POST(request: NextRequest) {
           maxResults: 20 // Fewer keywords for quick add
         });
 
-        const keywordsToInsert = keywordSet.all.map(k => ({
-          user_id: user.id,
-          onboarding_profile_id: onboardingProfile.id,
-          keyword: k.keyword,
-          search_volume: k.searchVolume,
-          difficulty_score: k.difficulty,
-          keyword_type: k.type,
-          cpc: k.cpc,
-          opportunity_level: calculateOpportunityLevel(k.searchVolume, k.difficulty),
-          source: 'dataforseo',
-          keyword_intent: determineIntent(k.keyword),
-          related_keywords: k.relatedKeywords || [],
-          monthly_trends: k.monthlyTrends || [],
-          dataforseo_data: {
-            searchVolume: k.searchVolume,
-            difficulty: k.difficulty,
+        const keywordsToInsert = keywordSet.all
+          .filter(k => {
+            const normalizedKeyword = normalizeKeyword(k.keyword);
+            return normalizedKeyword && normalizedKeyword !== normalizedBrand;
+          })
+          .map(k => ({
+            user_id: user.id,
+            onboarding_profile_id: onboardingProfile.id,
+            keyword: k.keyword,
+            search_volume: k.searchVolume,
+            difficulty_score: k.difficulty,
+            keyword_type: k.type,
             cpc: k.cpc,
-            type: k.type,
-            fetchedAt: new Date().toISOString()
-          },
-          keyword_data_updated_at: new Date().toISOString()
-        }));
+            opportunity_level: calculateOpportunityLevel(k.searchVolume, k.difficulty),
+            source: 'dataforseo',
+            keyword_intent: determineIntent(k.keyword),
+            related_keywords: k.relatedKeywords || [],
+            monthly_trends: k.monthlyTrends || [],
+            dataforseo_data: {
+              searchVolume: k.searchVolume,
+              difficulty: k.difficulty,
+              cpc: k.cpc,
+              type: k.type,
+              fetchedAt: new Date().toISOString()
+            },
+            keyword_data_updated_at: new Date().toISOString()
+          }));
 
         allKeywords.push(...keywordsToInsert);
       } catch (err) {
@@ -215,5 +221,10 @@ function determineIntent(keyword: string): string {
   }
   
   return 'informational';
+}
+
+function normalizeKeyword(keyword?: string) {
+  if (!keyword) return '';
+  return keyword.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
