@@ -8,9 +8,15 @@ import PostHogPageView from "./PostHogPageView"
 
 export function PostHogProvider({ children }) {
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+      console.warn('PostHog key missing; analytics disabled')
+      return
+    }
+
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-      capture_pageview: false // Disable automatic pageview capture, as we capture manually
+      capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+      capture_pageleave: true
     })
   }, [])
 
