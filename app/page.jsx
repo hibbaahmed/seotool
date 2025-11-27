@@ -153,10 +153,10 @@ const HomePage = () => {
                             <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
                                 {cloudflareStreamId ? (
                                   <iframe
-                                    src={`https://iframe.videodelivery.net/${cloudflareStreamId}`}
+                                    src={`https://iframe.videodelivery.net/${cloudflareStreamId}?autoplay=true&muted=true`}
                                     title="Bridgely SEO automation tool demo"
                                     loading="lazy"
-                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture;"
+                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                     className="w-full h-full border-0"
                                   />
