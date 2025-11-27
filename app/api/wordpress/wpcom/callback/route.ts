@@ -146,19 +146,54 @@ export async function GET(request: NextRequest) {
     // Store sites in database
     const supabase = await createClient();
 
+    // Prefetch all onboarding profiles for this user so we can auto-link by domain
+    const { data: profiles, error: profilesError } = await supabase
+      .from('user_onboarding_profiles')
+      .select('id, website_url')
+      .eq('user_id', userId);
+
+    if (profilesError) {
+      console.error('Error fetching onboarding profiles for WordPress.com callback:', profilesError);
+    }
+
+    // Helper to resolve onboarding_profile_id for a given WordPress site URL
+    const resolveProfileIdForSite = (siteUrl: string): string | null => {
+      if (!profiles || profiles.length === 0) return null;
+
+      try {
+        const siteHost = new URL(siteUrl).hostname.replace(/^www\./, '').toLowerCase();
+        for (const profile of profiles as any[]) {
+          if (!profile.website_url) continue;
+          try {
+            const profileHost = new URL(profile.website_url).hostname.replace(/^www\./, '').toLowerCase();
+            if (profileHost === siteHost) {
+              return profile.id as string;
+            }
+          } catch {
+            // Ignore bad URLs in profiles
+          }
+        }
+      } catch {
+        // Ignore malformed WordPress site URLs
+      }
+      return null;
+    };
+
     // For each site, create or update a record
     for (const site of sitesData.sites) {
+      const resolvedProfileId = resolveProfileIdForSite(site.URL);
+
       // Check if site already exists
       const { data: existing } = await supabase
         .from('wordpress_sites')
-        .select('id')
+        .select('id, onboarding_profile_id')
         .eq('user_id', userId)
         .eq('site_id', site.ID.toString())
         .eq('provider', 'wpcom')
-        .single();
+        .maybeSingle();
 
       if (existing) {
-        // Update existing site
+        // Update existing site (preserve onboarding_profile_id if already set)
         await supabase
           .from('wordpress_sites')
           .update({
@@ -168,6 +203,7 @@ export async function GET(request: NextRequest) {
             // WordPress.com tokens don't expire by default, but we set a far future date
             token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             updated_at: new Date().toISOString(),
+            onboarding_profile_id: existing.onboarding_profile_id || resolvedProfileId || null,
           })
           .eq('id', existing.id);
       } else {
@@ -183,6 +219,7 @@ export async function GET(request: NextRequest) {
             access_token: accessToken,
             token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             is_active: true,
+            onboarding_profile_id: resolvedProfileId || null,
           });
       }
     }

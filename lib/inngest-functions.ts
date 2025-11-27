@@ -1615,21 +1615,66 @@ export const generateKeywordContent = inngest.createFunction(
         // Get the keyword's onboarding_profile_id to find the correct WordPress site
         const keywordProfileId = (keywordData as any).onboarding_profile_id;
         
-        let siteQuery = supabase
-          .from('wordpress_sites')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('is_active', true);
-        
-        // Filter by onboarding_profile_id if available to publish to the correct website
+        console.log(
+          `🔍 [Inngest] Looking for WordPress site with onboarding_profile_id: ${
+            keywordProfileId || 'NONE - MAY FALL BACK TO ANY ACTIVE SITE'
+          }`
+        );
+
+        let site: any = null;
+
+        // 1) Try strict match by onboarding_profile_id (website-aware)
         if (keywordProfileId) {
-          siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
+          const { data: matchedSites, error: matchError } = await supabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .eq('onboarding_profile_id', keywordProfileId)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (matchError) {
+            console.error('[Inngest] Error looking up WordPress sites by onboarding_profile_id:', matchError);
+          } else if (matchedSites && matchedSites.length > 0) {
+            site = matchedSites[0];
+            console.log(
+              `✅ [Inngest] Found WordPress site for website: ${(site as any).name} (${(site as any).url})`
+            );
+          } else {
+            console.log(
+              `❌ [Inngest] No WordPress site found for onboarding_profile_id: ${keywordProfileId}`
+            );
+          }
         }
-        
-        const { data: site } = await siteQuery
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+
+        // 2) Fallback: if no site yet, and user only has ONE active WordPress site, use it
+        if (!site) {
+          const { data: activeSites, error: activeError } = await supabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (activeError) {
+            console.error('[Inngest] Error looking up active WordPress sites for fallback:', activeError);
+          } else if (activeSites && activeSites.length === 1) {
+            site = activeSites[0];
+            console.log(
+              `⚠️ [Inngest] Falling back to single active WordPress site: ${(site as any).name} (${
+                (site as any).url
+              })`
+            );
+          } else if (activeSites && activeSites.length > 1) {
+            console.log(
+              '[Inngest] ⚠️ Multiple active WordPress sites found and no website-specific match; skipping auto-publish to avoid posting to wrong site.'
+            );
+          } else {
+            console.log('[Inngest] ⚠️ No active WordPress sites found for this user; skipping auto-publish.');
+          }
+        }
 
         if (site) {
           // Extract title and clean content using the same logic as original API route

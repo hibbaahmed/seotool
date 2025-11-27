@@ -832,32 +832,59 @@ export async function POST(request: NextRequest) {
         // Get the keyword's onboarding_profile_id to find the correct WordPress site
         const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;
         
-        console.log(`🔍 Looking for WordPress site with onboarding_profile_id: ${keywordProfileId || 'NONE - WILL SELECT ANY SITE!'}`);
+        console.log(`🔍 Looking for WordPress site with onboarding_profile_id: ${keywordProfileId || 'NONE - MAY FALL BACK TO ANY ACTIVE SITE'}`);
         
-        let siteQuery = serviceSupabase
-          .from('wordpress_sites')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_active', true);
-        
-        // Filter by onboarding_profile_id if available to publish to the correct website
+        let site: any = null;
+
+        // 1) Try strict match by onboarding_profile_id (website-aware)
         if (keywordProfileId) {
-          siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
+          const { data: matchedSites, error: matchError } = await serviceSupabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('onboarding_profile_id', keywordProfileId)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (matchError) {
+            console.error('Error looking up WordPress sites by onboarding_profile_id:', matchError);
+          } else if (matchedSites && matchedSites.length > 0) {
+            site = matchedSites[0];
+            console.log(`✅ Found WordPress site for website: ${(site as any).name} (${(site as any).url})`);
+          } else {
+            console.log(`❌ No WordPress site found for onboarding_profile_id: ${keywordProfileId}`);
+          }
         }
-        
-        const { data: site } = await siteQuery
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (site) {
-          console.log(`✅ Found WordPress site: ${(site as any).name} (${(site as any).url})`);
-          console.log(`   Site's onboarding_profile_id: ${(site as any).onboarding_profile_id || 'NONE'}`);
-        } else {
-          console.log(`❌ No WordPress site found for onboarding_profile_id: ${keywordProfileId}`);
+
+        // 2) Fallback: if no site yet, and user only has ONE active WordPress site, use it
+        if (!site) {
+          const { data: activeSites, error: activeError } = await serviceSupabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (activeError) {
+            console.error('Error looking up active WordPress sites for fallback:', activeError);
+          } else if (activeSites && activeSites.length === 1) {
+            site = activeSites[0];
+            console.log(
+              `⚠️ Falling back to single active WordPress site: ${(site as any).name} (${(site as any).url})`
+            );
+          } else if (activeSites && activeSites.length > 1) {
+            console.log(
+              '⚠️ Multiple active WordPress sites found and no website-specific match; skipping auto-publish to avoid posting to wrong site.'
+            );
+          } else {
+            console.log('⚠️ No active WordPress sites found for this user; skipping auto-publish.');
+          }
         }
 
         if (site) {
+          console.log(`✅ Using WordPress site for auto-publish: ${(site as any).name} (${(site as any).url})`);
         // Extract title from content_output - prioritize generated title over keyword
         const contentOutput = fullContent || '';
         let extractedTitle = null;
