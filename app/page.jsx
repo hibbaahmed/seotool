@@ -37,6 +37,7 @@ const FAQItem = ({ question, answer }) => {
 };
 const HomePage = () => {
     const router = useRouter();
+    const cloudflareStreamId = process.env.NEXT_PUBLIC_CF_STREAM_UID;
 
     useEffect(() => {
         const checkUserOnboarding = async () => {
@@ -150,15 +151,20 @@ const HomePage = () => {
                         {/* Demo Video */}
                         <div className="w-full max-w-4xl mx-auto mb-16">
                             <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-                                <iframe
-                                    src="https://www.youtube.com/embed/ddAeC8i8MPo"
-                                    title="Bridgely product walkthrough"
+                                {cloudflareStreamId ? (
+                                  <iframe
+                                    src={`https://iframe.videodelivery.net/${cloudflareStreamId}`}
+                                    title="Bridgely SEO automation tool demo"
                                     loading="lazy"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture;"
                                     allowFullScreen
-                                    referrerPolicy="strict-origin-when-cross-origin"
-                                    className="w-full h-full"
-                                />
+                                    className="w-full h-full border-0"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 text-sm">
+                                    Add NEXT_PUBLIC_CF_STREAM_UID to show the video
+                                  </div>
+                                )}
                             </div>
                         </div>
                         
