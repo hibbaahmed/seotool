@@ -594,26 +594,27 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 		console.warn('⚠️ Using fallback end_at (30 days from now):', subscriptionEndDate);
 	}
 
-	// During trial period, don't add credits - user has unlimited usage
-	// Credits will be added when trial ends and first payment succeeds
+	// During trial period, give 100 starter credits when they pay the setup fee
+	// Additional credits will be added when trial ends and subscription renews
 	if (isInTrial) {
-		console.log('🎉 User is in trial period - skipping credit allocation');
-		console.log('✅ Subscription info updated, but credits will be allocated after trial ends');
+		console.log('🎉 User is in trial period - allocating 100 starter credits');
+		console.log('✅ Subscription info updated with starter credits for paid trial');
 		
-		// Still update/create credits record with subscription info, but set credits to 0
-		// This ensures the record exists for when trial ends
+		const TRIAL_STARTER_CREDITS = 100;
+		
+		// Update/create credits record with 100 starter credits
 		let creditsError;
 		if (existingCredits) {
-			// Update existing record - keep existing credits, just update subscription info
-			console.log('🔄 Updating existing credits record (trial - no credit change):', {
+			// Update existing record - set to 100 credits for trial
+			console.log('🔄 Updating existing credits record (trial - adding starter credits):', {
 				oldCredits: existingCredits.credits,
-				keepingCredits: existingCredits.credits,
+				newCredits: TRIAL_STARTER_CREDITS,
 				end_at: subscriptionEndDate
 			});
 			const updateData: any = {
 				customer_id: customerId,
 				subscription_id: subscriptionId,
-				credits: existingCredits.credits, // Keep existing credits, don't add new ones
+				credits: TRIAL_STARTER_CREDITS, // Give 100 starter credits for paid trial
 				email: email,
 				end_at: subscriptionEndDate,
 			};
@@ -624,14 +625,14 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 				.eq("user_id", userId);
 			creditsError = error;
 		} else {
-			// Create new record with 0 credits during trial
-			console.log('➕ Creating credits record during trial (0 credits - unlimited usage):', subscriptionEndDate);
+			// Create new record with 100 starter credits during trial
+			console.log('➕ Creating credits record during trial (100 starter credits):', subscriptionEndDate);
 			const insertData: any = {
 				user_id: userId,
 				email: email,
 				customer_id: customerId,
 				subscription_id: subscriptionId,
-				credits: 0, // No credits during trial - unlimited usage
+				credits: TRIAL_STARTER_CREDITS, // Give 100 starter credits for paid trial
 				end_at: subscriptionEndDate,
 			};
 			
@@ -646,14 +647,15 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 			throw creditsError;
 		}
 		
-		console.log('✅ Successfully updated subscription and credits record (trial - no credits added):', {
+		console.log('✅ Successfully updated subscription and credits record (trial - 100 starter credits added):', {
 			userId,
 			subscription_id: subscriptionId,
 			customer_id: customerId,
 			email,
-			trialEndsAt
+			trialEndsAt,
+			starterCredits: TRIAL_STARTER_CREDITS
 		});
-		return; // Exit early - don't add credits during trial
+		return; // Exit early - starter credits allocated for trial
 	}
 
 	// Not in trial - add credits normally
