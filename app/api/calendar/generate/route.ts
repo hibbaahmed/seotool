@@ -741,6 +741,9 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Get onboarding_profile_id from keyword to link content to correct website
+    const onboarding_profile_id = keywordData ? (keywordData as any).onboarding_profile_id : null;
+
     const { data: savedContent, error: saveError } = await serviceSupabase
       .from('content_writer_outputs')
       .insert({
@@ -752,6 +755,7 @@ export async function POST(request: NextRequest) {
         length: 'long',
         content_output: fullContent,
         image_urls: finalImageUrls,
+        onboarding_profile_id, // Link content to the correct website
       })
       .select()
       .single();
@@ -807,11 +811,21 @@ export async function POST(request: NextRequest) {
 
     // Auto-publish to user's connected WordPress site if available
     try {
-      const { data: site } = await serviceSupabase
+      // Get the keyword's onboarding_profile_id to find the correct WordPress site
+      const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;
+      
+      let siteQuery = serviceSupabase
         .from('wordpress_sites')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
+        .eq('is_active', true);
+      
+      // Filter by onboarding_profile_id if available to publish to the correct website
+      if (keywordProfileId) {
+        siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
+      }
+      
+      const { data: site } = await siteQuery
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

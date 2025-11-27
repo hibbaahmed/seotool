@@ -12,11 +12,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: posts, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const onboardingProfileId = searchParams.get('onboarding_profile_id'); // Filter by website
+
+    let query = supabase
       .from('scheduled_posts')
       .select('*')
-      .eq('user_id', user.id)
-      .order('scheduled_date', { ascending: true });
+      .eq('user_id', user.id);
+
+    // Filter by website if specified
+    if (onboardingProfileId) {
+      query = query.eq('onboarding_profile_id', onboardingProfileId);
+    }
+
+    const { data: posts, error } = await query.order('scheduled_date', { ascending: true });
 
     if (error) {
       console.error('Error fetching scheduled posts:', error);
@@ -49,7 +58,8 @@ export async function POST(request: NextRequest) {
       platform = 'blog',
       notes,
       image_urls = [],
-      content_id
+      content_id,
+      onboarding_profile_id
     } = body;
 
     // Validate required fields
@@ -83,7 +93,8 @@ export async function POST(request: NextRequest) {
           platform,
           notes,
           image_urls,
-          content_id
+          content_id,
+          onboarding_profile_id
         })
         .select()
         .single();

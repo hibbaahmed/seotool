@@ -1541,6 +1541,9 @@ export const generateKeywordContent = inngest.createFunction(
 
     // Step 7: Save content to database
     const savedContent = await step.run('save-content', async () => {
+      // Get onboarding_profile_id from keyword to link content to correct website
+      const onboarding_profile_id = (keywordData as any).onboarding_profile_id || null;
+      
       const { data, error } = await supabase
         .from('content_writer_outputs')
         .insert({
@@ -1552,6 +1555,7 @@ export const generateKeywordContent = inngest.createFunction(
           length: 'long',
           content_output: processedContent,
           image_urls: uploadedImageUrls,
+          onboarding_profile_id, // Link content to the correct website
         })
         .select()
         .single();
@@ -1594,11 +1598,21 @@ export const generateKeywordContent = inngest.createFunction(
     // Step 10: Auto-publish to WordPress if configured (optional, non-blocking)
     try {
       await step.run('auto-publish-wordpress', async () => {
-        const { data: site } = await supabase
+        // Get the keyword's onboarding_profile_id to find the correct WordPress site
+        const keywordProfileId = (keywordData as any).onboarding_profile_id;
+        
+        let siteQuery = supabase
           .from('wordpress_sites')
           .select('*')
           .eq('user_id', userId)
-          .eq('is_active', true)
+          .eq('is_active', true);
+        
+        // Filter by onboarding_profile_id if available to publish to the correct website
+        if (keywordProfileId) {
+          siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
+        }
+        
+        const { data: site } = await siteQuery
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
