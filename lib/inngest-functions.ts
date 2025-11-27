@@ -1598,6 +1598,20 @@ export const generateKeywordContent = inngest.createFunction(
     // Step 10: Auto-publish to WordPress if configured (optional, non-blocking)
     try {
       await step.run('auto-publish-wordpress', async () => {
+        // CRITICAL: Check if content has already been published to prevent duplicates
+        const { data: existingPublish } = await supabase
+          .from('publishing_logs')
+          .select('id, post_id, site_id')
+          .eq('content_id', savedContent.id)
+          .eq('user_id', userId)
+          .eq('status', 'published')
+          .maybeSingle();
+
+        if (existingPublish) {
+          console.log(`⏭️ Content already published (post_id: ${existingPublish.post_id}), skipping auto-publish`);
+          return; // Skip publishing if already done
+        }
+
         // Get the keyword's onboarding_profile_id to find the correct WordPress site
         const keywordProfileId = (keywordData as any).onboarding_profile_id;
         

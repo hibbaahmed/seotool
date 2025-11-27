@@ -167,6 +167,9 @@ export async function POST(request: NextRequest) {
 
       keywordData = data;
       keywordText = data.keyword;
+      
+      console.log(`📌 Keyword loaded: "${keywordText}"`);
+      console.log(`📌 Keyword onboarding_profile_id: ${data.onboarding_profile_id || 'NONE - THIS IS THE PROBLEM!'}`);
 
       // Update status to generating
       await supabase
@@ -743,6 +746,8 @@ export async function POST(request: NextRequest) {
 
     // Get onboarding_profile_id from keyword to link content to correct website
     const onboarding_profile_id = keywordData ? (keywordData as any).onboarding_profile_id : null;
+    
+    console.log(`💾 Saving content with onboarding_profile_id: ${onboarding_profile_id || 'NONE - THIS IS THE PROBLEM!'}`);
 
     const { data: savedContent, error: saveError } = await serviceSupabase
       .from('content_writer_outputs')
@@ -811,26 +816,48 @@ export async function POST(request: NextRequest) {
 
     // Auto-publish to user's connected WordPress site if available
     try {
-      // Get the keyword's onboarding_profile_id to find the correct WordPress site
-      const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;
-      
-      let siteQuery = serviceSupabase
-        .from('wordpress_sites')
-        .select('*')
+      // CRITICAL: Check if content has already been published to prevent duplicates
+      const { data: existingPublish } = await serviceSupabase
+        .from('publishing_logs')
+        .select('id, post_id, site_id')
+        .eq('content_id', savedContent.id)
         .eq('user_id', user.id)
-        .eq('is_active', true);
-      
-      // Filter by onboarding_profile_id if available to publish to the correct website
-      if (keywordProfileId) {
-        siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
-      }
-      
-      const { data: site } = await siteQuery
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('status', 'published')
         .maybeSingle();
 
-      if (site) {
+      if (existingPublish) {
+        console.log(`⏭️ Content already published (post_id: ${existingPublish.post_id}), skipping auto-publish`);
+        publishingSucceeded = true; // Mark as succeeded since it was already published
+      } else {
+        // Get the keyword's onboarding_profile_id to find the correct WordPress site
+        const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;
+        
+        console.log(`🔍 Looking for WordPress site with onboarding_profile_id: ${keywordProfileId || 'NONE - WILL SELECT ANY SITE!'}`);
+        
+        let siteQuery = serviceSupabase
+          .from('wordpress_sites')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+        
+        // Filter by onboarding_profile_id if available to publish to the correct website
+        if (keywordProfileId) {
+          siteQuery = siteQuery.eq('onboarding_profile_id', keywordProfileId);
+        }
+        
+        const { data: site } = await siteQuery
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (site) {
+          console.log(`✅ Found WordPress site: ${(site as any).name} (${(site as any).url})`);
+          console.log(`   Site's onboarding_profile_id: ${(site as any).onboarding_profile_id || 'NONE'}`);
+        } else {
+          console.log(`❌ No WordPress site found for onboarding_profile_id: ${keywordProfileId}`);
+        }
+
+        if (site) {
         // Extract title from content_output - prioritize generated title over keyword
         const contentOutput = fullContent || '';
         let extractedTitle = null;
@@ -1335,6 +1362,7 @@ export async function POST(request: NextRequest) {
         
         console.log('✅ Calendar content auto-published to WordPress:', publishResult);
         publishingSucceeded = true;
+        }
       }
     } catch (autoPublishError) {
       // CRITICAL: Publishing failed - throw error to prevent credit deduction

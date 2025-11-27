@@ -1154,7 +1154,14 @@ export default function CalendarPage() {
                           />
                           <div className="flex flex-col">
                             <span className="text-slate-900 text-sm font-medium">{k.keyword}</span>
-                            <span className="text-xs text-slate-500">Volume: {k.search_volume?.toLocaleString?.() || 0} · Difficulty: {k.difficulty_score ?? 0}</span>
+                            <span className="text-xs text-slate-500">
+                              Volume: {k.search_volume?.toLocaleString?.() || 0} · Difficulty: {k.difficulty_score ?? 0}
+                              {k.onboarding_profile_id && websiteMap.has(k.onboarding_profile_id) && (
+                                <span className="ml-2 text-blue-600 font-medium">
+                                  • {websiteMap.get(k.onboarding_profile_id)?.name}
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1322,6 +1329,7 @@ export default function CalendarPage() {
 
                       for (let i=0;i<selectedIds.length;i++){
                         const id = selectedIds[i];
+                        const keyword = availableKeywords.find(k => k.id === id);
                         const time = baseTime;
                         // Determine scheduled date
                         let scheduled_date = start;
@@ -1332,6 +1340,7 @@ export default function CalendarPage() {
 
                         const requestBody = { keyword_id: id, scheduled_date, scheduled_time: time };
                         console.log(`📤 Scheduling keyword ${i+1}/${selectedIds.length}:`, requestBody);
+                        console.log(`   Keyword: "${keyword?.keyword}", Website: ${keyword?.onboarding_profile_id ? websiteMap.get(keyword.onboarding_profile_id)?.name : 'NO WEBSITE'}`);
 
                         const response = await fetch('/api/calendar/keywords', {
                           method: 'POST',
