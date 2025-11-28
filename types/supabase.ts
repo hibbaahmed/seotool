@@ -394,33 +394,51 @@ export interface Database {
       }
       wordpress_sites: {
         Row: {
+          access_token: string | null
           created_at: string
           id: string
           is_active: boolean
           name: string
+          onboarding_profile_id: string | null
           password: string
+          provider: string
+          refresh_token: string | null
+          site_id: string | null
+          token_expires_at: string | null
           updated_at: string
           url: string
           user_id: string
           username: string
         }
         Insert: {
+          access_token?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           name: string
+          onboarding_profile_id?: string | null
           password: string
+          provider: string
+          refresh_token?: string | null
+          site_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           url: string
           user_id: string
           username: string
         }
         Update: {
+          access_token?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           name?: string
+          onboarding_profile_id?: string | null
           password?: string
+          provider?: string
+          refresh_token?: string | null
+          site_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           url?: string
           user_id?: string
