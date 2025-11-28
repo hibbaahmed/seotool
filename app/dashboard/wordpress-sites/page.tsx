@@ -127,26 +127,18 @@ export default function WordPressSitesPage() {
 
   const handleWebsiteMappingChange = async (site: WordPressSite, profileId: string | null) => {
     try {
-      const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('You must be logged in to update website mapping.');
-        return;
-      }
+      const response = await fetch('/api/wordpress/sites/mapping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: site.id,
+          onboarding_profile_id: profileId,
+        }),
+      });
 
-      const updatePayload: Database['public']['Tables']['wordpress_sites']['Update'] = {
-        onboarding_profile_id: profileId,
-      };
-
-      const { error } = await supabase
-        .from('wordpress_sites')
-        .update(updatePayload)
-        .eq('id', site.id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error updating website mapping for WordPress site:', error);
-        setError('Failed to update website mapping. Please try again.');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Failed to update website mapping.' }));
+        setError(data.error || 'Failed to update website mapping. Please try again.');
         return;
       }
 
