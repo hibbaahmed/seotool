@@ -1468,7 +1468,14 @@ export async function POST(request: NextRequest) {
         
         // Add strategic business promotion mentions throughout the article
         try {
-          const { addBusinessPromotionToContent } = await import('@/lib/add-links-to-content');
+          const businessPromotionModule = await import('@/lib/add-links-to-content');
+          const addBusinessPromotionToContent: (
+            content: string,
+            userId: string,
+            maxMentions?: number,
+            onboardingProfileId?: string | null
+          ) => Promise<{ linkedContent: string; mentionsAdded: number }> = businessPromotionModule.addBusinessPromotionToContent;
+          
           console.log('💼 Attempting to add business promotion mentions...');
           // Get the keyword's onboarding_profile_id to use the correct business profile
           const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;

@@ -552,11 +552,16 @@ export async function addExternalLinksToContent(
 /**
  * Add strategic business mentions throughout content
  * Places mentions naturally without being promotional
+ * @param content - The HTML or markdown content to add mentions to
+ * @param userId - The user ID to fetch business information for
+ * @param maxMentions - Maximum number of business mentions to add (default: 4)
+ * @param onboardingProfileId - Optional profile ID for multi-website support
  */
 export async function addBusinessPromotionToContent(
   content: string,
   userId: string,
-  maxMentions: number = 4
+  maxMentions: number = 4,
+  onboardingProfileId?: string | null
 ): Promise<{ linkedContent: string; mentionsAdded: number }> {
   try {
     console.log('💼 Starting business promotion process');
@@ -582,14 +587,25 @@ export async function addBusinessPromotionToContent(
       return { linkedContent: content, mentionsAdded: 0 };
     }
     
-    const { data: onboardingProfile, error } = await supabase
+    // Build query for onboarding profile
+    let profileQuery = supabase
       .from('user_onboarding_profiles')
       .select('business_name, website_url, business_description')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
+    
+    // If onboarding_profile_id is provided, filter by it (for multi-website support)
+    if (onboardingProfileId) {
+      profileQuery = profileQuery.eq('id', onboardingProfileId);
+      console.log(`💼 Looking for business info for profile: ${onboardingProfileId}`);
+    }
+    
+    // Use .maybeSingle() if we have a profile ID, otherwise use .single() for backward compatibility
+    const { data: onboardingProfile, error } = onboardingProfileId
+      ? await profileQuery.maybeSingle()
+      : await profileQuery.single();
     
     if (error || !onboardingProfile || !onboardingProfile.business_name) {
-      console.log('⚠️ No business information found for user');
+      console.log(`⚠️ No business information found for user${onboardingProfileId ? ` (profile: ${onboardingProfileId})` : ''}`);
       return { linkedContent: content, mentionsAdded: 0 };
     }
     

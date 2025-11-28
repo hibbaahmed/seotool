@@ -813,10 +813,13 @@ export async function POST(request: NextRequest) {
         // Add business promotion mentions
         try {
           console.log('💼 Attempting to add business promotion mentions...');
+          // Get onboarding_profile_id from content for multi-website support
+          const contentProfileId = (content as any)?.onboarding_profile_id || null;
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            4
+            4,
+            contentProfileId // Pass the profile ID for multi-website support
           );
           if (mentionsAdded > 0) {
             console.log(`✅ Successfully added ${mentionsAdded} business mentions`);
@@ -870,10 +873,13 @@ export async function POST(request: NextRequest) {
         
         // Add business promotion mentions
         try {
+          // Get onboarding_profile_id from content for multi-website support
+          const contentProfileId = (content as any)?.onboarding_profile_id || null;
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            4
+            4,
+            contentProfileId // Pass the profile ID for multi-website support
           );
           if (mentionsAdded > 0) {
             htmlContent = promotedContent;
@@ -989,10 +995,13 @@ export async function POST(request: NextRequest) {
       
       // Add business promotion
       try {
+        // Get onboarding_profile_id from content for multi-website support
+        const contentProfileId = (content as any)?.onboarding_profile_id || null;
         const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
           finalContent,
           user.id,
-          4
+          4,
+          contentProfileId // Pass the profile ID for multi-website support
         );
         if (mentionsAdded > 0) {
           finalContent = promotedContent;
