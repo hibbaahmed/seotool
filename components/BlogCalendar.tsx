@@ -14,10 +14,6 @@ interface ScheduledPost {
   publish_url?: string;
   notes?: string;
   image_urls?: string[];
-  onboarding_profile_id?: string;
-  content_writer_outputs?: {
-    onboarding_profile_id?: string;
-  };
 }
 
 interface ScheduledKeyword {
@@ -40,7 +36,6 @@ interface ScheduledKeyword {
     siteUrl?: string;
     publishUrl?: string;
   };
-  onboarding_profile_id?: string;
 }
 
 interface CalendarProps {
@@ -49,12 +44,10 @@ interface CalendarProps {
   onKeywordClick?: (keyword: ScheduledKeyword) => void;
   onGenerateKeyword?: (keyword: ScheduledKeyword) => void;
   generatingKeywordId?: string | null; // Track which keyword is currently generating
-  selectedWebsiteId?: string; // Filter by website
-  websiteMap?: Map<string, { name: string; url: string }>; // Map of website IDs to names
   className?: string;
 }
 
-export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, selectedWebsiteId, websiteMap, className = '' }: CalendarProps) {
+export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, className = '' }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
@@ -94,19 +87,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
   // Fetch scheduled posts and keywords
   const fetchScheduledPosts = async () => {
     try {
-      const params = new URLSearchParams();
-      if (selectedWebsiteId && selectedWebsiteId !== 'all') {
-        params.set('onboarding_profile_id', selectedWebsiteId);
-      }
-      const url = params.size > 0 ? `/api/calendar/posts?${params.toString()}` : '/api/calendar/posts';
-      const response = await fetch(url);
+      const response = await fetch('/api/calendar/posts');
       if (response.ok) {
         const posts = await response.json();
-        // Fallback filtering in case API does not yet support onboarding filter
-        const filteredPosts = selectedWebsiteId && selectedWebsiteId !== 'all'
-          ? posts.filter((post: any) => post.onboarding_profile_id === selectedWebsiteId || post?.content_writer_outputs?.onboarding_profile_id === selectedWebsiteId)
-          : posts;
-        setScheduledPosts(filteredPosts);
+        setScheduledPosts(posts);
       }
     } catch (error) {
       console.error('Error fetching scheduled posts:', error);
@@ -117,17 +101,10 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
     try {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const params = new URLSearchParams({ month: `${year}-${month}` });
-      if (selectedWebsiteId && selectedWebsiteId !== 'all') {
-        params.set('onboarding_profile_id', selectedWebsiteId);
-      }
-      const response = await fetch(`/api/calendar/keywords?${params.toString()}`);
+      const response = await fetch(`/api/calendar/keywords?month=${year}-${month}`);
       if (response.ok) {
         const keywords = await response.json();
-        const filteredKeywords = selectedWebsiteId && selectedWebsiteId !== 'all'
-          ? keywords.filter((keyword: any) => keyword.onboarding_profile_id === selectedWebsiteId)
-          : keywords;
-        setScheduledKeywords(filteredKeywords);
+        setScheduledKeywords(keywords);
       }
     } catch (error) {
       console.error('Error fetching scheduled keywords:', error);
@@ -141,7 +118,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
       setLoading(false);
     };
     fetchData();
-  }, [currentDate, selectedWebsiteId]);
+  }, [currentDate]);
 
   // Get posts for a specific date
   const getPostsForDate = (date: Date) => {
@@ -739,6 +716,5 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
     </div>
   );
 }
-
 
 
