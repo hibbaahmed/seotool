@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, url, username, password, onboarding_profile_id } = body;
+    const { name, url, username, password } = body;
 
     if (!name || !url || !username || !password) {
       return NextResponse.json({ 
@@ -61,41 +61,11 @@ export async function POST(request: NextRequest) {
 
     const wpAPI = new WordPressAPI(testSite);
     const isConnected = await wpAPI.testConnection();
-    
+
     if (!isConnected) {
       return NextResponse.json({ 
         error: 'Failed to connect to WordPress site. Please check your credentials.' 
       }, { status: 400 });
-    }
-
-    // Try to determine which website (onboarding profile) this WordPress site belongs to
-    let resolvedProfileId: string | null = onboarding_profile_id || null;
-    try {
-      if (!resolvedProfileId) {
-        const siteHost = new URL(url).hostname.replace(/^www\./, '');
-
-        const { data: profiles } = await supabase
-          .from('user_onboarding_profiles')
-          .select('id, website_url')
-          .eq('user_id', user.id);
-
-        if (profiles && profiles.length > 0) {
-          for (const profile of profiles as any[]) {
-            if (!profile.website_url) continue;
-            try {
-              const profileHost = new URL(profile.website_url).hostname.replace(/^www\./, '');
-              if (profileHost === siteHost) {
-                resolvedProfileId = profile.id;
-                break;
-              }
-            } catch {
-              // Ignore invalid URLs
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error resolving onboarding_profile_id for WordPress site:', e);
     }
 
     // Save the site to database
@@ -108,7 +78,6 @@ export async function POST(request: NextRequest) {
         username,
         password, // In production, encrypt this
         is_active: true,
-        onboarding_profile_id: resolvedProfileId,
       } as any)
       .select()
       .single();

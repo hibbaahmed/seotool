@@ -1019,12 +1019,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the publishing activity
-    // Try to link the log to the correct website/project via onboarding_profile_id
-    const onboardingProfileId =
-      (content as any).onboarding_profile_id ||
-      (site as any).onboarding_profile_id ||
-      null;
-
     await supabase
       .from('publishing_logs')
       .insert({
@@ -1035,7 +1029,6 @@ export async function POST(request: NextRequest) {
         post_id: publishedPost.id,
         status: 'published',
         published_at: new Date().toISOString(),
-        onboarding_profile_id: onboardingProfileId,
       } as any);
 
     return NextResponse.json({ 
