@@ -1184,28 +1184,54 @@ export const generateKeywordContent = inngest.createFunction(
       return videoList;
     });
 
-    // Step 5: Fetch user's business information for personalized CTA
+    // Step 5: Fetch website-specific business information for personalized CTA
     const { businessName, websiteUrl } = await step.run('fetch-business-info', async () => {
       try {
-        const { data: profileData } = await supabase
-          .from('user_onboarding_profiles')
-          .select('business_name, website_url')
-          .eq('user_id', userId)
-          .single();
-        
+        // Prefer the onboarding profile linked to this keyword (per-website branding)
+        let profileData: { business_name?: string | null; website_url?: string | null } | null = null;
+
+        const keywordProfileId =
+          keywordData && (keywordData as any).onboarding_profile_id
+            ? (keywordData as any).onboarding_profile_id
+            : null;
+
+        if (keywordProfileId) {
+          const { data } = await supabase
+            .from('user_onboarding_profiles')
+            .select('business_name, website_url')
+            .eq('id', keywordProfileId)
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (data) {
+            profileData = data;
+          }
+        }
+
+        // Fallback: any profile for this user
+        if (!profileData) {
+          const { data } = await supabase
+            .from('user_onboarding_profiles')
+            .select('business_name, website_url')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (data) {
+            profileData = data;
+          }
+        }
+
         if (profileData) {
           return {
             businessName: profileData.business_name || 'our company',
-            websiteUrl: profileData.website_url || ''
+            websiteUrl: profileData.website_url || '',
           };
         }
       } catch (error) {
         console.warn('⚠️ Could not fetch business profile:', error);
       }
-      
+
       return {
         businessName: 'our company',
-        websiteUrl: ''
+        websiteUrl: '',
       };
     });
     

@@ -407,20 +407,52 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Calendar image upload failed:', fallbackErr);
     }
 
-    // Fetch user's business information for personalized CTA
+    // Fetch website-specific business information for personalized CTA
     let businessName = 'our company';
     let websiteUrl = '';
     try {
-      const { data: profileData } = await supabase
-        .from('user_onboarding_profiles')
-        .select('business_name, website_url')
-        .eq('user_id', user.id)
-        .single();
-      
+      // Prefer the onboarding profile linked to this keyword (per-website branding)
+      let profileData: { business_name?: string | null; website_url?: string | null } | null = null;
+
+      const keywordProfileId =
+        keywordData && (keywordData as any).onboarding_profile_id
+          ? (keywordData as any).onboarding_profile_id
+          : null;
+
+      if (keywordProfileId) {
+        const { data } = await supabase
+          .from('user_onboarding_profiles')
+          .select('business_name, website_url')
+          .eq('id', keywordProfileId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (data) {
+          profileData = data;
+        }
+      }
+
+      // Fallback: any profile for this user
+      if (!profileData) {
+        const { data } = await supabase
+          .from('user_onboarding_profiles')
+          .select('business_name, website_url')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (data) {
+          profileData = data;
+        }
+      }
+
       if (profileData) {
         businessName = profileData.business_name || 'our company';
         websiteUrl = profileData.website_url || '';
-        console.log(`✅ Using business name: ${businessName}`);
+        console.log('✅ Using business profile for content generation:', {
+          businessName,
+          websiteUrl,
+          keywordProfileId: keywordProfileId || 'none',
+        });
+      } else {
+        console.log('ℹ️ No business profile found; using defaults.');
       }
     } catch (profileError) {
       console.warn('⚠️ Could not fetch business profile, using default:', profileError);
