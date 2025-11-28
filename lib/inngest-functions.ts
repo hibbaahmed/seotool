@@ -1622,14 +1622,142 @@ export const generateKeywordContent = inngest.createFunction(
     // Step 10: Auto-publish to WordPress if configured (optional, non-blocking)
     try {
       await step.run('auto-publish-wordpress', async () => {
-        const { data: site } = await supabase
-          .from('wordpress_sites')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Get the keyword's onboarding_profile_id to find the correct WordPress site
+        const keywordProfileId = keywordData && (keywordData as any).onboarding_profile_id
+          ? (keywordData as any).onboarding_profile_id
+          : null;
+        
+        console.log(`🔍 [Inngest] Looking for WordPress site with onboarding_profile_id: ${keywordProfileId || 'NONE - MAY FALL BACK TO ANY ACTIVE SITE'}`);
+        
+        let site: any = null;
+
+        // 1) Try strict match by onboarding_profile_id (website-aware)
+        if (keywordProfileId) {
+          const { data: matchedSites, error: matchError } = await supabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .eq('onboarding_profile_id', keywordProfileId)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (matchError) {
+            console.error('[Inngest] Error looking up WordPress sites by onboarding_profile_id:', matchError);
+          } else if (matchedSites && matchedSites.length > 0) {
+            site = matchedSites[0];
+            console.log('[Inngest] ✅ Found WordPress site for website by onboarding_profile_id:', {
+              id: site.id,
+              name: site.name,
+              url: site.url,
+              onboarding_profile_id: site.onboarding_profile_id,
+            });
+          } else {
+            console.log(`[Inngest] ❌ No WordPress site found for onboarding_profile_id: ${keywordProfileId}`);
+          }
+        }
+
+        // 2) If still no site but we know the website, try domain-based matching
+        if (!site && keywordProfileId) {
+          try {
+            const { data: profile } = await supabase
+              .from('user_onboarding_profiles')
+              .select('id, website_url')
+              .eq('id', keywordProfileId)
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            if (profile && profile.website_url) {
+              const profileHost = new URL(profile.website_url).hostname.replace(/^www\./, '').toLowerCase();
+              const { data: allActiveSites } = await supabase
+                .from('wordpress_sites')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('is_active', true);
+
+              if (allActiveSites && allActiveSites.length > 0) {
+                const domainMatches = allActiveSites.filter((s: any) => {
+                  try {
+                    const host = new URL(s.url).hostname.replace(/^www\./, '').toLowerCase();
+                    return host === profileHost;
+                  } catch {
+                    return false;
+                  }
+                });
+
+                if (domainMatches.length === 1) {
+                  site = domainMatches[0];
+                  console.log('[Inngest] ✅ Domain-based WordPress match for website:', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                    site_id: site.id,
+                    site_name: site.name,
+                    site_url: site.url,
+                  });
+
+                  // Persist the mapping for future requests if not already set
+                  if (!site.onboarding_profile_id) {
+                    await supabase
+                      .from('wordpress_sites')
+                      .update({ onboarding_profile_id: keywordProfileId })
+                      .eq('id', site.id);
+                    console.log('[Inngest] 🔗 Persisted onboarding_profile_id on wordpress_sites:', {
+                      site_id: site.id,
+                      onboarding_profile_id: keywordProfileId,
+                    });
+                  }
+                } else if (domainMatches.length > 1) {
+                  console.log('[Inngest] ⚠️ Multiple WordPress sites share the same domain; cannot pick a single match.', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                    count: domainMatches.length,
+                  });
+                } else {
+                  console.log('[Inngest] ℹ️ No WordPress sites matched website domain for domain-based lookup.', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                  });
+                }
+              }
+            }
+          } catch (domainError) {
+            console.error('[Inngest] Error during domain-based WordPress site matching:', domainError);
+          }
+        }
+
+        // 3) Fallback: ONLY if we don't have a specific keywordProfileId (for backward compatibility)
+        // If we have a keywordProfileId, we MUST find a matching site - don't fall back to wrong site
+        if (!site && !keywordProfileId) {
+          const { data: activeSites, error: activeError } = await supabase
+            .from('wordpress_sites')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(2);
+
+          if (activeError) {
+            console.error('[Inngest] Error looking up active WordPress sites for fallback:', activeError);
+          } else if (activeSites && activeSites.length === 1) {
+            site = activeSites[0];
+            console.log(
+              `[Inngest] ⚠️ Falling back to single active WordPress site (no keyword profile specified): ${site.name} (${site.url})`
+            );
+          } else if (activeSites && activeSites.length > 1) {
+            console.log(
+              '[Inngest] ⚠️ Multiple active WordPress sites found and no website-specific match; skipping auto-publish to avoid posting to wrong site.',
+            );
+          } else {
+            console.log('[Inngest] ⚠️ No active WordPress sites found for this user; skipping auto-publish.');
+          }
+        } else if (!site && keywordProfileId) {
+          // We have a keywordProfileId but couldn't find a matching site - this is a problem
+          console.error(
+            `[Inngest] ❌ CRITICAL: Keyword has onboarding_profile_id (${keywordProfileId}) but no matching WordPress site found. ` +
+            `Skipping auto-publish to prevent posting to wrong website. ` +
+            `Please ensure the WordPress site for this website is linked correctly.`
+          );
+        }
 
         if (site) {
           // Extract title and clean content using the same logic as original API route
@@ -1714,10 +1842,12 @@ export const generateKeywordContent = inngest.createFunction(
           try {
             const { addBusinessPromotionToContent } = await import('@/lib/add-links-to-content');
             console.log('💼 Attempting to add business promotion mentions...');
+            // Use the keyword's onboarding_profile_id for multi-website support
             const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
               finalHtml,
               userId,
-              4 // Add up to 4 business mentions
+              4, // Add up to 4 business mentions
+              keywordProfileId // Pass the profile ID for multi-website support
             );
             if (mentionsAdded > 0) {
               console.log(`✅ Successfully added ${mentionsAdded} business promotion mentions`);

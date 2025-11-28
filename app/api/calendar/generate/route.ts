@@ -967,8 +967,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 3) Fallback: if no site yet, and user only has ONE active WordPress site, use it
-        if (!site) {
+        // 3) Fallback: ONLY if we don't have a specific keywordProfileId (for backward compatibility)
+        // If we have a keywordProfileId, we MUST find a matching site - don't fall back to wrong site
+        if (!site && !keywordProfileId) {
           const { data: activeSites, error: activeError } = await serviceSupabase
             .from('wordpress_sites')
             .select('id, name, url, onboarding_profile_id, is_active, provider, site_id')
@@ -982,7 +983,7 @@ export async function POST(request: NextRequest) {
           } else if (activeSites && activeSites.length === 1) {
             site = activeSites[0];
             console.log(
-              `⚠️ Falling back to single active WordPress site: ${(site as any).name} (${(site as any).url})`
+              `⚠️ Falling back to single active WordPress site (no keyword profile specified): ${(site as any).name} (${(site as any).url})`
             );
           } else if (activeSites && activeSites.length > 1) {
             console.log(
@@ -991,6 +992,13 @@ export async function POST(request: NextRequest) {
           } else {
             console.log('⚠️ No active WordPress sites found for this user; skipping auto-publish.');
           }
+        } else if (!site && keywordProfileId) {
+          // We have a keywordProfileId but couldn't find a matching site - this is a problem
+          console.error(
+            `❌ CRITICAL: Keyword has onboarding_profile_id (${keywordProfileId}) but no matching WordPress site found. ` +
+            `Skipping auto-publish to prevent posting to wrong website. ` +
+            `Please ensure the WordPress site for this website is linked correctly.`
+          );
         }
 
         if (site) {
@@ -1462,10 +1470,13 @@ export async function POST(request: NextRequest) {
         try {
           const { addBusinessPromotionToContent } = await import('@/lib/add-links-to-content');
           console.log('💼 Attempting to add business promotion mentions...');
+          // Get the keyword's onboarding_profile_id to use the correct business profile
+          const keywordProfileId = keywordData ? (keywordData as any).onboarding_profile_id : null;
           const { linkedContent: promotedContent, mentionsAdded } = await addBusinessPromotionToContent(
             htmlContent,
             user.id,
-            4 // Add up to 4 business mentions
+            4, // Add up to 4 business mentions
+            keywordProfileId // Pass the profile ID for multi-website support
           );
           if (mentionsAdded > 0) {
             console.log(`✅ Successfully added ${mentionsAdded} business promotion mentions`);
