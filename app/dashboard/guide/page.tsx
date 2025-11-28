@@ -264,6 +264,66 @@ export default function GuidePage() {
                 </div>
               )}
             </div>
+
+            {/* Keywords Section */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+              <button
+                onClick={() => toggleSection('keywords')}
+                className="w-full p-6 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Key className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold text-slate-900">Managing Keywords</h3>
+                    <p className="text-slate-600 text-sm mt-1">Add and organize keywords for your websites</p>
+                  </div>
+                </div>
+                <ArrowRight 
+                  className={`w-5 h-5 text-slate-400 transition-transform ${expandedSection === 'keywords' ? 'rotate-90' : ''}`}
+                />
+              </button>
+              
+              {expandedSection === 'keywords' && (
+                <div className="px-6 pb-6 border-t border-slate-200">
+                  <div className="pt-6 space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Manual Keyword Entry</h4>
+                      <p className="text-slate-700 mb-2">
+                        If you already know which keywords you want to target, you can add them manually:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-2 text-slate-700 ml-4">
+                        <li>Go to <Link href="/dashboard/keywords" className="text-blue-600 hover:underline">Dashboard → Keywords</Link></li>
+                        <li>Click the <strong>"+ Manual Entry"</strong> button</li>
+                        <li>Select the website/project you want to add keywords to</li>
+                        <li>Enter your keywords, one per line (e.g., <code className="bg-slate-100 px-1 rounded">personal injury lawyer</code>)</li>
+                        <li>Optionally check <strong>"Enrich with DataForSEO metrics"</strong> to automatically fetch search volume, difficulty, and CPC data for each keyword</li>
+                        <li>Click <strong>"Add Keywords"</strong></li>
+                      </ol>
+                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>💡 Tip:</strong> Manual entry is perfect for adding keywords you're already targeting. If you enable DataForSEO enrichment, you'll get full metrics (search volume, difficulty, CPC) just like auto-discovered keywords. Without enrichment, keywords are added with default values and can be updated later.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-4">
+                      <h4 className="font-semibold text-slate-900 mb-2">Filtering Keywords by Website</h4>
+                      <p className="text-slate-700 mb-2">
+                        The Keywords page now supports website filtering, just like the Calendar:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-2 text-slate-700 ml-4">
+                        <li>Go to <Link href="/dashboard/keywords" className="text-blue-600 hover:underline">Dashboard → Keywords</Link></li>
+                        <li>Use the <strong>"Filter by Website"</strong> dropdown at the top</li>
+                        <li>Select <strong>"All Websites"</strong> to see all keywords, or choose a specific website to see only that website's keywords</li>
+                        <li>The stats cards and keyword list will update to show only the selected website's data</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Quick Links */}
