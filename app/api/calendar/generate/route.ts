@@ -840,7 +840,7 @@ export async function POST(request: NextRequest) {
         if (keywordProfileId) {
           const { data: matchedSites, error: matchError } = await serviceSupabase
             .from('wordpress_sites')
-            .select('*')
+            .select('id, name, url, onboarding_profile_id, is_active, provider, site_id')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .eq('onboarding_profile_id', keywordProfileId)
@@ -851,17 +851,90 @@ export async function POST(request: NextRequest) {
             console.error('Error looking up WordPress sites by onboarding_profile_id:', matchError);
           } else if (matchedSites && matchedSites.length > 0) {
             site = matchedSites[0];
-            console.log(`✅ Found WordPress site for website: ${(site as any).name} (${(site as any).url})`);
+            console.log('✅ Found WordPress site for website by onboarding_profile_id:', {
+              id: site.id,
+              name: site.name,
+              url: site.url,
+              onboarding_profile_id: site.onboarding_profile_id,
+            });
           } else {
             console.log(`❌ No WordPress site found for onboarding_profile_id: ${keywordProfileId}`);
           }
         }
 
-        // 2) Fallback: if no site yet, and user only has ONE active WordPress site, use it
+        // 2) If still no site but we know the website, try domain-based matching
+        if (!site && keywordProfileId) {
+          try {
+            const { data: profile } = await serviceSupabase
+              .from('user_onboarding_profiles')
+              .select('id, website_url')
+              .eq('id', keywordProfileId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (profile && profile.website_url) {
+              const profileHost = new URL(profile.website_url).hostname.replace(/^www\./, '').toLowerCase();
+              const { data: allActiveSites } = await serviceSupabase
+                .from('wordpress_sites')
+                .select('id, name, url, onboarding_profile_id, is_active, provider, site_id')
+                .eq('user_id', user.id)
+                .eq('is_active', true);
+
+              if (allActiveSites && allActiveSites.length > 0) {
+                const domainMatches = allActiveSites.filter((s: any) => {
+                  try {
+                    const host = new URL(s.url).hostname.replace(/^www\./, '').toLowerCase();
+                    return host === profileHost;
+                  } catch {
+                    return false;
+                  }
+                });
+
+                if (domainMatches.length === 1) {
+                  site = domainMatches[0];
+                  console.log('✅ Domain-based WordPress match for website:', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                    site_id: site.id,
+                    site_name: site.name,
+                    site_url: site.url,
+                  });
+
+                  // Persist the mapping for future requests if not already set
+                  if (!site.onboarding_profile_id) {
+                    await serviceSupabase
+                      .from('wordpress_sites')
+                      .update({ onboarding_profile_id: keywordProfileId })
+                      .eq('id', site.id);
+                    console.log('🔗 Persisted onboarding_profile_id on wordpress_sites:', {
+                      site_id: site.id,
+                      onboarding_profile_id: keywordProfileId,
+                    });
+                  }
+                } else if (domainMatches.length > 1) {
+                  console.log('⚠️ Multiple WordPress sites share the same domain; cannot pick a single match.', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                    count: domainMatches.length,
+                  });
+                } else {
+                  console.log('ℹ️ No WordPress sites matched website domain for domain-based lookup.', {
+                    profile_id: profile.id,
+                    profile_host: profileHost,
+                  });
+                }
+              }
+            }
+          } catch (domainError) {
+            console.error('Error during domain-based WordPress site matching:', domainError);
+          }
+        }
+
+        // 3) Fallback: if no site yet, and user only has ONE active WordPress site, use it
         if (!site) {
           const { data: activeSites, error: activeError } = await serviceSupabase
             .from('wordpress_sites')
-            .select('*')
+            .select('id, name, url, onboarding_profile_id, is_active, provider, site_id')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .order('created_at', { ascending: false })
@@ -876,7 +949,7 @@ export async function POST(request: NextRequest) {
             );
           } else if (activeSites && activeSites.length > 1) {
             console.log(
-              '⚠️ Multiple active WordPress sites found and no website-specific match; skipping auto-publish to avoid posting to wrong site.'
+              '⚠️ Multiple active WordPress sites found and no website-specific match; skipping auto-publish to avoid posting to wrong site.',
             );
           } else {
             console.log('⚠️ No active WordPress sites found for this user; skipping auto-publish.');

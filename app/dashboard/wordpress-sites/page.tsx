@@ -13,6 +13,7 @@ interface WordPressSite {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  onboarding_profile_id?: string | null;
 }
 
 export default function WordPressSitesPage() {
@@ -21,9 +22,12 @@ export default function WordPressSitesPage() {
   const [isAddingSite, setIsAddingSite] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string | null; website_url?: string | null; industry?: string | null }>>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
 
   useEffect(() => {
     loadSites();
+    loadProfiles();
     
     // Check for OAuth success/error in URL
     const params = new URLSearchParams(window.location.search);
@@ -41,6 +45,39 @@ export default function WordPressSitesPage() {
       window.history.replaceState({}, '', '/dashboard/wordpress-sites');
     }
   }, []);
+
+  const loadProfiles = async () => {
+    try {
+      setLoadingProfiles(true);
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('user_onboarding_profiles')
+        .select('id, business_name, website_url, industry')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading websites for WordPress mapping:', error);
+        return;
+      }
+
+      setProfiles(
+        (data || []).map((p: any) => ({
+          id: p.id,
+          business_name: p.business_name,
+          website_url: p.website_url,
+          industry: p.industry,
+        }))
+      );
+    } catch (e) {
+      console.error('Error loading websites for WordPress mapping:', e);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  };
 
   const loadSites = async () => {
     try {
@@ -94,6 +131,39 @@ export default function WordPressSitesPage() {
       setSuccess(`Connection to ${site.name} successful!`);
     } catch (error) {
       setError(`Connection to ${site.name} failed`);
+    }
+  };
+
+  const handleWebsiteMappingChange = async (site: WordPressSite, profileId: string | null) => {
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('You must be logged in to update website mapping.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('wordpress_sites')
+        .update({ onboarding_profile_id: profileId })
+        .eq('id', site.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating website mapping for WordPress site:', error);
+        setError('Failed to update website mapping. Please try again.');
+        return;
+      }
+
+      setSites(prev =>
+        prev.map(s =>
+          s.id === site.id ? { ...s, onboarding_profile_id: profileId } : s
+        )
+      );
+      setSuccess('Website mapping updated successfully!');
+    } catch (e) {
+      console.error('Unexpected error updating website mapping for WordPress site:', e);
+      setError('Failed to update website mapping. Please try again.');
     }
   };
 
@@ -235,6 +305,48 @@ export default function WordPressSitesPage() {
                           <span>Added {new Date(site.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
+
+                      {/* Website Mapping */}
+                      {profiles.length > 0 && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-medium text-slate-700">
+                            Linked Website:
+                          </span>
+                          <select
+                            value={site.onboarding_profile_id || ''}
+                            disabled={loadingProfiles}
+                            onChange={(e) =>
+                              handleWebsiteMappingChange(
+                                site,
+                                e.target.value ? e.target.value : null
+                              )
+                            }
+                            className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">
+                              {profiles.length === 0
+                                ? 'No websites available'
+                                : 'Not linked'}
+                            </option>
+                            {profiles.map((profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {profile.business_name ||
+                                  profile.website_url ||
+                                  'Untitled Website'}
+                              </option>
+                            ))}
+                          </select>
+                          {site.onboarding_profile_id ? (
+                            <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                              Auto-publish will use this website&apos;s WordPress site.
+                            </span>
+                          ) : (
+                            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                              Not linked yet – auto-publish may be skipped if you have multiple sites.
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
