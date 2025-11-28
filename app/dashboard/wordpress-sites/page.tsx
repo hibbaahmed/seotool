@@ -3,18 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ExternalLink, Settings, Calendar, Eye, Globe, Key, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import type { Database } from '@/types/supabase';
 
-interface WordPressSite {
-  id: string;
-  name: string;
-  url: string;
-  username: string | null;
-  provider: 'self_hosted' | 'wpcom';
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  onboarding_profile_id?: string | null;
-}
+type WordPressSite = Database['public']['Tables']['wordpress_sites']['Row'];
 
 export default function WordPressSitesPage() {
   const [sites, setSites] = useState<WordPressSite[]>([]);
@@ -143,9 +134,13 @@ export default function WordPressSitesPage() {
         return;
       }
 
+      const updatePayload: Database['public']['Tables']['wordpress_sites']['Update'] = {
+        onboarding_profile_id: profileId,
+      };
+
       const { error } = await supabase
         .from('wordpress_sites')
-        .update({ onboarding_profile_id: profileId })
+        .update(updatePayload)
         .eq('id', site.id)
         .eq('user_id', user.id);
 
