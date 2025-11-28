@@ -48,8 +48,8 @@ export default function GuidePage() {
               When you link each WordPress site to its corresponding website, Bridgely automatically ensures that:
             </p>
             <ul className="list-disc list-inside mt-3 space-y-1 text-blue-800">
-              <li>Content scheduled for <strong>Bridgely</strong> publishes only to the <strong>Bridgely blog</strong></li>
-              <li>Content scheduled for <strong>Quiknote</strong> publishes only to the <strong>Quiknote blog</strong></li>
+              <li>Content scheduled for <strong>example.com</strong> publishes only to the <strong>example.com blog</strong></li>
+              <li>Content scheduled for <strong>mybusiness.com</strong> publishes only to the <strong>mybusiness.com blog</strong></li>
               <li>Your calendar stays organized by website</li>
               <li>Auto-publishing works correctly without manual selection</li>
             </ul>
@@ -85,8 +85,8 @@ export default function GuidePage() {
                       <ol className="list-decimal list-inside space-y-2 text-slate-700 ml-4">
                         <li>Go to <Link href="/dashboard/keywords" className="text-blue-600 hover:underline">Dashboard → Keywords</Link></li>
                         <li>Click the <strong className="text-slate-900">"Quick Add Website"</strong> button</li>
-                        <li>Enter your <strong>Website URL</strong> (e.g., <code className="bg-slate-100 px-1 rounded">https://bridgely.io</code>)</li>
-                        <li>Optionally enter your <strong>Business Name</strong> (e.g., <code className="bg-slate-100 px-1 rounded">Bridgely</code>)</li>
+                        <li>Enter your <strong>Website URL</strong> (e.g., <code className="bg-slate-100 px-1 rounded">https://example.com</code>)</li>
+                        <li>Optionally enter your <strong>Business Name</strong> (e.g., <code className="bg-slate-100 px-1 rounded">Example Business</code>)</li>
                         <li>Click <strong>"Analyze Website"</strong></li>
                       </ol>
                       <p className="mt-3 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
@@ -193,8 +193,8 @@ export default function GuidePage() {
                       <li>Look for the <strong className="text-slate-900">"Linked Website"</strong> dropdown on each site</li>
                       <li>Select the website that blog belongs to:
                         <ul className="list-disc list-inside ml-6 mt-2 space-y-1 text-slate-600">
-                          <li>If it's the Bridgely blog → select <strong>"Bridgely"</strong></li>
-                          <li>If it's the Quiknote blog → select <strong>"Quiknote"</strong></li>
+                          <li>If it's the example.com blog → select <strong>"example.com"</strong></li>
+                          <li>If it's the mybusiness.com blog → select <strong>"mybusiness.com"</strong></li>
                           <li>If it's for another website → select that website</li>
                         </ul>
                       </li>
@@ -238,7 +238,7 @@ export default function GuidePage() {
                       <h4 className="font-semibold text-slate-900 mb-2">Using the Calendar</h4>
                       <ol className="list-decimal list-inside space-y-2 text-slate-700 ml-4">
                         <li>Go to <Link href="/calendar" className="text-blue-600 hover:underline">Calendar</Link></li>
-                        <li>Use the website filter at the top to select a website (e.g., <strong>"Bridgely"</strong> or <strong>"Quiknote"</strong>)</li>
+                        <li>Use the website filter at the top to select a website (e.g., <strong>"example.com"</strong> or <strong>"mybusiness.com"</strong>)</li>
                         <li>Schedule keywords for that website - they'll only show when that website is selected</li>
                         <li>When content is generated, it will <strong>automatically publish</strong> to the WordPress site you linked in Step 3</li>
                       </ol>
@@ -257,7 +257,7 @@ export default function GuidePage() {
 
                     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                       <p className="text-sm text-emerald-800">
-                        <strong>🎉 Result:</strong> Content scheduled for Bridgely publishes only to the Bridgely blog, and content for Quiknote publishes only to the Quiknote blog. Complete separation!
+                        <strong>🎉 Result:</strong> Content scheduled for example.com publishes only to the example.com blog, and content for mybusiness.com publishes only to the mybusiness.com blog. Complete separation!
                       </p>
                     </div>
                   </div>
@@ -339,6 +339,19 @@ export default function GuidePage() {
                 <p className="text-slate-700 text-sm">
                   Use the website filter at the top of the Calendar page. Select a specific website to see only that website's scheduled content.
                 </p>
+              </div>
+              
+              <div className="mt-6 pt-6 border-t border-slate-300">
+                <h4 className="font-semibold text-slate-900 mb-2">Still need help?</h4>
+                <p className="text-slate-700 text-sm mb-2">
+                  If you're still experiencing issues, please contact our support team:
+                </p>
+                <a 
+                  href="mailto:team@bridgely.io" 
+                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+                >
+                  <span>team@bridgely.io</span>
+                </a>
               </div>
             </div>
           </div>

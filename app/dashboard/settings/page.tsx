@@ -298,7 +298,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
           <h3 className="font-semibold text-blue-900 mb-2">
             💡 How Content Length Works
           </h3>
@@ -308,6 +308,22 @@ export default function SettingsPage() {
             <li>• <strong>Long:</strong> Best for SEO-focused agencies targeting high search rankings with comprehensive content</li>
             <li>• This setting only affects <strong>future</strong> content generation. Existing posts are not changed.</li>
           </ul>
+        </div>
+
+        {/* Contact Support */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+          <h3 className="font-semibold text-slate-900 mb-2">
+            Need Help?
+          </h3>
+          <p className="text-slate-700 text-sm mb-3">
+            If you have questions about settings or need assistance, feel free to reach out:
+          </p>
+          <a 
+            href="mailto:team@bridgely.io" 
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+          >
+            team@bridgely.io
+          </a>
         </div>
       </div>
     </div>
