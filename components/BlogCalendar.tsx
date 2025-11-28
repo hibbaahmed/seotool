@@ -44,10 +44,11 @@ interface CalendarProps {
   onKeywordClick?: (keyword: ScheduledKeyword) => void;
   onGenerateKeyword?: (keyword: ScheduledKeyword) => void;
   generatingKeywordId?: string | null; // Track which keyword is currently generating
+  selectedProfileId?: string | null; // Filter by website/profile
   className?: string;
 }
 
-export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, className = '' }: CalendarProps) {
+export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, onGenerateKeyword, generatingKeywordId, selectedProfileId, className = '' }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
@@ -87,7 +88,11 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
   // Fetch scheduled posts and keywords
   const fetchScheduledPosts = async () => {
     try {
-      const response = await fetch('/api/calendar/posts');
+      let url = '/api/calendar/posts';
+      if (selectedProfileId) {
+        url += `?onboarding_profile_id=${selectedProfileId}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const posts = await response.json();
         setScheduledPosts(posts);
@@ -101,7 +106,11 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
     try {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const response = await fetch(`/api/calendar/keywords?month=${year}-${month}`);
+      let url = `/api/calendar/keywords?month=${year}-${month}`;
+      if (selectedProfileId) {
+        url += `&onboarding_profile_id=${selectedProfileId}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const keywords = await response.json();
         setScheduledKeywords(keywords);
@@ -118,7 +127,7 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
       setLoading(false);
     };
     fetchData();
-  }, [currentDate]);
+  }, [currentDate, selectedProfileId]);
 
   // Get posts for a specific date
   const getPostsForDate = (date: Date) => {

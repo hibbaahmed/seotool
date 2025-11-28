@@ -410,9 +410,10 @@ export async function POST(request: NextRequest) {
     // Fetch website-specific business information for personalized CTA
     let businessName = 'our company';
     let websiteUrl = '';
+    let businessDescription = '';
     try {
       // Prefer the onboarding profile linked to this keyword (per-website branding)
-      let profileData: { business_name?: string | null; website_url?: string | null } | null = null;
+      let profileData: { business_name?: string | null; website_url?: string | null; business_description?: string | null } | null = null;
 
       const keywordProfileId =
         keywordData && (keywordData as any).onboarding_profile_id
@@ -422,7 +423,7 @@ export async function POST(request: NextRequest) {
       if (keywordProfileId) {
         const { data } = await supabase
           .from('user_onboarding_profiles')
-          .select('business_name, website_url')
+          .select('business_name, website_url, business_description')
           .eq('id', keywordProfileId)
           .eq('user_id', user.id)
           .maybeSingle();
@@ -435,7 +436,7 @@ export async function POST(request: NextRequest) {
       if (!profileData) {
         const { data } = await supabase
           .from('user_onboarding_profiles')
-          .select('business_name, website_url')
+          .select('business_name, website_url, business_description')
           .eq('user_id', user.id)
           .maybeSingle();
         if (data) {
@@ -446,9 +447,11 @@ export async function POST(request: NextRequest) {
       if (profileData) {
         businessName = profileData.business_name || 'our company';
         websiteUrl = profileData.website_url || '';
+        businessDescription = profileData.business_description || '';
         console.log('✅ Using business profile for content generation:', {
           businessName,
           websiteUrl,
+          businessDescription: businessDescription ? `${businessDescription.substring(0, 50)}...` : 'none',
           keywordProfileId: keywordProfileId || 'none',
         });
       } else {
@@ -472,6 +475,7 @@ export async function POST(request: NextRequest) {
       isTest: is_test, // Pass test mode flag to prompt generator
       businessName, // Pass business name for personalized CTA
       websiteUrl, // Pass website URL for CTA
+      businessDescription, // Pass business description for personalized CTA
       contentLength // Pass user's content length preference
     });
 
@@ -490,6 +494,7 @@ export async function POST(request: NextRequest) {
         isTest: is_test, // Pass test mode flag to content-writer API
         businessName, // Pass business name for multi-phase generation
         websiteUrl, // Pass website URL for multi-phase generation
+        businessDescription, // Pass business description for personalized CTA
       }),
     });
 

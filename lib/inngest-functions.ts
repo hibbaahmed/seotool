@@ -1184,19 +1184,45 @@ export const generateKeywordContent = inngest.createFunction(
       return videoList;
     });
 
-    // Step 5: Fetch user's business information for personalized CTA
-    const { businessName, websiteUrl } = await step.run('fetch-business-info', async () => {
+    // Step 5: Fetch user's business information for personalized CTA (from keyword's onboarding_profile_id)
+    const keywordProfileId = keywordData && (keywordData as any).onboarding_profile_id
+      ? (keywordData as any).onboarding_profile_id
+      : null;
+    
+    const { businessName, websiteUrl, businessDescription } = await step.run('fetch-business-info', async () => {
       try {
-        const { data: profileData } = await supabase
-          .from('user_onboarding_profiles')
-          .select('business_name, website_url')
-          .eq('user_id', userId)
-          .single();
+        // First, try to fetch from the keyword's specific profile
+        let profileData: { business_name?: string | null; website_url?: string | null; business_description?: string | null } | null = null;
+
+        if (keywordProfileId) {
+          const { data } = await supabase
+            .from('user_onboarding_profiles')
+            .select('business_name, website_url, business_description')
+            .eq('id', keywordProfileId)
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (data) {
+            profileData = data;
+          }
+        }
+
+        // Fallback: any profile for this user
+        if (!profileData) {
+          const { data } = await supabase
+            .from('user_onboarding_profiles')
+            .select('business_name, website_url, business_description')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (data) {
+            profileData = data;
+          }
+        }
         
         if (profileData) {
           return {
             businessName: profileData.business_name || 'our company',
-            websiteUrl: profileData.website_url || ''
+            websiteUrl: profileData.website_url || '',
+            businessDescription: profileData.business_description || ''
           };
         }
       } catch (error) {
@@ -1205,11 +1231,12 @@ export const generateKeywordContent = inngest.createFunction(
       
       return {
         businessName: 'our company',
-        websiteUrl: ''
+        websiteUrl: '',
+        businessDescription: ''
       };
     });
     
-    console.log(`✅ Using business name: ${businessName}`);
+    console.log(`✅ Using business profile for content generation: { businessName: '${businessName}', websiteUrl: '${websiteUrl}', businessDescription: ${businessDescription ? `${businessDescription.substring(0, 50)}...` : 'none'}, keywordProfileId: ${keywordProfileId || 'none'}' }`);
 
     // Step 5.5: Fetch user settings for content length preference
     const contentLength = await step.run('fetch-user-settings', async () => {
@@ -1242,6 +1269,7 @@ export const generateKeywordContent = inngest.createFunction(
       imageUrls: uploadedImageUrls,
       businessName,
       websiteUrl,
+      businessDescription,
       contentLength
     });
 
@@ -1295,7 +1323,7 @@ export const generateKeywordContent = inngest.createFunction(
     const finalSections = await step.run('generate-final-sections', async () => {
       console.log('✍️ Phase 4: Writing final sections, FAQ, and conclusion...');
       return await generateSinglePhase(
-        getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos, businessName, websiteUrl),
+        getFinalSectionsPrompt(keywordText, contentPrompt, outline, uploadedImageUrls, videos, businessName, websiteUrl, businessDescription),
         apiKey,
         8000
       );

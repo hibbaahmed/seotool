@@ -427,7 +427,8 @@ export function getFinalSectionsPrompt(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   businessName: string = 'our company',
-  websiteUrl: string = ''
+  websiteUrl: string = '',
+  businessDescription: string = ''
 ): string {
   return `You are writing the final sections of a comprehensive pillar article about: "${topic}"
 

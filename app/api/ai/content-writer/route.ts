@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '' } = await request.json();
+    const { messages, userId, enableMultiPhase = true, isTest = false, businessName = 'our company', websiteUrl = '', businessDescription = '' } = await request.json();
     const userInput = messages[messages.length - 1]?.content || '';
     
     // Extract topic/keywords for image search
@@ -269,6 +269,7 @@ export async function POST(request: NextRequest) {
         isTest,
         businessName,
         websiteUrl,
+        businessDescription,
         user.id,
         currentCredits,
         requiredCredits,
@@ -288,6 +289,7 @@ export async function POST(request: NextRequest) {
         isTest,
         businessName,
         websiteUrl,
+        businessDescription,
         user.id,
         currentCredits,
         requiredCredits,
@@ -315,6 +317,7 @@ async function handleMultiPhaseGeneration(
   isTest: boolean = false,
   businessName: string = 'our company',
   websiteUrl: string = '',
+  businessDescription: string = '',
   userId: string,
   currentCredits: number,
   requiredCredits: number,
@@ -420,7 +423,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 4, description: 'Writing final sections, FAQ, and conclusion...' })}\n\n`));
         
         const finalSections = await generatePhase(
-          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, contentLength),
+          getFinalSectionsPrompt(topic, userInput, outline, imageUrls, videos, businessName, websiteUrl, businessDescription, contentLength),
           apiKey,
           getPhaseTokens(4)
         );
@@ -770,6 +773,7 @@ function getFinalSectionsPrompt(
   videos: Array<{ id: string; title: string; url: string }>,
   businessName: string = 'our company',
   websiteUrl: string = '',
+  businessDescription: string = '',
   contentLength: 'short' | 'medium' | 'long' = 'long'
 ): string {
   const phaseTargets = {
@@ -913,6 +917,7 @@ async function handleSinglePhaseGeneration(
   isTest: boolean = false,
   businessName: string = 'our company',
   websiteUrl: string = '',
+  businessDescription: string = '',
   userId: string,
   currentCredits: number,
   requiredCredits: number,
@@ -926,6 +931,7 @@ async function handleSinglePhaseGeneration(
     isTest,
     businessName,
     websiteUrl,
+    businessDescription,
     contentLength
   });
 

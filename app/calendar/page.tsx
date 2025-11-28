@@ -82,6 +82,9 @@ export default function CalendarPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
   const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(1);
+  const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string; website_url: string; industry?: string }>>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
 
   // Debug: Track dialog state changes
   useEffect(() => {
@@ -94,7 +97,48 @@ export default function CalendarPage() {
     return String(h).padStart(2, '0');
   };
 
-  // Load keyword stats
+  // Load user profiles
+  useEffect(() => {
+    const loadProfiles = async () => {
+      try {
+        setLoadingProfiles(true);
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setProfiles([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('user_onboarding_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading profiles:', error);
+          return;
+        }
+
+        const typedProfiles = (data || []) as Array<{ id: string; business_name?: string; website_url: string; industry?: string }>;
+        setProfiles(typedProfiles);
+        
+        // Set initial selected profile (first one, or null for "All Websites")
+        if (typedProfiles.length > 0 && !selectedProfileId) {
+          // Don't auto-select - let user choose "All Websites" by default
+        }
+      } catch (error) {
+        console.error('Error loading profiles:', error);
+      } finally {
+        setLoadingProfiles(false);
+      }
+    };
+
+    loadProfiles();
+  }, []);
+
+  // Load keyword stats (filtered by selected website)
   useEffect(() => {
     const loadKeywordStats = async () => {
       try {
@@ -113,10 +157,17 @@ export default function CalendarPage() {
           return;
         }
 
-        const { data: keywords, error } = await supabase
+        let query = supabase
           .from('discovered_keywords')
           .select('opportunity_level, starred, scheduled_for_generation, generation_status')
           .eq('user_id', user.id);
+
+        // Filter by website if one is selected
+        if (selectedProfileId) {
+          query = query.eq('onboarding_profile_id', selectedProfileId);
+        }
+
+        const { data: keywords, error } = await query;
 
         if (error) {
           console.error('Error loading keyword stats:', error);
@@ -141,7 +192,7 @@ export default function CalendarPage() {
     };
 
     loadKeywordStats();
-  }, []);
+  }, [selectedProfileId]);
 
   const [showPublicationModal, setShowPublicationModal] = useState(false);
   const [publicationInfo, setPublicationInfo] = useState<{
@@ -177,11 +228,17 @@ export default function CalendarPage() {
         if (!user) {
           setAvailableKeywords([]);
         } else {
-          const { data } = await supabase
+          let query = supabase
             .from('discovered_keywords')
             .select('id, keyword, scheduled_for_generation, generation_status, search_volume, difficulty_score, opportunity_level, starred')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            .eq('user_id', user.id);
+          
+          // Filter by website if one is selected
+          if (selectedProfileId) {
+            query = query.eq('onboarding_profile_id', selectedProfileId);
+          }
+          
+          const { data } = await query.order('created_at', { ascending: false });
           const allKeywords = (data || []);
           setAvailableKeywords(allKeywords.map((k: any) => ({ 
             id: k.id, 
@@ -359,6 +416,37 @@ export default function CalendarPage() {
             </p>
           </div>
 
+          {/* Website Filter */}
+          {profiles.length > 0 && (
+            <div className="mb-6 flex justify-center">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Filter by Website
+                </label>
+                <select
+                  value={selectedProfileId || ''}
+                  onChange={(e) => setSelectedProfileId(e.target.value || null)}
+                  disabled={loadingProfiles}
+                  className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 transition-colors min-w-[250px]"
+                >
+                  <option value="">All Websites</option>
+                  {profiles.map(profile => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.business_name || profile.website_url} {profile.industry ? `(${profile.industry})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedProfileId && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Showing: {profiles.find(p => p.id === selectedProfileId)?.business_name || profiles.find(p => p.id === selectedProfileId)?.website_url || 'Selected Website'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Keyword Stats Cards */}
           <div className="mb-8">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -448,6 +536,7 @@ export default function CalendarPage() {
                 onKeywordClick={handleKeywordClick}
                 onGenerateKeyword={handleGenerateNow}
                 generatingKeywordId={generatingKeywordId}
+                selectedProfileId={selectedProfileId}
               />
             </div>
 

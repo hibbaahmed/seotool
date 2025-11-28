@@ -20,7 +20,14 @@ export async function POST(request: NextRequest) {
     const { 
       websiteUrl,
       businessName,
-      industry
+      industry,
+      seedKeywords = [],
+      maxKeywordsPerSeed = 30,
+      includeQuestions = true,
+      includeRelated = true,
+      minSearchVolume = 0,
+      maxDifficulty = 100,
+      locationCode = 2840 // USA
     } = body;
 
     if (!websiteUrl) {
@@ -91,30 +98,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
     }
 
-    // Extract seed keywords from website (simplified approach)
-    // Use domain name and common terms as seed keywords
-    const domainParts = domain.split('.').filter(p => p.length > 2);
-    const normalizedBrand = normalizeKeyword(domainParts[0] || '');
-    const seedKeywords = [
-      domainParts[0], // Main domain name
-      `${domainParts[0]} ${industry || 'services'}`,
-      `best ${domainParts[0]}`,
-      `${domainParts[0]} reviews`
-    ].filter(Boolean).slice(0, 3);
+    // Use provided seed keywords or generate defaults from domain
+    let finalSeedKeywords = seedKeywords;
+    if (!finalSeedKeywords || finalSeedKeywords.length === 0) {
+      const domainParts = domain.split('.').filter(p => p.length > 2);
+      finalSeedKeywords = [
+        domainParts[0], // Main domain name
+        `${domainParts[0]} ${industry || 'services'}`,
+        `best ${domainParts[0]}`,
+        `${domainParts[0]} reviews`
+      ].filter(Boolean);
+    }
 
-    // Generate keywords using DataForSEO (similar to manual keyword generation)
+    const normalizedBrand = normalizeKeyword(finalSeedKeywords[0] || '');
+
+    // Generate keywords using DataForSEO (same logic as generate endpoint)
     const { fetchKeywordsFromDataForSEO } = await import('@/lib/dataforseo-keywords');
     
     const allKeywords: any[] = [];
-    for (const seed of seedKeywords) {
+    const errors: string[] = [];
+
+    console.log(`🔍 Generating keywords for ${finalSeedKeywords.length} seed keywords`);
+
+    for (const seed of finalSeedKeywords) {
       try {
-        const keywordSet = await fetchKeywordsFromDataForSEO(seed, 2840, {
-          includeQuestions: true,
-          includeRelated: true,
-          maxResults: 20 // Fewer keywords for quick add
+        console.log(`📊 Fetching keywords for: "${seed}"`);
+        
+        const keywordSet = await fetchKeywordsFromDataForSEO(seed, locationCode, {
+          includeQuestions,
+          includeRelated,
+          maxResults: maxKeywordsPerSeed
         });
 
-        const keywordsToInsert = keywordSet.all
+        // Filter by search volume and difficulty
+        const filteredKeywords = keywordSet.all.filter(k => 
+          k.searchVolume >= minSearchVolume && 
+          k.difficulty <= maxDifficulty
+        );
+
+        // Filter out brand name matches
+        const keywordsToInsert = filteredKeywords
           .filter(k => {
             const normalizedKeyword = normalizeKeyword(k.keyword);
             return normalizedKeyword && normalizedKeyword !== normalizedBrand;
@@ -132,6 +155,7 @@ export async function POST(request: NextRequest) {
             keyword_intent: determineIntent(k.keyword),
             related_keywords: k.relatedKeywords || [],
             monthly_trends: k.monthlyTrends || [],
+            parent_keyword_id: null,
             dataforseo_data: {
               searchVolume: k.searchVolume,
               difficulty: k.difficulty,
@@ -142,22 +166,42 @@ export async function POST(request: NextRequest) {
             keyword_data_updated_at: new Date().toISOString()
           }));
 
+        console.log(`✅ Found ${keywordsToInsert.length} keywords for "${seed}"`);
         allKeywords.push(...keywordsToInsert);
-      } catch (err) {
-        console.warn(`Failed to fetch keywords for seed "${seed}":`, err);
+      } catch (err: any) {
+        console.error(`❌ Error fetching keywords for "${seed}":`, err);
+        errors.push(`${seed}: ${err.message}`);
       }
     }
 
     // Save keywords
-    if (allKeywords.length > 0) {
-      const { error: insertError } = await supabase
-        .from('discovered_keywords')
-        .insert(allKeywords);
+    if (allKeywords.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No keywords were generated',
+        errors: errors.length > 0 ? errors : undefined
+      }, { status: 400 });
+    }
 
-      if (insertError) {
-        console.error('Error saving keywords:', insertError);
+    const { data: savedKeywords, error: insertError } = await supabase
+      .from('discovered_keywords')
+      .insert(allKeywords)
+      .select();
+
+    if (insertError) {
+      // If it's a duplicate error, some keywords may have been inserted
+      if (insertError.message && insertError.message.includes('duplicate')) {
+        console.warn('⚠️ Some keywords already exist in database (duplicates skipped)');
+      } else {
+        console.error('❌ Error saving keywords:', insertError);
+        return NextResponse.json({ 
+          error: 'Failed to save keywords',
+          message: insertError.message 
+        }, { status: 500 });
       }
     }
+
+    console.log(`💾 Saved ${savedKeywords?.length || 0} keywords to database`);
 
     // Deduct credits (if not in trial) - onboarding API doesn't deduct for quick add
     if (!isInTrial) {
@@ -175,19 +219,36 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', onboardingProfile.id);
 
-    const highCount = allKeywords.filter(k => k.opportunity_level === 'high').length;
-    const mediumCount = allKeywords.filter(k => k.opportunity_level === 'medium').length;
-    const lowCount = allKeywords.filter(k => k.opportunity_level === 'low').length;
+    // Group keywords by type for response
+    const primaryKeywords = allKeywords.filter(k => k.keyword_type === 'primary');
+    const secondaryKeywords = allKeywords.filter(k => k.keyword_type === 'secondary');
+    const longTailKeywords = allKeywords.filter(k => k.keyword_type === 'long-tail');
 
     return NextResponse.json({
       success: true,
+      message: `Successfully generated ${allKeywords.length} keywords`,
       profileId: onboardingProfile.id,
-      keywordsGenerated: allKeywords.length,
+      keywords: {
+        total: allKeywords.length,
+        saved: savedKeywords?.length || 0,
+        byType: {
+          primary: primaryKeywords.length,
+          secondary: secondaryKeywords.length,
+          longTail: longTailKeywords.length
+        },
+        byOpportunity: {
+          high: allKeywords.filter(k => k.opportunity_level === 'high').length,
+          medium: allKeywords.filter(k => k.opportunity_level === 'medium').length,
+          low: allKeywords.filter(k => k.opportunity_level === 'low').length
+        }
+      },
+      keywordsGenerated: allKeywords.length, // Keep for backward compatibility
       breakdown: {
-        high: highCount,
-        medium: mediumCount,
-        low: lowCount
-      }
+        high: allKeywords.filter(k => k.opportunity_level === 'high').length,
+        medium: allKeywords.filter(k => k.opportunity_level === 'medium').length,
+        low: allKeywords.filter(k => k.opportunity_level === 'low').length
+      },
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error: any) {
@@ -199,9 +260,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function calculateOpportunityLevel(searchVolume: number, difficulty: number): 'low' | 'medium' | 'high' {
+function calculateOpportunityLevel(
+  searchVolume: number, 
+  difficulty: number
+): 'low' | 'medium' | 'high' {
+  // High opportunity: Good volume, low difficulty
   if (searchVolume >= 1000 && difficulty <= 40) return 'high';
+  if (searchVolume >= 500 && difficulty <= 30) return 'high';
+  
+  // Medium opportunity: Moderate volume/difficulty balance
   if (searchVolume >= 500 && difficulty <= 60) return 'medium';
+  if (searchVolume >= 1000 && difficulty <= 70) return 'medium';
+  
+  // Low opportunity: Low volume or high difficulty
   return 'low';
 }
 

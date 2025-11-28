@@ -18,6 +18,7 @@ export interface ContentPromptOptions {
   isTest?: boolean; // Flag for test generation (shorter content)
   businessName?: string; // User's business/company name for CTA
   websiteUrl?: string; // User's website URL
+  businessDescription?: string; // User's business description for personalized CTA
   contentLength?: ContentLength; // User's preferred content length: 'short', 'medium', or 'long'
 }
 
@@ -117,6 +118,7 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
     isTest = false,
     businessName = 'our company',
     websiteUrl = '',
+    businessDescription = '',
     contentLength = 'long'
   } = options;
   
@@ -386,22 +388,37 @@ ${isTestMode ? '' : '> **Pro Tip:** [Insider advice in blockquote]'}
 
 ${isTestMode 
   ? `[1-2 sentences that reference SPECIFIC strategies, tools, or challenges from this article and explain how ${businessName} helps implement them. Include a clear call to action.]`
-  : `[3-4 sentences that:
-1. Reference 2-3 SPECIFIC challenges, strategies, or pain points discussed in THIS article (use actual examples from the content)
-2. Explain how ${businessName} helps readers overcome THOSE SPECIFIC obstacles with concrete solutions
-3. Mention specific services, expertise areas, or support that directly relate to the article's topic
-4. End with a compelling, specific call-to-action]`}
+  : `[Write 3-4 paragraphs (approximately 150-250 words total) with this EXACT structure:
+
+**Paragraph 1 - Acknowledgment & Transition:**
+Start with "While the strategies in this guide provide a solid foundation for [SPECIFIC TOPIC FROM ARTICLE], implementing [SPECIFIC CHALLENGE/TASK] requires expertise in [SPECIFIC SKILLS/KNOWLEDGE AREAS]. [SPECIFIC COMPLEX TASKS] can overwhelm business owners focused on daily operations."
+
+**Paragraph 2 - Business Value Proposition:**
+"${businessName} specializes in [SPECIFIC SERVICES RELATED TO ARTICLE TOPIC], handling everything from [SPECIFIC SERVICE 1] and [SPECIFIC SERVICE 2] to [SPECIFIC SERVICE 3] and [SPECIFIC SERVICE 4]. Our team manages the time-consuming aspects of [TOPIC] while you focus on serving customers and growing your business. We provide [SPECIFIC DELIVERABLES like 'detailed performance reporting, competitive analysis, and strategic recommendations'] based on your specific market conditions and business goals."
+${businessDescription ? `NOTE: Use the following business description as context when writing this paragraph: "${businessDescription}" - incorporate the key services, expertise areas, and value propositions from this description into the paragraph naturally.` : ''}
+
+**Paragraph 3 - Clear Call-to-Action:**
+${websiteUrl ? `"Visit ${websiteUrl} to discover how our [SPECIFIC EXPERTISE] can [SPECIFIC OUTCOME RELATED TO ARTICLE TOPIC] and [SPECIFIC BENEFIT FOR READER]."` : `"Contact ${businessName} to discover how our [SPECIFIC EXPERTISE] can [SPECIFIC OUTCOME RELATED TO ARTICLE TOPIC] and [SPECIFIC BENEFIT FOR READER]."`}
+
+CRITICAL FORMATTING REQUIREMENTS:
+- Use "Partner with ${businessName} for Success" as the H3 heading (EXACTLY this format)
+- Write in paragraph form (NOT bullet points) with natural transitions between paragraphs
+- Reference SPECIFIC examples, strategies, or challenges from THIS article (e.g., if article is about "Google Business Profile optimization," mention that specifically)
+- Make each paragraph flow naturally into the next
+- Use the business name "${businessName}" at least 2-3 times throughout this section
+- Include the website URL "${websiteUrl || 'your website'}" in the final call-to-action paragraph`}
 
 CRITICAL: This ${businessName} section MUST:
 - Reference SPECIFIC topics from the article (e.g., "the keyword research strategies," "the technical SEO challenges," "the content marketing approaches we covered")
 - Explain HOW ${businessName} helps with THOSE SPECIFIC things (not just generic "success" or "results")
 - Use concrete language about what ${businessName} actually does (e.g., "we handle everything from X to Y," "our team specializes in Z," "we provide A, B, and C")
 - Make it clear WHY readers would need help with the specific challenges mentioned in this article
-- Include a clear, actionable call-to-action (e.g., "${websiteUrl ? `Visit ${websiteUrl}` : `Contact ${businessName}`} to [specific action related to article topic]")
+- Include a clear, actionable call-to-action with the website URL: "${websiteUrl || 'your website URL'}"
 - Feel like a natural extension of the article, not a generic sales pitch
-- Use the business name "${businessName}" naturally within this CTA section
+- Use the business name "${businessName}" naturally within this CTA section (appears 2-3 times)
 - Avoid vague terms like "success," "results," "growth" without specifying what kind
 - Instead use specific outcomes relevant to the article (e.g., "rank higher for competitive keywords," "reduce page load times," "build authority backlinks")
+- Follow the 3-4 paragraph structure with natural flow between paragraphs
 
 CRITICAL: DO NOT insert the business name "${businessName}" anywhere in the main article content (introduction, H2 sections, H3 subsections, or FAQ). The business name should ONLY appear in the "### Partner with ${businessName} for Success" subsection at the very end of the Conclusion. The main article should be general educational content without company mentions.
 

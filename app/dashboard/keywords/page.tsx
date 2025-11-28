@@ -20,8 +20,11 @@ import {
   X,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  ArrowRight
 } from 'lucide-react';
+import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { checkCredits } from '@/app/utils/creditCheck';
 import OutOfCreditsDialog from '@/components/OutOfCreditsDialog';
@@ -123,9 +126,19 @@ export default function KeywordsDashboard() {
   const [includeRelated, setIncludeRelated] = useState(true);
 
   // Quick Add Website Modal State
+  const [quickAddStep, setQuickAddStep] = useState(0); // 0: Website, 1: Business Info, 2: Target Audience, 3: Analysis
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [industry, setIndustry] = useState('');
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [quickAddAnalysisProgress, setQuickAddAnalysisProgress] = useState({
+    competitor_analysis: false,
+    site_analysis: false,
+    google_trends: false,
+    serp_analysis: false,
+    keyword_scoring: false
+  });
   const [isAnalyzingWebsite, setIsAnalyzingWebsite] = useState(false);
 
   // Manual Add Modal State
@@ -638,15 +651,55 @@ export default function KeywordsDashboard() {
   };
 
   // Quick Add Website handlers
-  const handleQuickAddWebsite = async () => {
-    if (!websiteUrl.trim()) {
-      setGenerateError('Please enter a website URL');
-      return;
+  const handleQuickAddWebsiteNext = () => {
+    // Validate current step
+    if (quickAddStep === 0) {
+      if (!websiteUrl.trim()) {
+        setGenerateError('Please enter a website URL');
+        return;
+      }
+      setGenerateError(null);
+      setQuickAddStep(1);
+    } else if (quickAddStep === 1) {
+      if (!businessName.trim()) {
+        setGenerateError('Please enter a business name');
+        return;
+      }
+      if (!industry.trim()) {
+        setGenerateError('Please select an industry');
+        return;
+      }
+      setGenerateError(null);
+      setQuickAddStep(2);
+    } else if (quickAddStep === 2) {
+      if (!targetAudience.trim()) {
+        setGenerateError('Please describe your target audience');
+        return;
+      }
+      setGenerateError(null);
+      setQuickAddStep(3);
+      handleQuickAddWebsiteAnalysis();
     }
+  };
 
+  const handleQuickAddWebsiteBack = () => {
+    if (quickAddStep > 0) {
+      setQuickAddStep(quickAddStep - 1);
+      setGenerateError(null);
+    }
+  };
+
+  const handleQuickAddWebsiteAnalysis = async () => {
     setIsAnalyzingWebsite(true);
     setGenerateError(null);
     setGenerateSuccess(null);
+    setQuickAddAnalysisProgress({
+      competitor_analysis: false,
+      site_analysis: false,
+      google_trends: false,
+      serp_analysis: false,
+      keyword_scoring: false
+    });
 
     // Check credits
     const creditResult = await checkCredits(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
@@ -658,23 +711,49 @@ export default function KeywordsDashboard() {
     }
 
     try {
-      const response = await fetch('/api/keywords/quick-add-website', {
+      // Use the onboarding API endpoint for comprehensive analysis
+      const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           websiteUrl: websiteUrl.trim(),
-          businessName: businessName.trim() || undefined,
-          industry: industry.trim() || undefined
+          businessName: businessName.trim(),
+          industry: industry.trim(),
+          targetAudience: targetAudience.trim(),
+          businessDescription: businessDescription.trim() || undefined
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze website');
+        const errorMessage = data.details 
+          ? `${data.error}: ${data.details}`
+          : data.error || 'Failed to analyze website';
+        throw new Error(errorMessage);
       }
 
-      setGenerateSuccess(data);
+      // Simulate progress updates
+      const progressSteps = [
+        'competitor_analysis',
+        'site_analysis', 
+        'google_trends',
+        'serp_analysis',
+        'keyword_scoring'
+      ];
+
+      for (let i = 0; i < progressSteps.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between steps
+        setQuickAddAnalysisProgress(prev => ({
+          ...prev,
+          [progressSteps[i]]: true
+        }));
+      }
+
+      setGenerateSuccess({
+        keywordsGenerated: data.analysisResults?.totalKeywords || 0,
+        profileId: data.onboardingProfileId
+      });
       
       // Reload keywords
       if (onboardingId) {
@@ -684,27 +763,36 @@ export default function KeywordsDashboard() {
         await loadProfiles(); // Refresh profiles list
       }
 
-      // Reset form after 2 seconds
+      // Close modal after 3 seconds
       setTimeout(() => {
-        setWebsiteUrl('');
-        setBusinessName('');
-        setIndustry('');
-        setGenerateSuccess(null);
-      }, 2000);
+        closeQuickAddWebsiteModal();
+        if (data.onboardingProfileId) {
+          router.push(`/dashboard/keywords?onboarding=${data.onboardingProfileId}`);
+        }
+      }, 3000);
 
     } catch (err: any) {
       console.error('Error analyzing website:', err);
       setGenerateError(err.message);
-    } finally {
       setIsAnalyzingWebsite(false);
     }
   };
 
   const closeQuickAddWebsiteModal = () => {
     setShowQuickAddWebsiteModal(false);
+    setQuickAddStep(0);
     setWebsiteUrl('');
     setBusinessName('');
     setIndustry('');
+    setBusinessDescription('');
+    setTargetAudience('');
+    setQuickAddAnalysisProgress({
+      competitor_analysis: false,
+      site_analysis: false,
+      google_trends: false,
+      serp_analysis: false,
+      keyword_scoring: false
+    });
     setGenerateError(null);
     setGenerateSuccess(null);
     setIsAnalyzingWebsite(false);
@@ -797,10 +885,10 @@ export default function KeywordsDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-slate-600">Loading your keyword list...</p>
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <>
@@ -1451,14 +1539,19 @@ export default function KeywordsDashboard() {
        </div>
           )}
 
-          {/* Quick Add Website Modal */}
+          {/* Quick Add Website Modal - Multi-step like onboarding */}
           {showQuickAddWebsiteModal && (
             <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-8 my-8">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-8 my-8">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-1">Quick Add Website</h3>
-                    <p className="text-sm text-slate-500">Analyze a website and discover keywords automatically</p>
+                    <p className="text-sm text-slate-500">
+                      {quickAddStep === 0 && 'Enter your website URL'}
+                      {quickAddStep === 1 && 'Business Information'}
+                      {quickAddStep === 2 && 'Target Audience'}
+                      {quickAddStep === 3 && 'Comprehensive Analysis'}
+                    </p>
                   </div>
                   <button
                     onClick={closeQuickAddWebsiteModal}
@@ -1468,45 +1561,201 @@ export default function KeywordsDashboard() {
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Website URL <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      placeholder="example.com or https://example.com"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
-                    />
-                  </div>
+                {/* Step Indicator */}
+                <div className="flex items-center justify-between mb-8">
+                  {[0, 1, 2, 3].map((step) => (
+                    <div key={step} className="flex items-center flex-1">
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                        quickAddStep > step ? 'bg-emerald-600 text-white' :
+                        quickAddStep === step ? 'bg-emerald-600 text-white ring-2 ring-emerald-200' :
+                        'bg-slate-200 text-slate-600'
+                      }`}>
+                        {quickAddStep > step ? <CheckCircle className="h-5 w-5" /> : step + 1}
+                      </div>
+                      {step < 3 && (
+                        <div className={`flex-1 h-1 mx-2 ${
+                          quickAddStep > step ? 'bg-emerald-600' : 'bg-slate-200'
+                        }`} />
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Business Name (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="My Law Firm"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
-                    />
-                  </div>
+                <div className="space-y-6">
+                  {/* Step 0: Website URL */}
+                  {quickAddStep === 0 && (
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Website URL <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://yourwebsite.com"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
+                      />
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Industry (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
-                      placeholder="legal, technology, healthcare, etc."
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
-                    />
-                  </div>
+                  {/* Step 1: Business Information */}
+                  {quickAddStep === 1 && (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-slate-900 mb-4">Business Information</h4>
+                        <p className="text-sm text-slate-600 mb-4">Help us understand your business better</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Business Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={businessName}
+                          onChange={(e) => setBusinessName(e.target.value)}
+                          placeholder="Your Company Name"
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Industry <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={industry}
+                          onChange={(e) => setIndustry(e.target.value)}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                        >
+                          <option value="">Select your industry</option>
+                          <option value="technology">Technology</option>
+                          <option value="healthcare">Healthcare</option>
+                          <option value="finance">Finance</option>
+                          <option value="education">Education</option>
+                          <option value="retail">Retail & E-commerce</option>
+                          <option value="real-estate">Real Estate</option>
+                          <option value="legal">Legal Services</option>
+                          <option value="consulting">Consulting</option>
+                          <option value="marketing">Marketing & Advertising</option>
+                          <option value="food-beverage">Food & Beverage</option>
+                          <option value="travel">Travel & Hospitality</option>
+                          <option value="fitness">Fitness & Wellness</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Business Description (Optional)
+                        </label>
+                        <textarea
+                          value={businessDescription}
+                          onChange={(e) => setBusinessDescription(e.target.value)}
+                          placeholder="Briefly describe what your business does..."
+                          rows={3}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Target Audience */}
+                  {quickAddStep === 2 && (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-slate-900 mb-4">Target Audience</h4>
+                        <p className="text-sm text-slate-600 mb-4">Define who your ideal customers are</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Target Audience <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={targetAudience}
+                          onChange={(e) => setTargetAudience(e.target.value)}
+                          placeholder="Describe your ideal customers (e.g., small business owners, marketing professionals, tech-savvy millennials...)"
+                          rows={4}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 placeholder-slate-400 resize-none"
+                        />
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-1.5 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-lg">
+                            <TrendingUp className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-900">Keyword Discovery Process:</h4>
+                            <ul className="mt-2 text-sm text-slate-700 space-y-1">
+                              <li>• <strong>Competitor Analysis:</strong> Find keywords your competitors rank for</li>
+                              <li>• <strong>Site Analysis:</strong> Identify your current keyword performance</li>
+                              <li>• <strong>Google Trends:</strong> Discover trending and seasonal opportunities</li>
+                              <li>• <strong>SERP Analysis:</strong> Find content gaps and ranking opportunities</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Analysis Progress */}
+                  {quickAddStep === 3 && (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="flex justify-center mb-4">
+                          <div className="p-4 bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-full">
+                            <Search className="h-8 w-8 text-blue-600" />
+                          </div>
+                        </div>
+                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                          {isAnalyzingWebsite ? 'Analyzing Your Market...' : 'Ready to Analyze'}
+                        </h3>
+                        <p className="text-slate-600">
+                          {isAnalyzingWebsite 
+                            ? 'This may take a few minutes. We\'re scanning competitors, analyzing your site, checking Google trends, and examining SERP data.'
+                            : 'Click "Start Analysis" to begin the comprehensive keyword discovery process.'
+                          }
+                        </p>
+                      </div>
+
+                      {isAnalyzingWebsite && (
+                        <div className="space-y-4">
+                          {Object.entries(quickAddAnalysisProgress).map(([key, completed]) => (
+                            <div key={key} className="flex items-center gap-3">
+                              <div className={`p-2 rounded-full ${
+                                completed ? 'bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100' : 'bg-slate-100'
+                              }`}>
+                                {completed ? (
+                                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                                ) : (
+                                  <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-medium text-slate-900 capitalize">
+                                  {key.replace('_', ' ')}
+                                </h4>
+                                <p className="text-xs text-slate-500">
+                                  {completed ? 'Completed' : 'In progress...'}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {generateSuccess && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-green-900">Analysis Complete!</p>
+                              <p className="text-sm text-green-700 mt-1">
+                                Generated {generateSuccess.keywordsGenerated} keywords. Redirecting to keywords page...
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {generateError && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -1517,44 +1766,41 @@ export default function KeywordsDashboard() {
                     </div>
                   )}
 
-                  {generateSuccess && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-green-900">Success!</p>
-                          <p className="text-sm text-green-700 mt-1">
-                            Generated {generateSuccess.keywordsGenerated} keywords for the website.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
+                  {/* Navigation Buttons */}
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
+                    {quickAddStep > 0 && quickAddStep < 3 && (
+                      <button
+                        onClick={handleQuickAddWebsiteBack}
+                        className="px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                      >
+                        Previous
+                      </button>
+                    )}
                     <button
                       onClick={closeQuickAddWebsiteModal}
-                      className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                      className="px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
                     >
                       Cancel
                     </button>
-                    <button
-                      onClick={handleQuickAddWebsite}
-                      disabled={isAnalyzingWebsite || !websiteUrl.trim()}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      {isAnalyzingWebsite ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4" />
-                          Analyze Website
-                        </>
-                      )}
-                    </button>
+                    {quickAddStep < 3 && (
+                      <button
+                        onClick={handleQuickAddWebsiteNext}
+                        disabled={isAnalyzingWebsite}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                      >
+                        {quickAddStep === 2 ? (
+                          <>
+                            <Search className="h-4 w-4" />
+                            Start Analysis
+                          </>
+                        ) : (
+                          <>
+                            Next
+                            <ArrowRight className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1693,6 +1939,25 @@ export default function KeywordsDashboard() {
               </div>
             </div>
           )}
+
+      {/* Guide Link */}
+      <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg border border-blue-200 p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Need Help Linking Websites and WordPress Sites?</h2>
+            <p className="text-slate-700 mb-4">
+              Learn how to properly connect your websites to WordPress sites for automatic content separation and publishing.
+            </p>
+            <Link 
+              href="/dashboard/guide"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              View Complete Guide
+            </Link>
+          </div>
+        </div>
+      </div>
 
       <OutOfCreditsDialog
         open={showOutOfCreditsDialog}

@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const month = searchParams.get('month'); // YYYY-MM format
+    const onboardingProfileId = searchParams.get('onboarding_profile_id'); // Filter by website
 
     let query = supabase
       .from('discovered_keywords')
@@ -80,6 +81,11 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('scheduled_for_generation', true)
       .order('scheduled_date', { ascending: true });
+
+    // Filter by website if specified
+    if (onboardingProfileId) {
+      query = query.eq('onboarding_profile_id', onboardingProfileId);
+    }
 
     if (date) {
       query = query.eq('scheduled_date', date);

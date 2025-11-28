@@ -131,16 +131,64 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
 
-    // Create onboarding profile
-    const { data: onboardingProfile, error: profileError } = await supabase
+    // Normalize website URL
+    let normalizedUrl = websiteUrl.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+
+    // Check if profile already exists for this user and website
+    const { data: existingProfile } = await supabaseAuth
+      .from('user_onboarding_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('website_url', normalizedUrl)
+      .maybeSingle();
+
+    if (existingProfile) {
+      // Return existing profile instead of creating a duplicate
+      const { data: onboardingProfile, error: fetchError } = await supabaseAuth
+        .from('user_onboarding_profiles')
+        .select('*')
+        .eq('id', existingProfile.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching existing profile:', fetchError);
+        return NextResponse.json({ 
+          error: 'Failed to fetch existing profile',
+          details: fetchError.message 
+        }, { status: 500 });
+      }
+
+      // Continue with existing profile
+      return NextResponse.json({
+        success: true,
+        onboardingProfileId: onboardingProfile.id,
+        message: 'Using existing profile for this website',
+        analysisResults: {
+          totalKeywords: 0,
+          highOpportunityKeywords: 0,
+          mediumOpportunityKeywords: 0,
+          lowOpportunityKeywords: 0,
+          competitorsAnalyzed: 0,
+          siteIssuesFound: 0,
+          contentGapsIdentified: 0,
+          metricsSource: 'existing'
+        }
+      });
+    }
+
+    // Create onboarding profile using authenticated client (respects RLS)
+    const { data: onboardingProfile, error: profileError } = await supabaseAuth
       .from('user_onboarding_profiles')
       .insert({
         user_id: userId,
-        website_url: websiteUrl,
-        business_name: businessName,
-        industry: industry,
-        target_audience: targetAudience,
-        business_description: businessDescription,
+        website_url: normalizedUrl,
+        business_name: businessName?.trim() || undefined,
+        industry: industry?.trim() || undefined,
+        target_audience: targetAudience?.trim() || undefined,
+        business_description: businessDescription?.trim() || undefined,
         onboarding_status: 'in_progress',
         analysis_progress: {
           competitor_analysis: false,
@@ -155,12 +203,21 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('Error creating onboarding profile:', profileError);
-      return NextResponse.json({ error: 'Failed to create onboarding profile' }, { status: 500 });
+      // Return more detailed error message
+      const errorMessage = profileError.code === '23505' 
+        ? 'A profile for this website already exists'
+        : profileError.message || 'Failed to create onboarding profile';
+      
+      return NextResponse.json({ 
+        error: 'Failed to create onboarding profile',
+        details: errorMessage,
+        code: profileError.code
+      }, { status: 500 });
     }
 
     // Build a seed context from the website and user-provided business details
     const seedContext = await buildSeedContext({
-      websiteUrl,
+      websiteUrl: normalizedUrl,
       businessName,
       industry,
       targetAudience,
@@ -182,7 +239,7 @@ export async function POST(request: NextRequest) {
     await saveAnalysisResults(userId, onboardingProfile.id, analysisResults);
 
     // Update onboarding status to completed
-    await supabase
+    await supabaseAuth
       .from('user_onboarding_profiles')
       .update({ 
         onboarding_status: 'completed',
