@@ -114,6 +114,8 @@ export default function KeywordsDashboard() {
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string; website_url: string; industry?: string }>>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [filterProfileId, setFilterProfileId] = useState<string | null>(null); // For filtering displayed keywords
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [seedKeywords, setSeedKeywords] = useState<string[]>(['']);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -149,14 +151,30 @@ export default function KeywordsDashboard() {
   const [showOutOfCreditsDialog, setShowOutOfCreditsDialog] = useState(false);
   const [requiredCreditsForDialog, setRequiredCreditsForDialog] = useState(REQUIRED_CREDITS_FOR_KEYWORD_GENERATION);
 
+  // Load profiles on page load
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
   useEffect(() => {
     if (onboardingId) {
       loadKeywords(onboardingId);
       setSelectedProfileId(onboardingId);
+      setFilterProfileId(onboardingId);
+    } else {
+      loadAllOnboardingKeywords();
+      setFilterProfileId(null); // Show all keywords
+    }
+  }, [onboardingId]);
+
+  // Reload keywords when filter changes
+  useEffect(() => {
+    if (filterProfileId) {
+      loadKeywords(filterProfileId);
     } else {
       loadAllOnboardingKeywords();
     }
-  }, [onboardingId]);
+  }, [filterProfileId]);
 
   // Load profiles when modal opens
   useEffect(() => {
@@ -524,9 +542,10 @@ export default function KeywordsDashboard() {
     }
   };
 
-  // Load profiles for keyword generation
+  // Load profiles for keyword generation and filtering
   const loadProfiles = async () => {
     try {
+      setLoadingProfiles(true);
       const supabase = supabaseBrowser();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -546,12 +565,16 @@ export default function KeywordsDashboard() {
       // If we have an onboardingId in URL, use it; otherwise use first profile
       if (onboardingId && typedProfiles.some(p => p.id === onboardingId)) {
         setSelectedProfileId(onboardingId);
+        setFilterProfileId(onboardingId);
       } else if (typedProfiles.length > 0) {
         setSelectedProfileId(typedProfiles[0].id);
+        // Don't auto-set filter - let user choose "All Websites" by default
       }
     } catch (err: any) {
       console.error('Error loading profiles:', err);
       setGenerateError(err.message);
+    } finally {
+      setLoadingProfiles(false);
     }
   };
 
@@ -898,15 +921,55 @@ export default function KeywordsDashboard() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
-              {onboardingId ? 'Keywords' : 'All Keywords'}
+              {filterProfileId ? 'Keywords' : 'All Keywords'}
             </h1>
             <p className="text-slate-600">
-              {onboardingId 
+              {filterProfileId 
                 ? 'Keywords discovered during your onboarding analysis with real metrics from DataForSEO.'
                 : 'All keywords discovered across your onboarding analyses. Each keyword includes real search volume, CPC, and competition data from DataForSEO.'
               }
             </p>
           </div>
+
+          {/* Website Filter */}
+          {profiles.length > 0 && (
+            <div className="mb-6 flex justify-center">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Filter by Website
+                </label>
+                <select
+                  value={filterProfileId || ''}
+                  onChange={(e) => {
+                    const newProfileId = e.target.value || null;
+                    setFilterProfileId(newProfileId);
+                    // Update URL if needed
+                    if (newProfileId) {
+                      router.push(`/dashboard/keywords?onboarding=${newProfileId}`);
+                    } else {
+                      router.push('/dashboard/keywords');
+                    }
+                  }}
+                  disabled={loadingProfiles}
+                  className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 transition-colors min-w-[250px]"
+                >
+                  <option value="">All Websites</option>
+                  {profiles.map(profile => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.business_name || profile.website_url} {profile.industry ? `(${profile.industry})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {filterProfileId && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Showing: {profiles.find(p => p.id === filterProfileId)?.business_name || profiles.find(p => p.id === filterProfileId)?.website_url || 'Selected Website'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Stats Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
