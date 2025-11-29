@@ -223,14 +223,11 @@ const HomePage = () => {
                 <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-16">
-                            <div className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
-                                THE REALITY CHECK
-                            </div>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                                Your Business Deserves to Get Traffic and Sales
+                                Scale Your SEO Without Scaling Your Team
                             </h2>
-                            <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed font-medium">
-                                You shouldn't have to spend hours writing or pay thousands to agencies just to grow. Forget juggling multiple SEO/GEO tools. Our AI agent handles everything, bringing traffic and sales to you even when you sleep.
+                            <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed">
+                                Automate keyword research, content creation, and publishing. Focus on growing your business while Bridgely handles SEO 24/7.
                             </p>
                         </div>
 
@@ -238,82 +235,42 @@ const HomePage = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12">
                             {/* Left Column - Problems */}
                             <div>
-                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                    <span className="w-1 h-8 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full"></span>
-                                    The Problems You Face
+                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8">
+                                    The Challenge
                                 </h3>
                                 <div className="space-y-4">
-                                    <div className="bg-white p-5 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Clock className="w-5 h-5 text-blue-600" />
+                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Clock className="w-6 h-6 text-slate-600" />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">8+ Hours</span>
-                                                    <span className="text-sm font-semibold text-slate-600">Per Article</span>
-                                                </div>
-                                                <p className="text-slate-600 text-sm leading-relaxed">Research, writing, optimization, and revisions. Your team is drowning in manual work while competitors automate.</p>
+                                                <div className="text-2xl font-bold text-slate-900 mb-2">8+ Hours Per Article</div>
+                                                <p className="text-slate-600">Manual research, writing, and optimization consume valuable time.</p>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white p-5 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <TrendingUp className="w-6 h-6 text-slate-600" />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">60%</span>
-                                                    <span className="text-sm font-semibold text-slate-600">Don't Rank</span>
-                                                </div>
-                                                <p className="text-slate-600 text-sm leading-relaxed">Your content misses the mark. Keyword stuffing, outdated strategies, and no real optimization—clients see zero ROI.</p>
+                                                <div className="text-2xl font-bold text-slate-900 mb-2">60% Don't Rank</div>
+                                                <p className="text-slate-600">Content fails to meet search engine standards and client expectations.</p>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white p-5 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Zap className="w-5 h-5 text-blue-600" />
+                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Zap className="w-6 h-6 text-slate-600" />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">$0</span>
-                                                    <span className="text-sm font-semibold text-slate-600">Scalability</span>
-                                                </div>
-                                                <p className="text-slate-600 text-sm leading-relaxed">You can't scale. More clients = more hours = burned-out team. Growth becomes a curse, not a blessing.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-5 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Lightbulb className="w-5 h-5 text-indigo-600" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Zero</span>
-                                                    <span className="text-sm font-semibold text-slate-600">Visibility</span>
-                                                </div>
-                                                <p className="text-slate-600 text-sm leading-relaxed">You're flying blind. No real data on what works, what ranks, or why clients are churning. It's all guesswork.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-5 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Briefcase className="w-5 h-5 text-purple-600" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Competitors</span>
-                                                    <span className="text-sm font-semibold text-slate-600">Win Contracts</span>
-                                                </div>
-                                                <p className="text-slate-600 text-sm leading-relaxed">They promise faster delivery, better results, and lower prices. You're losing deals because you're stuck in 2015 workflows.</p>
+                                                <div className="text-2xl font-bold text-slate-900 mb-2">Limited Scalability</div>
+                                                <p className="text-slate-600">Growth requires more resources, not more efficiency.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -322,73 +279,53 @@ const HomePage = () => {
 
                             {/* Right Column - Bridgely Solution */}
                             <div className="lg:sticky lg:top-8 flex flex-col">
-                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                    <span className="w-1 h-8 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-full"></span>
-                                    Bridgely
+                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8">
+                                    The Solution
                                 </h3>
-                                <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-7 shadow-2xl hover:shadow-3xl transition-all flex flex-col relative overflow-hidden">
-                                    {/* Decorative background elements */}
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-                                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+                                <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 shadow-xl flex flex-col">
+                                    <div className="mb-6">
+                                        <h4 className="text-2xl font-bold text-white mb-2">Bridgely</h4>
+                                        <p className="text-blue-100">All-in-One SEO Platform</p>
+                                    </div>
                                     
-                                    <div className="relative z-10 flex flex-col">
-                                        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/20">
-                                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-xl">
-                                                <TrendingUp className="w-7 h-7 text-blue-600" />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-xl font-bold text-white mb-0.5">Bridgely</h4>
-                                                <p className="text-blue-100 text-xs font-medium">All-in-One SEO Platform</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <p className="text-white text-base font-bold mb-5">
-                                            Replace multiple tools with one powerful platform:
-                                        </p>
-                                        
-                                        <div className="space-y-2 mb-5">
-                                            {[
-                                                { name: 'Keyword Research & Discovery', icon: Sparkles },
-                                                { name: 'AI Content Generation', icon: Zap },
-                                                { name: 'SEO Analysis & Optimization', icon: TrendingUp },
-                                                { name: 'Image Integration', icon: Globe },
-                                                { name: 'Automated Workflows', icon: Clock }
-                                            ].map((feature, idx) => {
-                                                const IconComponent = feature.icon;
-                                                return (
-                                                    <div key={idx} className="flex items-center gap-3 group bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-all">
-                                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform">
-                                                            <IconComponent className="w-4 h-4 text-blue-600" />
-                                                        </div>
-                                                        <span className="text-white font-semibold text-sm flex-1">{feature.name}</span>
-                                                        <CheckCircle className="w-4 h-4 text-white/80 flex-shrink-0" />
+                                    <div className="space-y-3 mb-6">
+                                        {[
+                                            { name: 'Keyword Research', icon: Sparkles },
+                                            { name: 'AI Content Generation', icon: Zap },
+                                            { name: 'SEO Optimization', icon: TrendingUp },
+                                            { name: 'Automated Publishing', icon: Clock }
+                                        ].map((feature, idx) => {
+                                            const IconComponent = feature.icon;
+                                            return (
+                                                <div key={idx} className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                                        <IconComponent className="w-4 h-4 text-white" />
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                        
-                                        <div className="pt-4 border-t border-white/20">
-                                            <div className="bg-white/15 backdrop-blur-md rounded-xl p-4 mb-4 border border-white/20">
-                                                <div className="flex items-center justify-center gap-5">
-                                                    <div className="text-center">
-                                                        <div className="text-lg font-bold text-white">$500+</div>
-                                                        <div className="text-blue-100 text-xs font-medium">Saved/month</div>
-                                                    </div>
-                                                    <div className="w-px h-8 bg-white/30"></div>
-                                                    <div className="text-center">
-                                                        <div className="text-lg font-bold text-white">20+ hrs</div>
-                                                        <div className="text-blue-100 text-xs font-medium">Saved/week</div>
-                                                    </div>
+                                                    <span className="text-white font-medium">{feature.name}</span>
                                                 </div>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <div className="pt-6 border-t border-white/20">
+                                        <div className="flex items-center justify-center gap-8 mb-6">
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-white">$500+</div>
+                                                <div className="text-blue-100 text-xs">Saved/month</div>
                                             </div>
-                                            <Link 
-                                                href="/dashboard"
-                                                className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 w-full group"
-                                            >
-                                                Get Started Now
-                                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
+                                            <div className="w-px h-10 bg-white/30"></div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-white">20+ hrs</div>
+                                                <div className="text-blue-100 text-xs">Saved/week</div>
+                                            </div>
                                         </div>
+                                        <Link 
+                                            href="/dashboard"
+                                            className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-semibold transition-all w-full group"
+                                        >
+                                            Start Free Trial
+                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
@@ -396,12 +333,19 @@ const HomePage = () => {
 
                         {/* Bottom Callout */}
                         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-center text-white shadow-xl">
-                            <p className="text-xl md:text-2xl font-bold mb-2">
-                                Every hour on manual SEO is money out the door.
+                            <p className="text-2xl md:text-3xl font-bold mb-4">
+                                Ready to Automate Your SEO?
                             </p>
-                            <p className="text-lg text-blue-100">
-                                Stop watching your margins shrink. Start automating and scale your SEO without scaling your team.
+                            <p className="text-lg text-blue-100 mb-6 max-w-2xl mx-auto">
+                                Join 500+ businesses scaling their content with Bridgely.
                             </p>
+                            <Link 
+                                href="/dashboard"
+                                className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-semibold transition-all group"
+                            >
+                                Start Free Trial
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </Link>
                         </div>
                     </div>
                 </section>
