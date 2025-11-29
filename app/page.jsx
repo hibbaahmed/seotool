@@ -130,6 +130,28 @@ const HomePage = () => {
                             </Link>
                         </div>
 
+                        {/* Social Proof */}
+                        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 mb-12">
+                            <div className="flex items-center gap-2 text-slate-700">
+                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    50k+
+                                </div>
+                                <span className="text-sm text-slate-600">Articles Created</span>
+                            </div>
+                            <div className="hidden sm:block w-px h-6 bg-slate-200"></div>
+                            <div className="flex items-center gap-2 text-slate-700">
+                                <div className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                    <span className="text-2xl font-bold text-slate-900">4.9/5</span>
+                                </div>
+                                <span className="text-sm text-slate-600">Rated</span>
+                            </div>
+                            <div className="hidden sm:block w-px h-6 bg-slate-200"></div>
+                            <div className="text-sm text-slate-600 max-w-xs">
+                                Generated 10,000+ articles for customers worldwide
+                            </div>
+                        </div>
+
                         {/* Demo Video */}
                         <div className="w-full max-w-4xl mx-auto mb-16">
                             <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
