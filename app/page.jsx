@@ -132,21 +132,14 @@ const HomePage = () => {
                             <span className="font-semibold text-slate-700"> Rank on Google and get cited on ChatGPT</span> — all in one place.
                         </p>
                         
-                        {/* CTA Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                        {/* CTA Button */}
+                        <div className="flex justify-center mb-16">
                             <Link 
                                 href="/dashboard"
-                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-5 rounded-xl font-bold text-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                             >
-                                Join with Google
-                                <ArrowRight className="w-5 h-5" />
-                            </Link>
-                            <Link
-                                href="/pricing"
-                                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border-2 border-slate-300 text-slate-700 hover:text-slate-900 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                            >
-                                <Briefcase className="w-5 h-5" />
-                                Get Started
+                                Get Started for Free
+                                <ArrowRight className="w-6 h-6" />
                             </Link>
                         </div>
 
@@ -807,18 +800,14 @@ const HomePage = () => {
                             Join 500+ businesses already using Bridgely to rank on Google and get cited on ChatGPT.
                         </p>
                         
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                        <div className="flex justify-center mb-12">
                             <Link 
                                 href="/dashboard"
-                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-5 rounded-xl font-bold text-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                             >
-                                Join with Google
-                                <ArrowRight className="w-5 h-5" />
+                                Get Started for Free
+                                <ArrowRight className="w-6 h-6" />
                             </Link>
-                            <button className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-sm hover:shadow-md">
-                                <Briefcase className="w-5 h-5" />
-                                Contact Sales
-                            </button>
                         </div>
 
                         <div className="flex items-center justify-center gap-8 text-slate-500 text-sm flex-wrap">
