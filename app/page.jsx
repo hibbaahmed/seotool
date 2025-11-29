@@ -133,13 +133,19 @@ const HomePage = () => {
                         </p>
                         
                         {/* CTA Button */}
-                        <div className="flex justify-center mb-16">
+                        <div className="flex justify-center mb-16 relative">
+                            {/* Animated background glow */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-64 h-20 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl blur-2xl opacity-50 animate-pulse"></div>
+                            </div>
                             <Link 
                                 href="/dashboard"
-                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-5 rounded-xl font-bold text-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                                className="relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-14 py-6 rounded-2xl font-bold text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:scale-110 transform group border-2 border-white/20"
                             >
-                                Get Started for Free
-                                <ArrowRight className="w-6 h-6" />
+                                <span className="relative z-10">Get Started for Free</span>
+                                <ArrowRight className="w-7 h-7 relative z-10 group-hover:translate-x-2 transition-transform duration-300" />
+                                {/* Shimmer effect overlay */}
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                             </Link>
                         </div>
 
@@ -800,13 +806,19 @@ const HomePage = () => {
                             Join 500+ businesses already using Bridgely to rank on Google and get cited on ChatGPT.
                         </p>
                         
-                        <div className="flex justify-center mb-12">
+                        <div className="flex justify-center mb-12 relative">
+                            {/* Animated background glow */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-64 h-20 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl blur-2xl opacity-50 animate-pulse"></div>
+                            </div>
                             <Link 
                                 href="/dashboard"
-                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-5 rounded-xl font-bold text-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                                className="relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-14 py-6 rounded-2xl font-bold text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:scale-110 transform group border-2 border-white/20"
                             >
-                                Get Started for Free
-                                <ArrowRight className="w-6 h-6" />
+                                <span className="relative z-10">Get Started for Free</span>
+                                <ArrowRight className="w-7 h-7 relative z-10 group-hover:translate-x-2 transition-transform duration-300" />
+                                {/* Shimmer effect overlay */}
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                             </Link>
                         </div>
 
