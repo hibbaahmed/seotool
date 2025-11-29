@@ -171,47 +171,6 @@ const HomePage = () => {
                                 )}
                             </div>
                         </div>
-                        
-                        {/* Key Benefits */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                                    <Sparkles className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 mb-2">AI-Powered Research</h3>
-                                <p className="text-sm text-slate-600">Automated keyword discovery and content strategy</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-                                <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                                    <Zap className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 mb-2">24/7 Publishing</h3>
-                                <p className="text-sm text-slate-600">Automatic content generation and optimization</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-                                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                                    <TrendingUp className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 mb-2">Multi-Engine SEO</h3>
-                                <p className="text-sm text-slate-600">Rank on Google and get cited on ChatGPT</p>
-                            </div>
-                        </div>
-                        
-                        {/* Social Proof */}
-                        <div className="flex flex-wrap items-center justify-center gap-6 text-slate-500 text-sm">
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium">500+ businesses trust Bridgely</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                <span className="font-medium">4.9/5 average rating</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="font-medium">30 articles/month on autopilot</span>
-                            </div>
-                        </div>
                     </div>
                 </section>
                   </div>
