@@ -113,9 +113,11 @@ const HomePage = () => {
                         </div>
 
                         {/* Main Headline */}
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold leading-[1.1] mb-8 tracking-tight">
-                            <span className="text-slate-900 block sm:inline">Organic Traffic on</span>
-                            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent block sm:inline sm:ml-2">
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.2] mb-8 tracking-tight">
+                            <span className="text-slate-900">
+                                Grow Google, ChatGPT Traffic on{' '}
+                            </span>
+                            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                                 Autopilot
                             </span>
                         </h1>
