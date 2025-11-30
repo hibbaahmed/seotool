@@ -177,10 +177,10 @@ const HomePage = () => {
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                                Scale Your SEO Without Scaling Your Team
+                                Stop Wasting Time on SEO. Start Getting Results.
                             </h2>
                             <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed">
-                                Automate keyword research, content creation, and publishing. Focus on growing your business while Bridgely handles SEO 24/7.
+                                You're spending too much time on content that doesn't rank. Hiring writers costs too much. Managing SEO tools is overwhelming. Let Bridgely handle it all automatically—so you can focus on what actually grows your business.
                             </p>
                         </div>
 
