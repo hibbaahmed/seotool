@@ -114,7 +114,7 @@ const HomePage = () => {
                         </p>
                         
                         {/* CTA Button */}
-                        <div className="flex justify-center mb-16">
+                        <div className="flex justify-center mb-6">
                             <Link 
                                 href="/dashboard"
                                 className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-8 py-3 rounded-xl font-semibold text-base sm:text-lg transition-colors duration-200 group"
