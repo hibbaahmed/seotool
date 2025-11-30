@@ -170,6 +170,30 @@ export async function POST(request: NextRequest) {
       
       console.log(`📌 Keyword loaded: "${keywordText}"`);
       console.log(`📌 Keyword onboarding_profile_id: ${data.onboarding_profile_id || 'NONE - THIS IS THE PROBLEM!'}`);
+      console.log(`📌 Current generation_status: ${data.generation_status}`);
+      console.log(`📌 Generated content ID: ${data.generated_content_id || 'NONE'}`);
+
+      // Check if content has already been generated for this keyword
+      if (data.generation_status === 'generated' && data.generated_content_id) {
+        console.log(`⚠️ Content already generated for keyword "${keywordText}" (ID: ${keyword_id})`);
+        console.log(`⚠️ Existing content ID: ${data.generated_content_id}`);
+        return NextResponse.json({ 
+          error: 'Content already generated for this keyword',
+          message: `This keyword already has generated content (ID: ${data.generated_content_id}). To regenerate, please delete the existing content first.`,
+          generated_content_id: data.generated_content_id,
+          generation_status: data.generation_status
+        }, { status: 409 }); // 409 Conflict
+      }
+
+      // Check if generation is already in progress
+      if (data.generation_status === 'generating') {
+        console.log(`⚠️ Generation already in progress for keyword "${keywordText}" (ID: ${keyword_id})`);
+        return NextResponse.json({ 
+          error: 'Generation already in progress',
+          message: 'Content generation is already running for this keyword. Please wait for it to complete.',
+          generation_status: data.generation_status
+        }, { status: 409 }); // 409 Conflict
+      }
 
       // Update status to generating
       await supabase

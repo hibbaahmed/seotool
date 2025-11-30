@@ -936,6 +936,19 @@ export const generateKeywordContent = inngest.createFunction(
         throw new Error(`Keyword not found: ${keywordId}`);
       }
 
+      // Check if content has already been generated for this keyword
+      if (data.generation_status === 'generated' && data.generated_content_id) {
+        console.log(`⚠️ Content already generated for keyword "${data.keyword}" (ID: ${keywordId})`);
+        console.log(`⚠️ Existing content ID: ${data.generated_content_id}`);
+        throw new Error(`Content already generated for this keyword. Existing content ID: ${data.generated_content_id}`);
+      }
+
+      // Check if generation is already in progress
+      if (data.generation_status === 'generating') {
+        console.log(`⚠️ Generation already in progress for keyword "${data.keyword}" (ID: ${keywordId})`);
+        throw new Error('Generation already in progress for this keyword');
+      }
+
       // Update status to generating
       await supabase
         .from('discovered_keywords')
