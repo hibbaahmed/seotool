@@ -91,7 +91,7 @@ const HomePage = () => {
             <div className="relative z-10 text-slate-900">
                 
                 {/* Hero Section */}
-                <section className="flex items-center justify-center min-h-[85vh] px-4 sm:px-6 lg:px-8 pt-48 sm:pt-48 md:pt-56 pb-20 overflow-visible">
+                <section className="flex items-center justify-center min-h-[85vh] px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-32 pb-20 overflow-visible">
                     <div className="text-center max-w-6xl mx-auto w-full">
                         {/* Main Headline */}
                         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.2] mb-8 tracking-tight px-2">

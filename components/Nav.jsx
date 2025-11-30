@@ -31,7 +31,6 @@ import {
   Github
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
-import BlackFridayBanner from './BlackFridayBanner';
 
 export default function Nav({ user }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -76,7 +75,6 @@ export default function Nav({ user }) {
       ref={navRef}
       className={`fixed top-0 w-full z-50 transition-all duration-300
       ${scrolled ? 'bg-white/98 backdrop-blur-xl shadow-xl border-b border-gray-100' : 'bg-gradient-to-r from-white/90 via-white/95 to-white/90 backdrop-blur-sm'}`}>
-      <BlackFridayBanner />
       <div className={`max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 ${scrolled ? 'py-3' : 'py-5'}`}>
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 relative z-10 group">
