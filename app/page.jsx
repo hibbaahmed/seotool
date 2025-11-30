@@ -184,91 +184,123 @@ const HomePage = () => {
                             </p>
                         </div>
 
-                        {/* Two Column Layout: Problems vs Solution */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12">
-                            {/* Left Column - Problems */}
-                            <div>
-                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8">
-                                    The Challenge
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Clock className="w-6 h-6 text-slate-600" />
+                        {/* Visual Comparison: Challenge vs Solution */}
+                        <div className="relative mb-12">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+                                {/* Left Column - The Challenge */}
+                                <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 lg:p-8">
+                                    <div className="mb-6">
+                                        <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+                                            The Challenge
+                                        </h3>
+                                        <p className="text-slate-600 text-sm">The backwards approach that wastes time and money:</p>
+                                    </div>
+                                    
+                                    {/* Visual Chart - Flat/No Growth */}
+                                    <div className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-200">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <div className="text-xs text-slate-500 mb-1">Total Clicks</div>
+                                                <div className="text-2xl font-bold text-slate-400">0</div>
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="text-2xl font-bold text-slate-900 mb-2">8+ Hours Per Article</div>
-                                                <p className="text-slate-600">Manual research, writing, and optimization consume valuable time.</p>
+                                            <div>
+                                                <div className="text-xs text-slate-500 mb-1">Avg Position</div>
+                                                <div className="text-2xl font-bold text-slate-400">0</div>
+                                            </div>
+                                        </div>
+                                        {/* Simple flat line chart representation */}
+                                        <div className="h-24 bg-white rounded-lg p-3 border border-slate-200">
+                                            <div className="h-full flex items-end justify-between gap-1">
+                                                {[...Array(8)].map((_, i) => (
+                                                    <div key={i} className="flex-1 bg-slate-200 rounded-t" style={{ height: '10%' }}></div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <TrendingUp className="w-6 h-6 text-slate-600" />
+                                    {/* Problem List */}
+                                    <div className="space-y-3">
+                                        {[
+                                            { text: "Endless hours writing, editing, and optimizing" },
+                                            { text: "High costs for freelancers or agency retainers" },
+                                            { text: "Paying for multiple, expensive SEO tools" },
+                                            { text: "Guessing which keywords will actually work" },
+                                            { text: "Wasting time on content that never ranks" }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <span className="text-red-600 text-xs font-bold">×</span>
+                                                </div>
+                                                <span className="text-slate-700 text-sm">{item.text}</span>
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="text-2xl font-bold text-slate-900 mb-2">60% Don't Rank</div>
-                                                <p className="text-slate-600">Content fails to meet search engine standards and client expectations.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Zap className="w-6 h-6 text-slate-600" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="text-2xl font-bold text-slate-900 mb-2">Limited Scalability</div>
-                                                <p className="text-slate-600">Growth requires more resources, not more efficiency.</p>
-                                            </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Right Column - Bridgely Solution */}
-                            <div className="lg:sticky lg:top-8 flex flex-col">
-                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8">
-                                    The Solution
-                                </h3>
-                                <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 shadow-xl flex flex-col">
+                                {/* VS Divider */}
+                                <div className="hidden lg:block absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                                    <div className="bg-slate-100 text-slate-600 font-bold text-sm px-4 py-2 rounded-full border-2 border-white shadow-lg">
+                                        VS
+                                    </div>
+                                </div>
+
+                                {/* Right Column - The Solution */}
+                                <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 lg:p-8">
                                     <div className="mb-6">
-                                        <h4 className="text-2xl font-bold text-white mb-2">Bridgely</h4>
-                                        <p className="text-blue-100">All-in-One SEO Platform</p>
+                                        <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+                                            With Bridgely
+                                        </h3>
+                                        <p className="text-slate-600 text-sm">The smart, data-driven automated approach:</p>
                                     </div>
                                     
+                                    {/* Visual Chart - Growth */}
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 mb-6 border border-blue-200">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <div className="text-xs text-slate-600 mb-1">Total Clicks</div>
+                                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">110K+</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-600 mb-1">Avg Position</div>
+                                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">17.1</div>
+                                            </div>
+                                        </div>
+                                        {/* Simple growth chart representation */}
+                                        <div className="h-24 bg-white rounded-lg p-3 border border-blue-200">
+                                            <div className="h-full flex items-end justify-between gap-1">
+                                                {[15, 25, 20, 35, 40, 50, 60, 75].map((height, i) => (
+                                                    <div key={i} className="flex-1 bg-gradient-to-t from-blue-500 to-purple-500 rounded-t" style={{ height: `${height}%` }}></div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Solution Features */}
                                     <div className="space-y-3 mb-6">
                                         {[
-                                            { name: 'Keyword Research', icon: Sparkles },
-                                            { name: 'AI Content Generation', icon: Zap },
-                                            { name: 'SEO Optimization', icon: TrendingUp },
-                                            { name: 'Automated Publishing', icon: Clock }
-                                        ].map((feature, idx) => {
-                                            const IconComponent = feature.icon;
-                                            return (
-                                                <div key={idx} className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                                                        <IconComponent className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    <span className="text-white font-medium">{feature.name}</span>
+                                            { num: "1", text: "Add Your Website (5 minutes)", desc: "Our AI analyzes your business and finds high-potential keywords automatically." },
+                                            { num: "2", text: "Plan Months of Content in Seconds", desc: "Turn keywords into a full content calendar. AI handles everything daily." },
+                                            { num: "3", text: "Get Traffic on Autopilot", desc: "Bridgely works behind the scenes—researching, writing, optimizing, and publishing." }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <span className="text-white text-xs font-bold">{item.num}</span>
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="flex-1">
+                                                    <div className="text-slate-900 font-semibold text-sm mb-1">{item.text}</div>
+                                                    <div className="text-slate-600 text-xs">{item.desc}</div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                     
-                                    <div className="pt-6 border-t border-white/20">
-                                        <Link 
-                                            href="/dashboard"
-                                            className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-semibold transition-all w-full group"
-                                        >
-                                            Start Free Trial
-                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                        </Link>
-                                    </div>
+                                    <Link 
+                                        href="/dashboard"
+                                        className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors w-full group"
+                                    >
+                                        Start Free Trial
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Link>
                                 </div>
                             </div>
                         </div>
