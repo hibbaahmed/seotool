@@ -261,17 +261,6 @@ const HomePage = () => {
                                     </div>
                                     
                                     <div className="pt-6 border-t border-white/20">
-                                        <div className="flex items-center justify-center gap-8 mb-6">
-                                            <div className="text-center">
-                                                <div className="text-2xl font-bold text-white">$500+</div>
-                                                <div className="text-blue-100 text-xs">Saved/month</div>
-                                            </div>
-                                            <div className="w-px h-10 bg-white/30"></div>
-                                            <div className="text-center">
-                                                <div className="text-2xl font-bold text-white">20+ hrs</div>
-                                                <div className="text-blue-100 text-xs">Saved/week</div>
-                                            </div>
-                                        </div>
                                         <Link 
                                             href="/dashboard"
                                             className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-semibold transition-all w-full group"
