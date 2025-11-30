@@ -147,7 +147,7 @@ const HomePage = () => {
                         </div>
 
                         {/* Demo Video */}
-                        <div className="w-full max-w-4xl mx-auto mb-16">
+                        <div className="w-full max-w-4xl mx-auto mb-8">
                             <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
                                 {cloudflareStreamId ? (
                                   <iframe
@@ -173,9 +173,9 @@ const HomePage = () => {
             <div className="bg-white text-slate-900 relative z-20">
                 
                 {/* Problem Section */}
-                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+                <section className="pt-12 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
                     <div className="max-w-7xl mx-auto">
-                        <div className="text-center mb-16">
+                        <div className="text-center mb-8">
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
                                 Stop Wasting Time on SEO. Start Getting Results.
                             </h2>
