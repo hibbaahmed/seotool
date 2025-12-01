@@ -95,7 +95,7 @@ function extractKeyTopics(content: string, title: string): string[] {
 async function findAuthoritativeSources(
   content: string,
   title: string
-): Promise<Array<{ url: string; title: string; phrase: string }>> {
+): Promise<Array<{ url: string; title: string; phrase: string; snippet?: string }>> {
   try {
     if (!process.env.TAVILY_API_KEY) {
       console.log('⚠️ Tavily API key not found, skipping external link search');
@@ -112,12 +112,17 @@ async function findAuthoritativeSources(
 
     console.log('🔍 Key topics found:', keyTopics.slice(0, 3));
 
-    const sources: Array<{ url: string; title: string; phrase: string }> = [];
+    const sources: Array<{ url: string; title: string; phrase: string; snippet?: string }> = [];
 
     // Search for authoritative sources for the top 2-3 topics
-    for (const topic of keyTopics.slice(0, 3)) {
+    const enrichedTopics = keyTopics.slice(0, 3).map((topic) => {
+      const headliner = title.split(' ').slice(0, 2).join(' ');
+      return `${topic} ${headliner}`.trim();
+    });
+
+    for (const topic of enrichedTopics) {
       try {
-        const searchQuery = `${topic} guide official documentation`;
+        const searchQuery = `${topic} official documentation ${title.split(' ')[0] || ''}`.trim();
         
         const response = await fetch('https://api.tavily.com/search', {
           method: 'POST',
@@ -150,14 +155,29 @@ async function findAuthoritativeSources(
         if (response.ok) {
           const data = await response.json();
           if (data.results && data.results.length > 0) {
-            // Take the first authoritative result
-            const result = data.results[0];
-            sources.push({
-              url: result.url,
-              title: result.title || topic,
-              phrase: topic
+            const normalizedTopic = topic.toLowerCase();
+            const relevantList = data.results.filter((result: any) => {
+              const metadata = [
+                result.title,
+                result.description,
+                result.snippet,
+                result.url,
+              ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+              return metadata.includes(normalizedTopic);
             });
-            console.log(`✅ Found authoritative source for "${topic}": ${result.url}`);
+
+            const candidate = relevantList[0] || data.results[0];
+
+            sources.push({
+              url: candidate.url,
+              title: candidate.title || topic,
+              phrase: topic,
+              snippet: candidate.description || candidate.snippet || ''
+            });
+            console.log(`✅ Found authoritative source for "${topic}": ${candidate.url}`);
           }
         }
       } catch (err) {
@@ -1035,15 +1055,53 @@ function createTaglineFromSentence(businessName: string, sentence: string): stri
     )
     .trim();
   const base = sanitized || sentence.trim();
-  const truncated = truncateText(base.replace(/[.!?]+$/, ''));
+  const truncated = truncateText(base.replace(/[.!?]+$/, ''), 220);
   const result = capitalizeFirstLetter(truncated || 'Your Partner for These Playbooks');
   return preventAbbreviationBreaks(result);
 }
 
-function truncateText(text: string, maxLength = 90): string {
+function truncateText(text: string, maxLength = 220): string {
   if (!text) return '';
   if (text.length <= maxLength) return text;
-  return `${text.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
+  
+  // Truncate at word boundaries to avoid breaking words or abbreviations
+  let truncated = text.slice(0, maxLength);
+  
+  // Check if we're breaking an abbreviation pattern like "U.S." or "Dr."
+  // Look for incomplete abbreviations at the end (e.g., "U." when it should be "U.S.")
+  const incompleteAbbrevPattern = /\b([A-Z])\.?\s*$/;
+  const match = truncated.match(incompleteAbbrevPattern);
+  
+  if (match) {
+    // Check if there's more text after maxLength that completes the abbreviation
+    const remainingText = text.slice(maxLength);
+    // Look for patterns like ".S." (period, letter, period) which completes "U.S."
+    if (remainingText.match(/^\.[A-Z]\./)) {
+      // Include the complete abbreviation
+      const abbrevEnd = text.indexOf(' ', maxLength + 3); // ".S." is 3 chars
+      if (abbrevEnd !== -1 && abbrevEnd < maxLength + 15) {
+        truncated = text.slice(0, abbrevEnd);
+      } else {
+        // Include just the abbreviation and stop
+        truncated = text.slice(0, maxLength + 3);
+      }
+    } else {
+      // Remove the incomplete abbreviation by finding the last word boundary
+      const lastSpaceIndex = truncated.lastIndexOf(' ');
+      if (lastSpaceIndex > maxLength * 0.7) {
+        truncated = truncated.slice(0, lastSpaceIndex);
+      }
+    }
+  } else {
+    // If we're in the middle of a word, find the last space before maxLength
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    if (lastSpaceIndex > maxLength * 0.8) {
+      // Only use word boundary if it's not too far back (within 80% of maxLength)
+      truncated = truncated.slice(0, lastSpaceIndex);
+    }
+  }
+  
+  return truncated.trim();
 }
 
 function capitalizeFirstLetter(text: string): string {
