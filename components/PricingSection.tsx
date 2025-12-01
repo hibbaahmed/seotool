@@ -87,7 +87,7 @@ const PricingSection = () => {
               {/* Most Popular Tag */}
               <div className="absolute -top-3 right-6">
                 <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-md">
-                  For ambitious entrepreneurs
+                  Most Popular
                 </span>
               </div>
 
@@ -95,10 +95,9 @@ const PricingSection = () => {
               <div className="mb-8">
                 <div className="flex items-center gap-2 text-slate-600 text-sm mb-4 font-normal">
                   <Globe className="w-4 h-4 text-blue-600" />
-                  <span>1 website</span>
+                  <span>Unlimited Websites</span>
                 </div>
                 <h3 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-3 tracking-tight">All in One</h3>
-                <p className="text-slate-600 text-base mb-6 font-normal">Replace multiple tools with one powerful platform. Save $500+ per month and 20+ hours per week.</p>
                 
                 {/* Pricing */}
                 <div className="mb-8">
