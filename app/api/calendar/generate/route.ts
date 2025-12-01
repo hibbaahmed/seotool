@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { getAdapter } from '@/lib/integrations/getAdapter';
 import { marked } from 'marked';
 import { generateKeywordContentPrompt, generateExpansionPrompt } from '@/lib/content-generation-prompts';
+import type { CandidateImage } from '@/lib/ai-image-generation';
 
 // Helper function to add inline spacing styles to HTML
 function addInlineSpacing(html: string): string {
@@ -287,43 +288,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Search for relevant images and upload to Supabase Storage BEFORE content generation
+    // Generate AI images and upload to Supabase Storage BEFORE content generation
     let uploadedImageUrls: string[] = [];
     
     try {
-      console.log('🔍 Searching for images for topic:', keywordText);
+      console.log('🎨 Generating AI images for topic:', keywordText);
       
-      // 1) Find candidate image URLs via Tavily or use demos
-      let candidateImages: string[] = [];
-      if (process.env.TAVILY_API_KEY) {
-        const tavilyResponse = await fetch('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: keywordText,
-            search_depth: 'basic',
-            include_images: true,
-            max_results: 5
-          })
-        });
-        if (tavilyResponse.ok) {
-          const tavilyData = await tavilyResponse.json();
-          if (Array.isArray(tavilyData.images)) {
-            candidateImages = tavilyData.images.filter(Boolean);
-            console.log('🖼️ Found images from Tavily:', candidateImages.length);
-          }
-        }
-      }
-
-      // Use demo images if no images found
-      if (candidateImages.length === 0) {
+      // 1) Generate images using AI (Replicate Flux Schnell)
+      let candidateImages: CandidateImage[] = [];
+      const { generateArticleImages } = await import('@/lib/ai-image-generation');
+      candidateImages = await generateArticleImages(keywordText, 3);
+      
+      if (candidateImages.length > 0) {
+        console.log('🖼️ Generated AI images:', candidateImages.length);
+      } else {
+        console.log('⚠️ No AI images generated, using fallback images');
         candidateImages = [
-          'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800',
-          'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
-          'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800',
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800'
+          { url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800' },
+          { url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800' },
+          { url: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800' },
+          { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800' },
+          { url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800' }
         ];
       }
 
@@ -335,86 +320,90 @@ export async function POST(request: NextRequest) {
       console.log('📤 Starting image upload process for', candidateImages.length, 'images');
 
       for (let i = 0; i < Math.min(candidateImages.length, 5); i++) {
-        const externalUrl = candidateImages[i];
+        const candidate = candidateImages[i];
         try {
-          console.log(`🔄 Starting upload for image ${i + 1}:`, externalUrl);
-          
-          const resp = await fetch(externalUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-              'Referer': new URL(externalUrl).origin,
-            },
-            cache: 'no-store',
-          });
-          
-          if (!resp.ok) {
-            console.warn(`⚠️ Failed to fetch image ${i + 1}: ${resp.status}`);
+          let buffer: Buffer | null = null;
+          let contentType = candidate.contentType || '';
+          let sourceLabel = 'generated candidate';
+
+          if (candidate.url) {
+            const externalUrl = candidate.url;
+            sourceLabel = externalUrl;
+            console.log(`🔄 Starting upload for image ${i + 1}:`, externalUrl);
+
+            const resp = await fetch(externalUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Referer': new URL(externalUrl).origin,
+              },
+              cache: 'no-store',
+            });
+            
+            if (!resp.ok) {
+              console.warn(`⚠️ Failed to fetch image ${i + 1}: ${resp.status}`);
+              continue;
+            }
+
+            let inferredType = resp.headers.get('Content-Type') || '';
+            if (!inferredType || inferredType === 'application/octet-stream') {
+              const urlPath = new URL(externalUrl).pathname.toLowerCase();
+              if (urlPath.endsWith('.png')) {
+                inferredType = 'image/png';
+              } else if (urlPath.endsWith('.gif')) {
+                inferredType = 'image/gif';
+              } else if (urlPath.endsWith('.webp')) {
+                inferredType = 'image/webp';
+              } else {
+                inferredType = 'image/jpeg';
+              }
+            }
+
+            contentType = contentType || inferredType;
+            const arrayBuffer = await resp.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+          } else if (candidate.data) {
+            buffer = candidate.data;
+            contentType = contentType || 'image/webp';
+            console.log(`🔄 Starting upload for generated buffer image ${i + 1}`);
+          } else {
+            console.warn(`⚠️ Candidate ${i + 1} missing data and URL`);
             continue;
           }
-          
-          // Get content type from headers or infer from URL/blob
-          let contentType = resp.headers.get('Content-Type') || '';
-          
-          // If no content type, try to infer from URL extension
-          if (!contentType || contentType === 'application/octet-stream') {
-            const urlPath = new URL(externalUrl).pathname.toLowerCase();
-            if (urlPath.endsWith('.png')) {
-              contentType = 'image/png';
-            } else if (urlPath.endsWith('.gif')) {
-              contentType = 'image/gif';
-            } else if (urlPath.endsWith('.webp')) {
-              contentType = 'image/webp';
-            } else {
-              contentType = 'image/jpeg'; // Default fallback
-            }
-          }
-          
-          const blob = await resp.blob();
-          console.log(`📦 Image ${i + 1} blob size:`, blob.size, 'bytes', 'contentType:', contentType);
-          
-          // Validate blob type matches expected content type
-          if (blob.type && blob.type !== contentType && blob.type !== 'application/octet-stream') {
-            // Use blob's actual type if it's a valid image type
-            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-            if (validImageTypes.includes(blob.type)) {
-              contentType = blob.type;
-              console.log(`📝 Using blob's actual type: ${contentType}`);
-            }
-          }
-          
-          // Ensure contentType is valid (not application/octet-stream)
+
+          if (!buffer) continue;
+
           const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-          if (!validImageTypes.includes(contentType)) {
+          if (!contentType || !validImageTypes.includes(contentType.toLowerCase())) {
             console.warn(`⚠️ Invalid content type ${contentType}, defaulting to image/jpeg`);
             contentType = 'image/jpeg';
           }
-          
+
           const id = `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
-          const typeToExt: Record<string, string> = { 
-            'image/jpeg': 'jpg', 
-            'image/jpg': 'jpg', 
-            'image/png': 'png', 
-            'image/webp': 'webp', 
-            'image/gif': 'gif' 
+          const typeToExt: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
           };
           const ext = typeToExt[contentType.toLowerCase()] || 'jpg';
           const path = `user_uploads/${user.id}/${id}.${ext}`;
 
-          console.log(`📁 Uploading to path:`, path, 'with contentType:', contentType);
+          console.log(`📁 Uploading to path:`, path, 'source:', sourceLabel, 'contentType:', contentType);
 
-          const uploadRes = await storage.storage.from('photos').upload(path, blob, {
+          const uploadRes = await storage.storage.from('photos').upload(path, buffer, {
             cacheControl: '3600',
             upsert: true,
-            contentType: contentType, // Explicitly set valid content type
+            contentType,
           });
-          
+
           console.log(`📤 Upload result for image ${i + 1}:`, uploadRes);
-          
+
           if (uploadRes.error) {
             console.error(`❌ Upload error for image ${i + 1}:`, uploadRes.error);
             continue;
           }
-          
+
           const { data: pub } = storage.storage.from('photos').getPublicUrl(path);
           if (pub?.publicUrl) {
             uploadedImageUrls.push(pub.publicUrl);
@@ -427,6 +416,11 @@ export async function POST(request: NextRequest) {
       }
       
       console.log('📤 Upload process completed. Successfully uploaded:', uploadedImageUrls.length, 'images');
+      if (uploadedImageUrls.length > 0) {
+        console.log('🪄 Supabase image URLs used for content generation:', uploadedImageUrls);
+      } else {
+        console.log('⚠️ No Supabase image URLs were uploaded; the fallback Unsplash URLs will be used.');
+      }
     } catch (fallbackErr) {
       console.warn('⚠️ Calendar image upload failed:', fallbackErr);
     }
@@ -506,21 +500,41 @@ export async function POST(request: NextRequest) {
     // Call the content writer API to generate content
     // For test mode, disable multi-phase to generate shorter content faster
     // For full generation, enable multi-phase for longer, better structured content
-    const contentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ai/content-writer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: contentPrompt }],
-        userId: user.id,
-        enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
-        isTest: is_test, // Pass test mode flag to content-writer API
-        businessName, // Pass business name for multi-phase generation
-        websiteUrl, // Pass website URL for multi-phase generation
-        businessDescription, // Pass business description for personalized CTA
-      }),
-    });
+    const requestBody = {
+      messages: [{ role: 'user', content: contentPrompt }],
+      userId: user.id,
+      enableMultiPhase: !is_test, // Disable multi-phase for test mode (faster, shorter content)
+      isTest: is_test, // Pass test mode flag to content-writer API
+      businessName, // Pass business name for multi-phase generation
+      websiteUrl, // Pass website URL for multi-phase generation
+      businessDescription, // Pass business description for personalized CTA
+    };
+    
+    // Use internal API call - construct URL properly
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    const url = `${baseUrl}/api/ai/content-writer`;
+    
+    let contentResponse: Response;
+    try {
+      // Try with proper encoding
+      const bodyString = JSON.stringify(requestBody);
+      contentResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: bodyString,
+        // @ts-ignore - Internal fetch options
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // If fetch fails due to Content-Length mismatch, try alternative approach
+      console.error('❌ Initial fetch failed, trying alternative approach:', fetchError?.message);
+      
+      // Alternative: Use a smaller chunk or direct import if possible
+      // For now, throw the error to be handled upstream
+      throw new Error(`Failed to call content-writer API: ${fetchError?.message || 'Unknown error'}`);
+    }
 
     if (!contentResponse.ok) {
       throw new Error('Content generation failed');

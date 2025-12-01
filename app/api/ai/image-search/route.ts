@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { CandidateImage } from '@/lib/ai-image-generation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,73 +11,59 @@ export async function POST(request: NextRequest) {
       ? userInput.match(/Query: "([^"]+)"/)?.[1] || userInput.replace(/search for images of|find images of|images of/gi, '').trim()
       : userInput.replace(/search for images of|find images of|images of/gi, '').trim();
     
-    let imageUrls: string[] = [];
+    let candidateImages: CandidateImage[] = [];
     
-    // Try Tavily API for image search if available
-    if (process.env.TAVILY_API_KEY) {
-        try {
-          console.log('🔍 Searching for images with Tavily:', searchQuery);
-          console.log('🔑 TAVILY_API_KEY present:', !!process.env.TAVILY_API_KEY);
-          const tavilyResponse = await fetch('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: searchQuery,
-            search_depth: 'basic',
-            include_images: true,
-            max_results: 10
-          })
-        });
-
-        if (tavilyResponse.ok) {
-          const tavilyData = await tavilyResponse.json();
-          console.log('📊 Tavily response:', tavilyData);
-          
-          if (tavilyData.images && tavilyData.images.length > 0) {
-            imageUrls = tavilyData.images.filter(Boolean);
-            console.log('🖼️ Found images:', imageUrls);
-          } else {
-            console.log('❌ No images found in Tavily response');
-            console.log('🔍 Tavily data structure:', Object.keys(tavilyData));
-          }
-        } else {
-          console.error('❌ Tavily API error:', tavilyResponse.status, tavilyResponse.statusText);
-        }
-      } catch (error) {
-        console.error('❌ Tavily search error:', error);
+    // Generate AI images using Replicate Flux Schnell
+    try {
+      console.log('🎨 Generating AI images for query:', searchQuery);
+      const { generateArticleImages } = await import('@/lib/ai-image-generation');
+      candidateImages = await generateArticleImages(searchQuery, 5);
+      
+      if (candidateImages.length > 0) {
+        console.log('🖼️ Generated AI images:', candidateImages.length);
+      } else {
+        console.log('⚠️ No AI images generated');
       }
-    } else {
-      console.log('⚠️ TAVILY_API_KEY not configured');
+    } catch (error) {
+      console.error('❌ AI image generation error:', error);
     }
     
     // Always provide demo images for testing if no images found
-    if (imageUrls.length === 0) {
+    if (candidateImages.length === 0) {
       console.log('🔄 Using demo images for testing');
-      imageUrls = [
-        'https://images.unsplash.com/photo-1551434678-e076c223a692?w=500',
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500',
-        'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=500',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500'
+      candidateImages = [
+        { url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=500' },
+        { url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500' },
+        { url: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=500' },
+        { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500' },
+        { url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500' }
       ];
-      console.log('🖼️ Demo images set:', imageUrls.length, 'images');
+      console.log('🖼️ Demo images set:', candidateImages.length, 'images');
     }
 
-    // Enhanced prompt for image search with AI analysis
-    const systemPrompt = `You are an expert at finding and analyzing images for content. The user has requested images and I have found ${imageUrls.length} relevant images for them.
+    const imageUrls = candidateImages
+      .map((candidate) => {
+        if (candidate.url) return candidate.url;
+        if (candidate.data) {
+          const mime = candidate.contentType || 'image/webp';
+          return `data:${mime};base64,${candidate.data.toString('base64')}`;
+        }
+        return '';
+      })
+      .filter(Boolean);
+
+    // Enhanced prompt for AI-generated images with analysis
+    const systemPrompt = `You are an expert at analyzing AI-generated images for content. The user has requested images and I have generated ${imageUrls.length} AI images for them using Flux Schnell (a high-quality, fast image generation model).
 
 Based on the user's request, provide:
 
-1. **Image Search Results** - Confirm that ${imageUrls.length} images were found and describe what they show
+1. **AI Image Generation Results** - Confirm that ${imageUrls.length} AI images were generated and describe what they show
 2. **Image Analysis** - Describe what types of images would work best for their use case
-3. **Usage Suggestions** - How to use these images in content
-4. **Alternative Search Terms** - Other keywords to find better images
-5. **Image SEO Tips** - How to optimize images for search engines
+3. **Usage Suggestions** - How to use these AI-generated images in content
+4. **Alternative Prompts** - Other prompts that could generate better or different images
+5. **Image SEO Tips** - How to optimize AI-generated images for search engines
 
-Be specific about image types, styles, and usage recommendations. Always mention that images were successfully found and are ready for download.`;
+Be specific about image types, styles, and usage recommendations. Always mention that AI images were successfully generated and are ready for download.`;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

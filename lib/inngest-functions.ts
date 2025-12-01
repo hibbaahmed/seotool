@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getAdapter } from '@/lib/integrations/getAdapter';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { marked } from 'marked';
+import type { CandidateImage } from '@/lib/ai-image-generation';
 
 // Helper function to remove excessive bold formatting from HTML
 // Keeps bold only for FAQ questions, removes from all other content
@@ -1054,41 +1055,33 @@ export const generateKeywordContent = inngest.createFunction(
       return { primaryKeywords: primary, secondaryKeywords: secondary, longTailKeywords: longTail };
     });
 
-    // Step 3: Search for and upload images
+    // Step 3: Generate AI images and upload
     const uploadedImageUrls = await step.run('upload-images', async () => {
-      let candidateImages: string[] = [];
-      
       try {
-        // Search for images via Tavily
-        if (process.env.TAVILY_API_KEY) {
-          const tavilyResponse = await fetch('https://api.tavily.com/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              api_key: process.env.TAVILY_API_KEY,
-              query: keywordText,
-              search_depth: 'basic',
-              include_images: true,
-              max_results: 5
-            })
-          });
+        let candidateImages: CandidateImage[] = [];
+        
+        try {
+          // Generate images using AI (Replicate Flux Schnell)
+          const { generateArticleImages } = await import('@/lib/ai-image-generation');
+          candidateImages = await generateArticleImages(keywordText, 3);
           
-          if (tavilyResponse.ok) {
-            const tavilyData = await tavilyResponse.json();
-            if (Array.isArray(tavilyData.images)) {
-              candidateImages = tavilyData.images.filter(Boolean);
-            }
+          if (candidateImages.length > 0) {
+            console.log('🖼️ Generated AI images:', candidateImages.length);
+          } else {
+            console.log('⚠️ No AI images generated, using fallback images');
           }
+        } catch (error) {
+          console.error('❌ AI image generation error:', error);
         }
 
         // Use demo images if no images found
         if (candidateImages.length === 0) {
           candidateImages = [
-            'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800',
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
-            'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800',
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800'
+            { url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800' },
+            { url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800' },
+            { url: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800' },
+            { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800' },
+            { url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800' }
           ];
         }
 
@@ -1100,49 +1093,65 @@ export const generateKeywordContent = inngest.createFunction(
         );
 
         for (let i = 0; i < Math.min(candidateImages.length, 5); i++) {
+          const candidate = candidateImages[i];
           try {
-            const externalUrl = candidateImages[i];
-            const resp = await fetch(externalUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                'Referer': new URL(externalUrl).origin,
-              },
-              cache: 'no-store',
-            });
-            
-            if (!resp.ok) continue;
+            let buffer: Buffer | null = null;
+            let contentType = candidate.contentType || '';
+            let source = 'generated';
 
-            let contentType = resp.headers.get('Content-Type') || '';
-            if (!contentType || contentType === 'application/octet-stream') {
-              const urlPath = new URL(externalUrl).pathname.toLowerCase();
-              if (urlPath.endsWith('.png')) contentType = 'image/png';
-              else if (urlPath.endsWith('.gif')) contentType = 'image/gif';
-              else if (urlPath.endsWith('.webp')) contentType = 'image/webp';
-              else contentType = 'image/jpeg';
+            if (candidate.url) {
+              const externalUrl = candidate.url;
+              source = externalUrl;
+              const resp = await fetch(externalUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                  'Referer': new URL(externalUrl).origin,
+                },
+                cache: 'no-store',
+              });
+
+              if (!resp.ok) {
+                console.warn(`⚠️ Failed to fetch image ${i + 1}: ${resp.status}`);
+                continue;
+              }
+
+              let inferredType = resp.headers.get('Content-Type') || '';
+              if (!inferredType || inferredType === 'application/octet-stream') {
+                const urlPath = new URL(externalUrl).pathname.toLowerCase();
+                if (urlPath.endsWith('.png')) inferredType = 'image/png';
+                else if (urlPath.endsWith('.gif')) inferredType = 'image/gif';
+                else if (urlPath.endsWith('.webp')) inferredType = 'image/webp';
+                else inferredType = 'image/jpeg';
+              }
+              contentType = contentType || inferredType;
+              buffer = Buffer.from(await resp.arrayBuffer());
+            } else if (candidate.data) {
+              buffer = candidate.data;
+              contentType = contentType || 'image/webp';
             }
 
-            const blob = await resp.blob();
-            if (blob.type && blob.type !== 'application/octet-stream') {
-              const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-              if (validImageTypes.includes(blob.type)) {
-                contentType = blob.type;
-              }
+            if (!buffer) {
+              console.warn(`⚠️ Candidate ${i + 1} has no binary data`);
+              continue;
             }
 
             const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-            if (!validImageTypes.includes(contentType)) {
+            if (!contentType || !validImageTypes.includes(contentType.toLowerCase())) {
               contentType = 'image/jpeg';
             }
 
             const id = `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
-            const typeToExt: Record<string, string> = { 
-              'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 
-              'image/webp': 'webp', 'image/gif': 'gif' 
+            const typeToExt: Record<string, string> = {
+              'image/jpeg': 'jpg',
+              'image/jpg': 'jpg',
+              'image/png': 'png',
+              'image/webp': 'webp',
+              'image/gif': 'gif',
             };
             const ext = typeToExt[contentType.toLowerCase()] || 'jpg';
             const path = `user_uploads/${userId}/${id}.${ext}`;
 
-            const uploadRes = await storage.storage.from('photos').upload(path, blob, {
+            const uploadRes = await storage.storage.from('photos').upload(path, buffer, {
               cacheControl: '3600',
               upsert: true,
               contentType,
@@ -1153,6 +1162,7 @@ export const generateKeywordContent = inngest.createFunction(
             const { data: pub } = storage.storage.from('photos').getPublicUrl(path);
             if (pub?.publicUrl) {
               uploadedUrls.push(pub.publicUrl);
+              console.log(`✅ Uploaded image ${i + 1} (${source})`);
             }
           } catch (err) {
             console.error(`Error uploading image ${i + 1}:`, err);
@@ -1166,6 +1176,11 @@ export const generateKeywordContent = inngest.createFunction(
         return [];
       }
     });
+    if (uploadedImageUrls.length > 0) {
+      console.log('🪄 Supabase image URLs uploaded for keyword content generation:', uploadedImageUrls);
+    } else {
+      console.log('⚠️ No Supabase image URLs were generated; fallback images may be used.');
+    }
 
     // Step 4: Search for YouTube videos
     const videos = await step.run('search-youtube-videos', async () => {

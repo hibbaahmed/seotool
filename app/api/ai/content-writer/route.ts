@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateContentSystemPrompt } from '@/lib/content-generation-prompts';
 import { createClient as createServerClient } from '@/utils/supabase/server';
+import type { CandidateImage } from '@/lib/ai-image-generation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,130 +95,126 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Search for relevant images first
-    let imageUrls: string[] = [];
+    // Generate AI images first
+    let candidateImages: CandidateImage[] = [];
     
-    if (process.env.TAVILY_API_KEY) {
-      try {
-        console.log('🔍 Searching for images for topic:', topic);
-        const tavilyResponse = await fetch('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: topic,
-            search_depth: 'basic',
-            include_images: true,
-            max_results: 5
-          })
-        });
-
-        if (tavilyResponse.ok) {
-          const tavilyData = await tavilyResponse.json();
-          if (tavilyData.images && tavilyData.images.length > 0) {
-            imageUrls = tavilyData.images.filter(Boolean);
-            console.log('🖼️ Found images for content:', imageUrls.length);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Image search error:', error);
+    try {
+      console.log('🎨 Generating AI images for topic:', topic);
+      const { generateArticleImages } = await import('@/lib/ai-image-generation');
+      candidateImages = await generateArticleImages(topic, 3);
+      
+      if (candidateImages.length > 0) {
+        console.log('🖼️ Generated AI images for content:', candidateImages.length);
+      } else {
+        console.log('⚠️ No AI images generated, using fallback images');
       }
+    } catch (error) {
+      console.error('❌ AI image generation error:', error);
     }
     
     // Use demo images if no images found
-    if (imageUrls.length === 0) {
-      imageUrls = [
-        'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800',
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
-        'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800'
+    if (candidateImages.length === 0) {
+      candidateImages = [
+        { url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800' },
+        { url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800' },
+        { url: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800' },
+        { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800' },
+        { url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800' }
       ];
     }
 
     // Upload images to Supabase Storage
     let uploadedImageUrls: string[] = [];
-    if (imageUrls.length > 0) {
+    if (candidateImages.length > 0) {
       try {
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        console.log('📤 Starting image upload process for', imageUrls.length, 'images');
+        console.log('📤 Starting image upload process for', candidateImages.length, 'images');
         
         const uploadUserId = userId || 'content-writer';
         
-        for (let i = 0; i < imageUrls.length; i++) {
-          const imageUrl = imageUrls[i];
+        for (let i = 0; i < candidateImages.length; i++) {
+          const candidate = candidateImages[i];
           try {
-            console.log(`🔄 Starting upload for image ${i + 1}:`, imageUrl);
-            
-            const response = await fetch(imageUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                'Referer': new URL(imageUrl).origin,
-              },
-              cache: 'no-store',
-            });
-            
-            if (!response.ok) {
-              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            let buffer: Buffer | null = null;
+            let contentType = candidate.contentType || '';
+            let sourceLabel = 'generated candidate';
+
+            if (candidate.url) {
+              const imageUrl = candidate.url;
+              sourceLabel = imageUrl;
+              console.log(`🔄 Starting upload for image ${i + 1}:`, imageUrl);
+
+              const response = await fetch(imageUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                  'Referer': new URL(imageUrl).origin,
+                },
+                cache: 'no-store',
+              });
+
+              if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+              }
+
+              let inferredType = response.headers.get('Content-Type') || '';
+              if (!inferredType || inferredType === 'application/octet-stream') {
+                const urlPath = new URL(imageUrl).pathname.toLowerCase();
+                if (urlPath.endsWith('.png')) {
+                  inferredType = 'image/png';
+                } else if (urlPath.endsWith('.gif')) {
+                  inferredType = 'image/gif';
+                } else if (urlPath.endsWith('.webp')) {
+                  inferredType = 'image/webp';
+                } else {
+                  inferredType = 'image/jpeg';
+                }
+              }
+
+              contentType = contentType || inferredType;
+              const arrayBuffer = await response.arrayBuffer();
+              buffer = Buffer.from(arrayBuffer);
+            } else if (candidate.data) {
+              buffer = candidate.data;
+              contentType = contentType || 'image/webp';
+              console.log(`🔄 Starting upload for generated buffer image ${i + 1}`);
+            } else {
+              console.warn(`⚠️ Candidate ${i + 1} missing data and URL`);
+              continue;
             }
 
-            let contentType = response.headers.get('Content-Type') || '';
-            
-            if (!contentType || contentType === 'application/octet-stream') {
-              const urlPath = new URL(imageUrl).pathname.toLowerCase();
-              if (urlPath.endsWith('.png')) {
-                contentType = 'image/png';
-              } else if (urlPath.endsWith('.gif')) {
-                contentType = 'image/gif';
-              } else if (urlPath.endsWith('.webp')) {
-                contentType = 'image/webp';
-              } else {
-                contentType = 'image/jpeg';
-              }
-            }
-            
-            const imageBlob = await response.blob();
-            console.log(`📦 Image ${i + 1} blob size:`, imageBlob.size, 'bytes', 'contentType:', contentType);
-            
-            if (imageBlob.type && imageBlob.type !== contentType && imageBlob.type !== 'application/octet-stream') {
-              const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-              if (validImageTypes.includes(imageBlob.type)) {
-                contentType = imageBlob.type;
-                console.log(`📝 Using blob's actual type: ${contentType}`);
-              }
-            }
-            
+            if (!buffer) continue;
             const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-            if (!validImageTypes.includes(contentType)) {
+            if (!contentType || !validImageTypes.includes(contentType.toLowerCase())) {
               console.warn(`⚠️ Invalid content type ${contentType}, defaulting to image/jpeg`);
               contentType = 'image/jpeg';
             }
-            
+
             const id = `${Date.now()}-${i}-${Math.random().toString(36).substring(2)}`;
-            const typeToExt: Record<string, string> = { 
-              'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 
-              'image/webp': 'webp', 'image/gif': 'gif' 
+            const typeToExt: Record<string, string> = {
+              'image/jpeg': 'jpg',
+              'image/jpg': 'jpg',
+              'image/png': 'png',
+              'image/webp': 'webp',
+              'image/gif': 'gif',
             };
             const fileExtension = typeToExt[contentType.toLowerCase()] || 'jpg';
             const filePath = `user_uploads/${uploadUserId}/${id}.${fileExtension}`;
-            
-            console.log(`📁 Uploading to path:`, filePath, 'with contentType:', contentType);
-            
+
+            console.log(`📁 Uploading to path:`, filePath, 'source:', sourceLabel, 'contentType:', contentType);
+
             const uploadResult = await supabase.storage
               .from('photos')
-              .upload(filePath, imageBlob, {
+              .upload(filePath, buffer, {
                 cacheControl: '3600',
                 upsert: true,
-                contentType: contentType,
+                contentType,
               });
             console.log(`📤 Upload result for image ${i + 1}:`, uploadResult);
-            
+
             if (uploadResult.error) {
               console.error(`❌ Upload error for image ${i + 1}:`, uploadResult.error);
               continue;
@@ -226,7 +223,7 @@ export async function POST(request: NextRequest) {
             const { data: publicUrlData } = supabase.storage
               .from('photos')
               .getPublicUrl(filePath);
-            
+
             if (publicUrlData?.publicUrl) {
               uploadedImageUrls.push(publicUrlData.publicUrl);
               console.log(`✅ Image ${i + 1} uploaded successfully:`, publicUrlData.publicUrl);
@@ -238,6 +235,11 @@ export async function POST(request: NextRequest) {
         }
         
         console.log('📤 Upload process completed. Successfully uploaded:', uploadedImageUrls.length, 'images');
+        if (uploadedImageUrls.length > 0) {
+          console.log('🪄 Supabase image URLs used in content-writer response:', uploadedImageUrls);
+        } else {
+          console.log('⚠️ No Supabase image URLs were uploaded; demo URLs will be used in the response.');
+        }
       } catch (error) {
         console.error('❌ Error in upload process:', error);
       }

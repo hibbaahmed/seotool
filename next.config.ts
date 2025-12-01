@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
         hostname: '*.wp.com',
         pathname: '/**',
       },
+      {
+        protocol: "https",
+        hostname: "replicate.com",
+      },
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "*.replicate.delivery",
+      },
     ],
   },
   // Disable webpack filesystem cache in dev to avoid ENOENT pack.gz errors
