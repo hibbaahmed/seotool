@@ -805,6 +805,28 @@ const HomePage = () => {
                             ))}
                         </div>
                     </div>
+                    {/* CTA Banner */}
+                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 sm:px-6 lg:px-8 py-8 sm:py-10 mt-16 rounded-2xl max-w-7xl mx-auto">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+                            <div className="flex-1 text-center md:text-left">
+                                <p className="text-white text-xs sm:text-sm font-semibold uppercase tracking-wider mb-2 md:mb-3">
+                                    READY TO START?
+                                </p>
+                                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight">
+                                    Start driving traffic today with a <span className="text-yellow-300">free trial!</span>
+                                </h2>
+                            </div>
+                            <div className="flex-shrink-0">
+                                <Link 
+                                    href="/login"
+                                    className="inline-flex items-center justify-center gap-2 bg-white border-2 border-purple-600 text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg hover:bg-purple-50 transition-colors duration-200 shadow-lg"
+                                >
+                                    Get Started for Free
+                                    <ArrowRight className="w-5 h-5 text-slate-900" />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 {/* Footer */}
