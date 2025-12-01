@@ -4,7 +4,7 @@ import PricingSection from "../../components/PricingSection";
 
 export default function Price() {
   return (
-    <main className="min-h-screen bg-white text-slate-900 pt-32 pb-20">
+    <main className="min-h-screen bg-white text-slate-900 pt-26 pb-20">
       <div className="w-full max-w-7xl mx-auto space-y-8">
           <PricingSection />
         <FAQ />
