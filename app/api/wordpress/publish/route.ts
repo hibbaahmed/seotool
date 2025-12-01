@@ -10,6 +10,8 @@ import {
   ensureWordPressTableStyles,
   stripLeadingHeading,
   removeExcessiveBoldFromHTML,
+  removeDuplicateFeaturedImage,
+  fixImproperlyFormattedLists,
 } from '@/lib/wordpress/content-formatting';
 import {
   uploadFeaturedImageToSelfHosted,
@@ -772,6 +774,9 @@ export async function POST(request: NextRequest) {
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
         
+        // Fix improperly formatted lists (convert plain text lists to HTML lists)
+        htmlContent = fixImproperlyFormattedLists(htmlContent);
+        
         // Add inline spacing styles
         htmlContent = addInlineSpacing(htmlContent);
         htmlContent = ensureWordPressTableStyles(htmlContent);
@@ -837,6 +842,10 @@ export async function POST(request: NextRequest) {
         
         // Remove excessive bold formatting from HTML (keep only FAQ questions bold)
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+        
+        // Fix improperly formatted lists (convert plain text lists to HTML lists)
+        htmlContent = fixImproperlyFormattedLists(htmlContent);
+        
         htmlContent = addInlineSpacing(htmlContent);
         
         // Add links even for non-markdown content
@@ -890,6 +899,13 @@ export async function POST(request: NextRequest) {
         
         // Final cleanup: Remove any bold that might have been re-added during link processing
         htmlContent = removeExcessiveBoldFromHTML(htmlContent);
+      }
+      
+      // Remove duplicate featured images from content (WordPress will display featured image separately)
+      if (headerImageUrl) {
+        console.log('🖼️ Removing duplicate featured images from content...');
+        htmlContent = removeDuplicateFeaturedImage(htmlContent, headerImageUrl);
+        console.log('✅ Removed duplicate featured images');
       }
       
       // Log final content length before publishing
@@ -968,6 +984,7 @@ export async function POST(request: NextRequest) {
 
       finalContent = stripLeadingHeading(finalContent);
       finalContent = removeExcessiveBoldFromHTML(finalContent);
+      finalContent = fixImproperlyFormattedLists(finalContent);
       finalContent = addInlineSpacing(finalContent);
       finalContent = ensureWordPressTableStyles(finalContent);
       
@@ -1008,6 +1025,13 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         console.error('Failed to add business promotion:', e);
+      }
+      
+      // Remove duplicate featured images from content (WordPress will display featured image separately)
+      if (headerImageUrl) {
+        console.log('🖼️ Removing duplicate featured images from content...');
+        finalContent = removeDuplicateFeaturedImage(finalContent, headerImageUrl);
+        console.log('✅ Removed duplicate featured images');
       }
       
       // Final cleanup: Remove any bold that might have been re-added during link processing

@@ -290,4 +290,215 @@ export function stripLeadingHeading(content: string): string {
   return content;
 }
 
+/**
+ * Remove duplicate images from HTML content that match the featured image URL
+ * This prevents the featured image from appearing twice (once as WordPress featured image,
+ * and once embedded in the content)
+ */
+export function removeDuplicateFeaturedImage(
+  html: string,
+  featuredImageUrl?: string | null
+): string {
+  if (!html || !featuredImageUrl) return html;
+  
+  const normalizedFeaturedUrl = featuredImageUrl.trim();
+  if (!normalizedFeaturedUrl) return html;
+  
+  // Normalize the URL for comparison (remove trailing slashes, query params, etc.)
+  const normalizeUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      // Compare without query params and hash
+      return `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`.replace(/\/$/, '');
+    } catch {
+      // If URL parsing fails, just trim and lowercase
+      return url.trim().toLowerCase().replace(/\/$/, '');
+    }
+  };
+  
+  const normalizedFeatured = normalizeUrl(normalizedFeaturedUrl);
+  
+  // Find all img tags and their parent elements (figure, p, div, etc.)
+  // We'll remove the entire parent element if it only contains the duplicate image
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const imagesToRemove: Array<{ match: string; fullMatch: string; index: number }> = [];
+  
+  let match;
+  while ((match = imgRegex.exec(html)) !== null) {
+    const imgSrc = match[1];
+    const normalizedImgSrc = normalizeUrl(imgSrc);
+    
+    // Check if this image matches the featured image
+    if (normalizedImgSrc === normalizedFeatured || imgSrc === normalizedFeaturedUrl) {
+      // Find the full match including the img tag
+      const fullMatch = match[0];
+      const matchIndex = match.index;
+      
+      // Mark ALL matching images for removal (including ai-header-image figures)
+      // WordPress will display the featured image separately, so we don't want it in content
+      imagesToRemove.push({
+        match: fullMatch,
+        fullMatch: fullMatch,
+        index: matchIndex
+      });
+    }
+  }
+  
+  // Remove images in reverse order to maintain indices
+  let result = html;
+  for (let i = imagesToRemove.length - 1; i >= 0; i--) {
+    const { match: imgTag, index } = imagesToRemove[i];
+    
+    // Try to remove the entire parent element if it's a figure or p containing only the image
+    const beforeImg = result.substring(0, index);
+    const afterImg = result.substring(index + imgTag.length);
+    
+    // Check if the image is inside a figure tag (including ai-header-image)
+    const figureMatch = beforeImg.match(/<figure[^>]*>[\s\S]{0,500}$/i);
+    if (figureMatch) {
+      // Find the closing </figure> tag
+      const figureStart = beforeImg.lastIndexOf(figureMatch[0]);
+      const remainingAfter = result.substring(figureStart);
+      const figureEndMatch = remainingAfter.match(/<\/figure>/i);
+      
+      if (figureEndMatch) {
+        const figureEnd = figureStart + remainingAfter.indexOf(figureEndMatch[0]) + figureEndMatch[0].length;
+        // Remove the entire figure (including ai-header-image figures)
+        result = result.substring(0, figureStart) + result.substring(figureEnd);
+        continue;
+      }
+    }
+    
+    // Check if the image is inside a div tag (common wrapper)
+    const divMatch = beforeImg.match(/<div[^>]*>[\s\S]{0,1000}$/i);
+    if (divMatch) {
+      const divStart = beforeImg.lastIndexOf(divMatch[0]);
+      const remainingAfter = result.substring(divStart);
+      const divEndMatch = remainingAfter.match(/<\/div>/i);
+      
+      if (divEndMatch) {
+        const divEnd = divStart + remainingAfter.indexOf(divEndMatch[0]) + divEndMatch[0].length;
+        const divContent = remainingAfter.substring(0, divEndMatch.index || 0);
+        // Remove if div contains only whitespace, the image, and maybe some wrapper tags
+        const cleanContent = divContent.replace(imgTag, '').replace(/<[^>]+>/g, '').trim();
+        if (!cleanContent || /^\s*$/.test(cleanContent)) {
+          result = result.substring(0, divStart) + result.substring(divEnd);
+          continue;
+        }
+      }
+    }
+    
+    // Check if the image is inside a paragraph tag
+    const pMatch = beforeImg.match(/<p[^>]*>[\s\S]{0,500}$/i);
+    if (pMatch) {
+      const pStart = beforeImg.lastIndexOf(pMatch[0]);
+      const remainingAfter = result.substring(pStart);
+      const pEndMatch = remainingAfter.match(/<\/p>/i);
+      
+      if (pEndMatch) {
+        const pEnd = pStart + remainingAfter.indexOf(pEndMatch[0]) + pEndMatch[0].length;
+        const pContent = remainingAfter.substring(0, pEndMatch.index || 0);
+        // Only remove if paragraph contains only whitespace and the image
+        if (/^\s*$/.test(pContent.replace(imgTag, '').replace(/<[^>]+>/g, ''))) {
+          result = result.substring(0, pStart) + result.substring(pEnd);
+          continue;
+        }
+      }
+    }
+    
+    // Otherwise, just remove the img tag itself
+    result = result.substring(0, index) + result.substring(index + imgTag.length);
+  }
+  
+  return result;
+}
+
+/**
+ * Fix improperly formatted lists in HTML content
+ * Converts plain text that looks like lists into proper HTML lists with headings
+ */
+export function fixImproperlyFormattedLists(html: string): string {
+  if (!html) return html;
+
+  let processed = html;
+  
+  // Pattern to match sequences of <p> tags that look like list items
+  // Match groups of 2+ consecutive <p> tags with short content
+  const consecutiveListItems = /((?:<p[^>]*>([^<]{1,100})<\/p>\s*){2,})/gi;
+  
+  processed = processed.replace(consecutiveListItems, (match) => {
+    // Extract all the paragraph contents
+    const items: string[] = [];
+    const pTagRegex = /<p[^>]*>([^<]+)<\/p>/gi;
+    let pMatch;
+    
+    while ((pMatch = pTagRegex.exec(match)) !== null) {
+      const text = pMatch[1].trim();
+      // Remove HTML entities and tags for analysis
+      const cleanText = text.replace(/&[^;]+;/g, '').replace(/<[^>]+>/g, '');
+      
+      // Check if it looks like a list item
+      // List items are typically: short, don't have multiple sentences, not ending with punctuation
+      const isListItem = 
+        cleanText.length > 0 && 
+        cleanText.length < 120 && 
+        !cleanText.match(/[.!?]\s+[A-Z]/) && // Not multiple sentences
+        !cleanText.match(/^[A-Z][^.!?]{40,}[.!?]$/); // Not a long sentence ending with punctuation
+      
+      if (isListItem) {
+        items.push(text);
+      } else {
+        // If we hit something that doesn't look like a list item, stop processing this group
+        return match;
+      }
+    }
+    
+    // Need at least 2 items to form a list
+    if (items.length < 2) {
+      return match;
+    }
+    
+    // Check if first item looks like a heading
+    // Headings are typically: longer phrases, contain keywords, or are title case
+    let heading: string | null = null;
+    let listStartIndex = 0;
+    
+    const firstItem = items[0].replace(/<[^>]+>/g, '').trim();
+    const isHeading = 
+      firstItem.length > 12 ||
+      /^(Site structure|Related Content|Footer Links|Internal|External|Best practices|Common|Key|Important|Technical|SEO|Content|Link)/i.test(firstItem) ||
+      (firstItem.split(' ').length >= 2 && firstItem === firstItem.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '));
+    
+    if (isHeading) {
+      heading = items[0];
+      listStartIndex = 1;
+      
+      // Need at least 2 items after the heading
+      if (items.length - listStartIndex < 2) {
+        return match;
+      }
+    }
+    
+    // Build the HTML
+    let result = '';
+    if (heading) {
+      // Extract text from heading (remove any HTML tags for the heading text)
+      const headingText = heading.replace(/<[^>]+>/g, '').trim();
+      result += `<h3>${headingText}</h3>\n`;
+    }
+    
+    result += '<ul>\n';
+    for (let i = listStartIndex; i < items.length; i++) {
+      // Clean up the list item text
+      const itemText = items[i].replace(/<[^>]+>/g, '').trim();
+      result += `  <li>${itemText}</li>\n`;
+    }
+    result += '</ul>\n';
+    
+    return result;
+  });
+  
+  return processed;
+}
+
 

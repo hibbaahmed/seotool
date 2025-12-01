@@ -614,6 +614,9 @@ article .prose-lg a.business-promotion-link:hover,
   border: 1px solid rgba(59, 130, 246, 0.25) !important;
   background: linear-gradient(120deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.08)) !important;
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
+  overflow: visible !important;
+  min-height: auto !important;
+  max-height: none !important;
 }
 
 .business-promotion-eyebrow {
@@ -631,6 +634,23 @@ article .prose-lg a.business-promotion-link:hover,
   font-weight: 700 !important;
   color: #0f172a !important;
   margin-bottom: 1rem !important;
+  line-height: 1.4 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  display: block !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: normal !important;
+}
+
+.business-promotion-highlight p {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: normal !important;
+  line-height: 1.7 !important;
 }
 
 .business-promotion-highlight ul {

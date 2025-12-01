@@ -1275,7 +1275,6 @@ function insertPromotionHighlight(
     <section class="business-promotion-highlight">
       <p class="business-promotion-eyebrow">Featured Partner</p>
       <h3>${options.safeBusinessName}: ${escapeHtml(options.highlightTagline)}</h3>
-      <p>${escapeHtml(options.highlightSentence)}</p>
       <ul>${bullets}</ul>
       <p class="business-promotion-cta">${cta}</p>
     </section>
