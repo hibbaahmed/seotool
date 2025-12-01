@@ -757,9 +757,9 @@ function addBusinessPromotionToHtmlContent({
   const safeWebsiteUrl = sanitizeUrl(websiteUrl);
   const highlightSentence =
     extractFirstSentence(businessDescription) ||
-    `${businessName} helps clients implement these strategies without adding more work to their internal team.`;
+    preventAbbreviationBreaks(`${businessName} helps clients implement these strategies without adding more work to their internal team.`);
   const highlightTagline = createTaglineFromSentence(businessName, highlightSentence);
-  const bulletSentences = deriveBulletSentences(businessDescription, highlightSentence);
+  const bulletSentences = deriveBulletSentences(businessDescription, highlightSentence).map(s => preventAbbreviationBreaks(s));
 
   let mentionsAdded = 0;
   let remaining = Math.max(maxMentions, 0);
@@ -830,7 +830,8 @@ function extractFirstSentence(text?: string | null): string {
   const cleaned = text.replace(/\s+/g, ' ').trim();
   if (!cleaned) return '';
   const match = cleaned.match(/[^.!?]+[.!?]?/);
-  return match ? match[0].trim() : cleaned;
+  const result = match ? match[0].trim() : cleaned;
+  return preventAbbreviationBreaks(result);
 }
 
 function ensureSentence(text: string): string {
@@ -1035,7 +1036,8 @@ function createTaglineFromSentence(businessName: string, sentence: string): stri
     .trim();
   const base = sanitized || sentence.trim();
   const truncated = truncateText(base.replace(/[.!?]+$/, ''));
-  return capitalizeFirstLetter(truncated || 'Your Partner for These Playbooks');
+  const result = capitalizeFirstLetter(truncated || 'Your Partner for These Playbooks');
+  return preventAbbreviationBreaks(result);
 }
 
 function truncateText(text: string, maxLength = 90): string {
@@ -1047,6 +1049,31 @@ function truncateText(text: string, maxLength = 90): string {
 function capitalizeFirstLetter(text: string): string {
   if (!text) return '';
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Prevent breaking in abbreviations like U.S., Dr., Mr., etc.
+ * Replaces patterns like "U.S." with "U.\u00A0S." (non-breaking space)
+ */
+function preventAbbreviationBreaks(text: string): string {
+  if (!text) return '';
+  
+  // Common abbreviation patterns: single letter, period, single letter
+  // Examples: U.S., Dr., Mr., Mrs., Ms., Ph.D., etc.
+  // Pattern: word boundary, single capital letter, period, single capital letter, word boundary
+  // Also handle multi-letter abbreviations like U.S.A. -> U.\u00A0S.\u00A0A.
+  let result = text;
+  
+  // Handle patterns like "U.S." (single letter, period, single letter)
+  result = result.replace(/\b([A-Z])\.([A-Z])\b/g, '$1.\u00A0$2');
+  
+  // Handle patterns like "U.S.A." (multiple single letters with periods)
+  result = result.replace(/\b([A-Z])\.([A-Z])\.([A-Z])\b/g, '$1.\u00A0$2.\u00A0$3');
+  
+  // Handle patterns like "Ph.D." (letters, period, single letter, period)
+  result = result.replace(/\b([A-Z][a-z]+)\.([A-Z])\./g, '$1.\u00A0$2.');
+  
+  return result;
 }
 
 function escapeRegExp(value: string): string {

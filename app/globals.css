@@ -114,6 +114,31 @@ body {
   line-break: auto !important;
 }
 
+/* Prevent breaking in abbreviations like U.S., Dr., Mr., etc. */
+/* Improved word-breaking behavior to avoid breaking in the middle of abbreviations */
+body,
+.prose,
+.prose-lg,
+.content-writer-prose,
+[class*="prose"] {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: manual !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-feature-settings: "liga" 1, "kern" 1;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+/* Prevent breaking after periods followed by capital letters (common in abbreviations) */
+/* Note: This is a best-effort CSS solution. For perfect results, use the preventAbbreviationBreaks utility */
+.prose p,
+.prose-lg p,
+.content-writer-prose p,
+[class*="prose"] p {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
 /* Balance headings to reduce awkward wraps */
 .content-writer-prose h1,
 .content-writer-prose h2,
