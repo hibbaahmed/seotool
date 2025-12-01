@@ -110,9 +110,10 @@ export async function generateAIImages(
 
 export function createImagePrompt(keyword: string): string {
   const cleanKeyword = keyword.trim();
-  return `Professional, high-quality, modern illustration or photograph related to: ${cleanKeyword}. 
-    The image should be suitable for a blog article, clean and professional style, 
-    well-composed, good lighting, no text overlays, suitable for web use.`;
+  return `Professional, high-quality, modern illustration or photograph related to: ${cleanKeyword}.
+    The image should be suitable for a blog article, clean and professional style, well-composed, good lighting, no text overlays or signage, and avoid any partial text strings. 
+    Mention there should be no readable words — instead rely on abstract elements like icons, color blocks, or human scenes that visually represent the topic. 
+    Ensure the image feels natural and not obviously AI-generated (no artifacts, no jagged letters).`;
 }
 
 export async function generateArticleImages(
