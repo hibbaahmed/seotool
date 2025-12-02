@@ -1,8 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Edit, Eye, Upload, Trash2, Calendar, User, FileText, Search, Filter, Plus } from 'lucide-react';
+import { Edit, Eye, Upload, Trash2, Calendar, User, FileText, Search, Filter, Plus, Link2 } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import ContentEditor from '@/components/ContentEditor';
+import Link from 'next/link';
 
 interface SavedContent {
   id: string;
@@ -189,21 +190,44 @@ export default function SavedContentPage() {
           {/* Content Grid */}
           {filteredContent.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12 text-center">
-              <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">No Content Found</h3>
-              <p className="text-slate-600 mb-6">
-                {searchTerm || contentTypeFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Start creating content to see it here.'
-                }
-              </p>
-              <a
-                href="/content-writer"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto w-fit"
-              >
-                <Plus className="h-5 w-5" />
-                Create New Content
-              </a>
+              {searchTerm || contentTypeFilter !== 'all' ? (
+                <>
+                  <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2">No Content Found</h3>
+                  <p className="text-slate-600 mb-6">
+                    Try adjusting your search or filter criteria.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2">No Saved Content Yet</h3>
+                  <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                    To start generating content, schedule keywords to your calendar. Once content is generated, it will appear here.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+                    <Link
+                      href="/calendar"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Calendar className="h-5 w-5" />
+                      Go to Calendar
+                    </Link>
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <p className="text-sm text-slate-600 mb-4">
+                      Make sure to connect your WordPress site to publish your content automatically.
+                    </p>
+                    <Link
+                      href="/wordpress-sites"
+                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Connect WordPress Site
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
