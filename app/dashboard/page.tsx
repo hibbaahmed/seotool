@@ -58,7 +58,7 @@ export default function DashboardPage() {
                 Guide
               </h3>
               <p className="text-slate-600 mb-4">
-                Learn how to link your websites and WordPress sites for proper content separation and how to manage keywords
+                Learn how to link your websites and WordPress sites for proper content separation, how to manage keywords, and more
               </p>
               <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
                 <span>View Guide</span>
