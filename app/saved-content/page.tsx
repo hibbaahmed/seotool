@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Edit, Eye, Upload, Trash2, Calendar, User, FileText, Search, Filter, Plus, Link2 } from 'lucide-react';
+import { Edit, Eye, Upload, Trash2, Calendar, User, FileText, Search, Filter, Plus, Link2, Info } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import ContentEditor from '@/components/ContentEditor';
 import Link from 'next/link';
@@ -184,6 +184,39 @@ export default function SavedContentPage() {
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 rounded-lg flex items-center gap-2">
               <span className="text-red-700">{error}</span>
+            </div>
+          )}
+
+          {/* Help Section - Show when user has content */}
+          {filteredContent.length > 0 && !searchTerm && contentTypeFilter === 'all' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Info className="h-6 w-6 text-blue-600 mt-0.5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Want more content?</h3>
+                  <p className="text-slate-700 mb-4">
+                    Schedule keywords to your calendar to automatically generate more content. Make sure your WordPress site is connected to publish content automatically.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      href="/calendar"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Schedule Keywords
+                    </Link>
+                    <Link
+                      href="/wordpress-sites"
+                      className="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Connect WordPress
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
