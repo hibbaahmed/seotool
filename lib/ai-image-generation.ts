@@ -13,6 +13,7 @@ export type CandidateImage = {
 
 interface GenerateImageOptions {
   prompt: string;
+  negative_prompt?: string;
   n?: number;
   aspect_ratio?: string;
   output_format?: string;
@@ -31,6 +32,7 @@ export async function generateAIImages(
 ): Promise<CandidateImage[]> {
   const {
     prompt,
+    negative_prompt = 'text, typography, words, letters, captions, signage, logos, trademarks, watermark, gibberish text, company names',
     n = 1,
     aspect_ratio = "16:9",
     output_format = "webp",
@@ -62,6 +64,7 @@ export async function generateAIImages(
         const output = await replicate.run(model, {
           input: {
             prompt,
+            negative_prompt,
             aspect_ratio,
             output_format,
             output_quality,
@@ -110,10 +113,11 @@ export async function generateAIImages(
 
 export function createImagePrompt(keyword: string): string {
   const cleanKeyword = keyword.trim();
-  return `Professional, high-quality, modern illustration or photograph related to: ${cleanKeyword}.
-    The image should be suitable for a blog article, clean and professional style, well-composed, good lighting, no text overlays or signage, and avoid any partial text strings. 
-    Mention there should be no readable words — instead rely on abstract elements like icons, color blocks, or human scenes that visually represent the topic. 
-    Ensure the image feels natural and not obviously AI-generated (no artifacts, no jagged letters).`;
+  return `Professional, high-quality, brand-safe illustration or cinematic photo that represents: ${cleanKeyword}.
+  Show people, workplaces, dashboards, or abstract shapes that convey the concept through visuals only.
+  Absolutely NO text, words, letters, numbers, logos, brand names (like Google), signage, or UI labels anywhere in the frame.
+  If screens are shown, keep them blurred or filled with simple gradients or icon blocks without glyphs.
+  Use clean lighting, modern color palettes, subtle gradients, and avoid obvious AI artifacts.`;
 }
 
 export async function generateArticleImages(
@@ -132,6 +136,7 @@ export async function generateArticleImages(
     try {
       const results = await generateAIImages({
         prompt,
+        negative_prompt: 'text, typography, words, letters, captions, signage, brand names, company logos, gibberish fonts, user interface text, subtitles, watermark',
         n: 1,
         aspect_ratio: '16:9',
         output_format: 'webp',

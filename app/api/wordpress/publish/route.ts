@@ -902,11 +902,9 @@ export async function POST(request: NextRequest) {
       }
       
       // Remove duplicate featured images from content (WordPress will display featured image separately)
-      if (headerImageUrl) {
-        console.log('🖼️ Removing duplicate featured images from content...');
-        htmlContent = removeDuplicateFeaturedImage(htmlContent, headerImageUrl);
-        console.log('✅ Removed duplicate featured images');
-      }
+      console.log('🖼️ Removing duplicate featured images from content...');
+      htmlContent = removeDuplicateFeaturedImage(htmlContent, headerImageUrl);
+      console.log('✅ Removed duplicate featured images');
       
       // Log final content length before publishing
       console.log(`🚀 Publishing to WordPress.com. Final HTML content length: ${htmlContent.length} characters`);
@@ -1028,11 +1026,9 @@ export async function POST(request: NextRequest) {
       }
       
       // Remove duplicate featured images from content (WordPress will display featured image separately)
-      if (headerImageUrl) {
-        console.log('🖼️ Removing duplicate featured images from content...');
-        finalContent = removeDuplicateFeaturedImage(finalContent, headerImageUrl);
-        console.log('✅ Removed duplicate featured images');
-      }
+      console.log('🖼️ Removing duplicate featured images from content...');
+      finalContent = removeDuplicateFeaturedImage(finalContent, headerImageUrl);
+      console.log('✅ Removed duplicate featured images');
       
       // Final cleanup: Remove any bold that might have been re-added during link processing
       finalContent = removeExcessiveBoldFromHTML(finalContent);

@@ -295,120 +295,92 @@ export function stripLeadingHeading(content: string): string {
  * This prevents the featured image from appearing twice (once as WordPress featured image,
  * and once embedded in the content)
  */
+function normalizeUrlForComparison(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`.replace(/\/$/, '').toLowerCase();
+  } catch {
+    return url.trim().toLowerCase().replace(/\/$/, '');
+  }
+}
+
+function removeImageTagWithContainer(html: string, imgTag: string, index: number): string {
+  const containerPatterns: Array<{ open: RegExp; close: RegExp; maxLength: number }> = [
+    { open: /<figure[^>]*>[\s\S]{0,2000}$/i, close: /<\/figure>/i, maxLength: 2000 },
+    { open: /<div[^>]*>[\s\S]{0,2000}$/i, close: /<\/div>/i, maxLength: 2000 },
+    { open: /<p[^>]*>[\s\S]{0,800}$/i, close: /<\/p>/i, maxLength: 800 },
+  ];
+
+  for (const pattern of containerPatterns) {
+    const beforeImg = html.substring(0, index);
+    const openMatch = beforeImg.match(pattern.open);
+    if (!openMatch) continue;
+
+    const containerStart = beforeImg.lastIndexOf(openMatch[0]);
+    const remainingAfter = html.substring(containerStart);
+    const closeMatch = remainingAfter.match(pattern.close);
+    if (!closeMatch) continue;
+
+    const containerEnd = containerStart + remainingAfter.indexOf(closeMatch[0]) + closeMatch[0].length;
+    const containerContent = html.substring(containerStart, containerEnd);
+    const cleaned = containerContent.replace(imgTag, '').replace(/<[^>]+>/g, '').trim();
+
+    if (cleaned.length === 0) {
+      return html.substring(0, containerStart) + html.substring(containerEnd);
+    }
+  }
+
+  return html.substring(0, index) + html.substring(index + imgTag.length);
+}
+
+function removeHeroImageNearTop(html: string): string {
+  const imgRegex = /<img[^>]+>/i;
+  const match = imgRegex.exec(html);
+  if (!match) return html;
+
+  const headingIndex = html.search(/<h2|<h3|<section|<div[^>]*class=["'][^"']*(introduction|intro)[^"']*["']/i);
+  const heroThreshold = headingIndex !== -1 ? headingIndex : 1400;
+
+  if (match.index > heroThreshold) {
+    return html;
+  }
+
+  return removeImageTagWithContainer(html, match[0], match.index);
+}
+
 export function removeDuplicateFeaturedImage(
   html: string,
   featuredImageUrl?: string | null
 ): string {
-  if (!html || !featuredImageUrl) return html;
+  if (!html) return html;
   
-  const normalizedFeaturedUrl = featuredImageUrl.trim();
-  if (!normalizedFeaturedUrl) return html;
-  
-  // Normalize the URL for comparison (remove trailing slashes, query params, etc.)
-  const normalizeUrl = (url: string): string => {
-    try {
-      const urlObj = new URL(url);
-      // Compare without query params and hash
-      return `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`.replace(/\/$/, '');
-    } catch {
-      // If URL parsing fails, just trim and lowercase
-      return url.trim().toLowerCase().replace(/\/$/, '');
-    }
-  };
-  
-  const normalizedFeatured = normalizeUrl(normalizedFeaturedUrl);
-  
-  // Find all img tags and their parent elements (figure, p, div, etc.)
-  // We'll remove the entire parent element if it only contains the duplicate image
-  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-  const imagesToRemove: Array<{ match: string; fullMatch: string; index: number }> = [];
-  
-  let match;
-  while ((match = imgRegex.exec(html)) !== null) {
-    const imgSrc = match[1];
-    const normalizedImgSrc = normalizeUrl(imgSrc);
-    
-    // Check if this image matches the featured image
-    if (normalizedImgSrc === normalizedFeatured || imgSrc === normalizedFeaturedUrl) {
-      // Find the full match including the img tag
-      const fullMatch = match[0];
-      const matchIndex = match.index;
-      
-      // Mark ALL matching images for removal (including ai-header-image figures)
-      // WordPress will display the featured image separately, so we don't want it in content
-      imagesToRemove.push({
-        match: fullMatch,
-        fullMatch: fullMatch,
-        index: matchIndex
-      });
-    }
-  }
-  
-  // Remove images in reverse order to maintain indices
   let result = html;
-  for (let i = imagesToRemove.length - 1; i >= 0; i--) {
-    const { match: imgTag, index } = imagesToRemove[i];
-    
-    // Try to remove the entire parent element if it's a figure or p containing only the image
-    const beforeImg = result.substring(0, index);
-    const afterImg = result.substring(index + imgTag.length);
-    
-    // Check if the image is inside a figure tag (including ai-header-image)
-    const figureMatch = beforeImg.match(/<figure[^>]*>[\s\S]{0,500}$/i);
-    if (figureMatch) {
-      // Find the closing </figure> tag
-      const figureStart = beforeImg.lastIndexOf(figureMatch[0]);
-      const remainingAfter = result.substring(figureStart);
-      const figureEndMatch = remainingAfter.match(/<\/figure>/i);
-      
-      if (figureEndMatch) {
-        const figureEnd = figureStart + remainingAfter.indexOf(figureEndMatch[0]) + figureEndMatch[0].length;
-        // Remove the entire figure (including ai-header-image figures)
-        result = result.substring(0, figureStart) + result.substring(figureEnd);
-        continue;
-      }
-    }
-    
-    // Check if the image is inside a div tag (common wrapper)
-    const divMatch = beforeImg.match(/<div[^>]*>[\s\S]{0,1000}$/i);
-    if (divMatch) {
-      const divStart = beforeImg.lastIndexOf(divMatch[0]);
-      const remainingAfter = result.substring(divStart);
-      const divEndMatch = remainingAfter.match(/<\/div>/i);
-      
-      if (divEndMatch) {
-        const divEnd = divStart + remainingAfter.indexOf(divEndMatch[0]) + divEndMatch[0].length;
-        const divContent = remainingAfter.substring(0, divEndMatch.index || 0);
-        // Remove if div contains only whitespace, the image, and maybe some wrapper tags
-        const cleanContent = divContent.replace(imgTag, '').replace(/<[^>]+>/g, '').trim();
-        if (!cleanContent || /^\s*$/.test(cleanContent)) {
-          result = result.substring(0, divStart) + result.substring(divEnd);
-          continue;
-        }
-      }
-    }
-    
-    // Check if the image is inside a paragraph tag
-    const pMatch = beforeImg.match(/<p[^>]*>[\s\S]{0,500}$/i);
-    if (pMatch) {
-      const pStart = beforeImg.lastIndexOf(pMatch[0]);
-      const remainingAfter = result.substring(pStart);
-      const pEndMatch = remainingAfter.match(/<\/p>/i);
-      
-      if (pEndMatch) {
-        const pEnd = pStart + remainingAfter.indexOf(pEndMatch[0]) + pEndMatch[0].length;
-        const pContent = remainingAfter.substring(0, pEndMatch.index || 0);
-        // Only remove if paragraph contains only whitespace and the image
-        if (/^\s*$/.test(pContent.replace(imgTag, '').replace(/<[^>]+>/g, ''))) {
-          result = result.substring(0, pStart) + result.substring(pEnd);
-          continue;
-        }
-      }
-    }
-    
-    // Otherwise, just remove the img tag itself
-    result = result.substring(0, index) + result.substring(index + imgTag.length);
+  const rawTargets = new Set<string>();
+  const normalizedTargets = new Set<string>();
+  
+  if (featuredImageUrl?.trim()) {
+    const trimmed = featuredImageUrl.trim();
+    rawTargets.add(trimmed);
+    normalizedTargets.add(normalizeUrlForComparison(trimmed));
   }
+  
+  if (rawTargets.size > 0) {
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    let match;
+    
+    while ((match = imgRegex.exec(result)) !== null) {
+      const imgTag = match[0];
+      const src = match[1].trim();
+      const normalizedSrc = normalizeUrlForComparison(src);
+      
+      if (rawTargets.has(src) || normalizedTargets.has(normalizedSrc)) {
+        result = removeImageTagWithContainer(result, imgTag, match.index);
+        imgRegex.lastIndex = Math.max(0, match.index - 1);
+      }
+    }
+  }
+  
+  result = removeHeroImageNearTop(result);
   
   return result;
 }

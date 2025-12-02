@@ -1873,8 +1873,9 @@ export default function KeywordsDashboard() {
           {/* Manual Keyword Entry Modal */}
           {showManualAddModal && (
             <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-8 my-8">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full max-h-[90vh] my-8 flex flex-col">
+                {/* Fixed Header */}
+                <div className="flex items-center justify-between p-8 pb-6 border-b border-slate-200 flex-shrink-0">
                   <div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-1">Manual Keyword Entry</h3>
                     <p className="text-sm text-slate-500">Add keywords you're already targeting</p>
@@ -1887,7 +1888,9 @@ export default function KeywordsDashboard() {
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-8 py-6">
+                  <div className="space-y-4">
                   {profiles.length > 0 ? (
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -1933,6 +1936,80 @@ export default function KeywordsDashboard() {
                     </p>
                   </div>
 
+                  {/* Keyword Guidance Section */}
+                  <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-lg p-5 border border-blue-200">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="p-1.5 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-lg">
+                        <BookOpen className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-slate-900 mb-3">What Keywords Should I Enter?</h4>
+                        
+                        <div className="space-y-4 text-sm">
+                          <div>
+                            <p className="font-medium text-slate-800 mb-1">✅ Good Types of Keywords:</p>
+                            <ul className="text-slate-700 space-y-1 ml-4 list-disc">
+                              <li><strong>Primary keywords:</strong> Core topics your audience searches for (e.g., "personal injury lawyer")</li>
+                              <li><strong>Long-tail keywords:</strong> Specific, detailed phrases (e.g., "best personal injury lawyer in New York")</li>
+                              <li><strong>Question keywords:</strong> What, how, why queries (e.g., "how to find a personal injury attorney")</li>
+                              <li><strong>Intent-based keywords:</strong> Transactional ("buy", "price"), commercial ("best", "review"), informational ("how to", "what is")</li>
+                              <li><strong>Location-based:</strong> Include city/region if relevant to your business</li>
+                            </ul>
+                          </div>
+
+                          <div>
+                            <p className="font-medium text-slate-800 mb-1">🎯 What Makes a Keyword "Good"?</p>
+                            <p className="text-slate-700 mb-2">After adding keywords, check the <strong>Opportunity Level</strong> column. Keywords are rated as:</p>
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 mt-0.5">High</span>
+                                <div className="text-xs text-slate-700">
+                                  <strong>High Opportunity:</strong> Search volume ≥1,000 AND difficulty {'<'}40, OR volume ≥500 AND difficulty ≤30. These are your best targets!
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 mt-0.5">Medium</span>
+                                <div className="text-xs text-slate-700">
+                                  <strong>Medium Opportunity:</strong> Volume ≥500 AND difficulty {'<'}70, OR volume ≥1,000 AND difficulty ≤70. Solid targets worth pursuing.
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 mt-0.5">Low</span>
+                                <div className="text-xs text-slate-700">
+                                  <strong>Low Opportunity:</strong> Lower volume or high difficulty. May still be valuable for niche markets or long-term strategy.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-medium text-slate-800 mb-1">💡 Pro Tips:</p>
+                            <ul className="text-slate-700 space-y-1 ml-4 list-disc">
+                              <li><strong>Enable DataForSEO enrichment</strong> below to automatically fetch real search volume, difficulty, and CPC metrics</li>
+                              <li>Focus on keywords your audience actually searches for, not just what you want to rank for</li>
+                              <li>Mix short (1-2 words) and long-tail (3-5+ words) keywords for balanced strategy</li>
+                              <li>Consider seasonal keywords if your business has seasonal trends</li>
+                              <li>Add competitor keywords you want to compete for</li>
+                            </ul>
+                          </div>
+
+                          <div className="bg-white/60 rounded-lg p-3 border border-blue-200">
+                            <p className="text-xs font-medium text-slate-800 mb-1">📊 How to Know If Keywords Are Good:</p>
+                            <p className="text-xs text-slate-700">
+                              After adding keywords with DataForSEO enrichment enabled, look at these metrics in the keywords table:
+                            </p>
+                            <ul className="text-xs text-slate-700 space-y-0.5 mt-1 ml-4 list-disc">
+                              <li><strong>Search Volume:</strong> Higher is better (1000+ = excellent, 500+ = good, 100+ = decent)</li>
+                              <li><strong>Difficulty:</strong> Lower is easier to rank (0-30 = easy, 30-60 = moderate, 60+ = challenging)</li>
+                              <li><strong>CPC:</strong> Higher = more commercial value (indicates advertiser competition)</li>
+                              <li><strong>Opportunity Level:</strong> Color-coded badge (High/Medium/Low) gives you instant insight</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -1944,7 +2021,7 @@ export default function KeywordsDashboard() {
                       <div>
                         <span className="text-sm font-medium text-slate-700">Enrich with DataForSEO metrics</span>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          Fetch search volume, difficulty, and CPC for each keyword (uses DataForSEO API)
+                          Discover related keywords, questions, and suggestions. Also fetches search volume, difficulty, and CPC for each keyword (uses DataForSEO API)
                         </p>
                       </div>
                     </label>
@@ -1967,37 +2044,44 @@ export default function KeywordsDashboard() {
                           <p className="text-sm font-medium text-green-900">Success!</p>
                           <p className="text-sm text-green-700 mt-1">
                             Added {generateSuccess.added} keyword(s) to your project.
+                            {generateSuccess.summary && generateSuccess.summary.enriched && (
+                              <>
+                                {' '}Discovered {generateSuccess.summary.primary} primary, {generateSuccess.summary.secondary} secondary, and {generateSuccess.summary.longTail} long-tail keywords.
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
-
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
-                    <button
-                      onClick={closeManualAddModal}
-                      className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleManualAdd}
-                      disabled={isAddingManual || !selectedProfileForManual || !manualKeywords.trim()}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      {isAddingManual ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Adding...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4" />
-                          Add Keywords
-                        </>
-                      )}
-                    </button>
                   </div>
+                </div>
+
+                {/* Fixed Footer */}
+                <div className="flex gap-3 pt-4 pb-8 px-8 border-t border-slate-200 flex-shrink-0">
+                  <button
+                    onClick={closeManualAddModal}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleManualAdd}
+                    disabled={isAddingManual || !selectedProfileForManual || !manualKeywords.trim()}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  >
+                    {isAddingManual ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add Keywords
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
