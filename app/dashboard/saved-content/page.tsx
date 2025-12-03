@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Download, Trash2, Eye, Edit, Upload } from 'lucide-react';
+import { Search, Calendar, Download, Trash2, Eye, Edit, Upload, Link2, Info, Filter } from 'lucide-react';
+import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import ContentEditor from '@/components/ContentEditor';
 import QuickWordPressPublishButton from '@/components/QuickWordPressPublishButton';
@@ -105,6 +106,8 @@ const cleanContent = (contentOutput: string, extractedTitle?: string): string =>
 export default function SavedContentPage() {
   const [content, setContent] = useState<ContentWriterRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [contentTypeFilter, setContentTypeFilter] = useState('all');
   const [selectedContent, setSelectedContent] = useState<ContentWriterRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -208,6 +211,13 @@ export default function SavedContentPage() {
     ));
   };
 
+  const filteredContent = content.filter(item => {
+    const matchesSearch = item.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.content_output.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = contentTypeFilter === 'all' || item.content_type === contentTypeFilter;
+    return matchesSearch && matchesType;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center">
@@ -224,34 +234,134 @@ export default function SavedContentPage() {
       <div className="pt-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-slate-900 mb-4">
               Your Saved Content
             </h1>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Manage and review your AI-generated content
             </p>
+            <div className="mt-4 text-sm text-slate-500">
+              {filteredContent.length} of {content.length} items
+            </div>
           </div>
 
-          {content.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="w-8 h-8 text-green-600" />
+          {/* Search and Filters */}
+          {content.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search content by topic or content..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="md:w-64">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={contentTypeFilter}
+                      onChange={(e) => setContentTypeFilter(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="blog-post">Blog Posts</option>
+                      <option value="article">Articles</option>
+                      <option value="social-media">Social Media</option>
+                      <option value="email">Emails</option>
+                      <option value="product-description">Product Descriptions</option>
+                      <option value="landing-page">Landing Page</option>
+                      <option value="press-release">Press Release</option>
+                      <option value="case-study">Case Study</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
+
+          {content.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-12 text-center">
+              <Calendar className="h-16 w-16 text-blue-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-slate-900 mb-3">No Saved Content Yet</h2>
-              <p className="text-slate-600 mb-6">
-                Generate some content using the AI Content Writer to see it saved here.
+              <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                To start generating content, schedule keywords to your calendar. Once content is generated, it will appear here.
               </p>
-              <a 
-                href="/content-writer" 
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
-              >
-                Start Writing Content
-              </a>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+                <Link
+                  href="/calendar"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2"
+                >
+                  <Calendar className="h-5 w-5" />
+                  Go to Calendar
+                </Link>
+              </div>
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <p className="text-sm text-slate-600 mb-4">
+                  Make sure to connect your WordPress site to publish your content automatically.
+                </p>
+                <Link
+                  href="/wordpress-sites"
+                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Connect WordPress Site
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {content.map(contentItem => (
+            <>
+              {/* Help Section - Show when user has content and no active filters */}
+              {!searchTerm && contentTypeFilter === 'all' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <Info className="h-6 w-6 text-blue-600 mt-0.5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Want more content?</h3>
+                      <p className="text-slate-700 mb-4">
+                        Schedule keywords to your calendar to automatically generate more content. Make sure your WordPress site is connected to publish content automatically.
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          href="/calendar"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Schedule Keywords
+                        </Link>
+                        <Link
+                          href="/wordpress-sites"
+                          className="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                        >
+                          <Link2 className="h-4 w-4" />
+                          Connect WordPress
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Show message when filters return no results */}
+              {filteredContent.length === 0 && content.length > 0 ? (
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12 text-center">
+                  <Search className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2">No Content Found</h3>
+                  <p className="text-slate-600 mb-6">
+                    Try adjusting your search or filter criteria.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredContent.map(contentItem => (
                 <div 
                   key={contentItem.id} 
                   className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105 group"
@@ -313,8 +423,10 @@ export default function SavedContentPage() {
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

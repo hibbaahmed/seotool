@@ -160,17 +160,20 @@ export async function fetchKeywordsFromDataForSEO(
         relatedPayload
       );
 
+      let relatedCount = 0;
       if (Array.isArray(relatedResponse?.tasks)) {
         for (const task of relatedResponse.tasks) {
           if (task.status_code === 20000 && Array.isArray(task.result)) {
             for (const result of task.result) {
               if (result.keyword && !allKeywords.has(result.keyword.toLowerCase())) {
                 allKeywords.set(result.keyword.toLowerCase(), result);
+                relatedCount++;
               }
             }
           }
         }
       }
+      console.log(`📊 Found ${relatedCount} related keywords`);
     }
 
     // 3. Get keyword suggestions (broader variants)
@@ -235,11 +238,16 @@ export async function fetchKeywordsFromDataForSEO(
       }
     }
 
-    console.log(`✅ Retrieved ${allKeywords.size} keywords from DataForSEO`);
+    console.log(`✅ Retrieved ${allKeywords.size} raw keywords from DataForSEO`);
 
     // Convert to enriched format and classify
+    // Include keywords with volume > 0, but also include the seed keyword even if it has 0 volume
     const enrichedKeywords: EnrichedKeyword[] = Array.from(allKeywords.values())
-      .filter(kw => kw.search_volume > 0) // Filter out zero volume
+      .filter(kw => {
+        const volume = Number(kw.search_volume || 0);
+        // Include if volume > 0 OR if it's the seed keyword (to ensure seed is always included)
+        return volume > 0 || kw.keyword.toLowerCase() === seedKeyword.toLowerCase();
+      })
       .map(kw => {
         const searchVolume = Number(kw.search_volume || 0);
         const difficulty = Number(kw.competition_index || kw.keyword_difficulty || 0);

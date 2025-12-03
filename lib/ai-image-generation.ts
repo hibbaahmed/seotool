@@ -32,11 +32,11 @@ export async function generateAIImages(
 ): Promise<CandidateImage[]> {
   const {
     prompt,
-    negative_prompt = 'text, typography, words, letters, captions, signage, logos, trademarks, watermark, gibberish text, company names',
+    negative_prompt = 'text, typography, words, letters, captions, signage, logos, trademarks, watermark, gibberish text, company names, blurry, low quality, pixelated, grainy',
     n = 1,
     aspect_ratio = "16:9",
     output_format = "webp",
-    output_quality = 80
+    output_quality = 95
   } = options;
 
   if (!process.env.REPLICATE_API_TOKEN) {
@@ -113,11 +113,11 @@ export async function generateAIImages(
 
 export function createImagePrompt(keyword: string): string {
   const cleanKeyword = keyword.trim();
-  return `Professional, high-quality, brand-safe illustration or cinematic photo that represents: ${cleanKeyword}.
+  return `Professional, high-quality, ultra-sharp, crystal-clear, brand-safe illustration or cinematic photo that represents: ${cleanKeyword}.
   Show people, workplaces, dashboards, or abstract shapes that convey the concept through visuals only.
   Absolutely NO text, words, letters, numbers, logos, brand names (like Google), signage, or UI labels anywhere in the frame.
   If screens are shown, keep them blurred or filled with simple gradients or icon blocks without glyphs.
-  Use clean lighting, modern color palettes, subtle gradients, and avoid obvious AI artifacts.`;
+  Use clean lighting, modern color palettes, subtle gradients, sharp focus, high resolution, detailed, crisp edges, professional photography quality, 4K quality, and avoid obvious AI artifacts, blur, or pixelation.`;
 }
 
 export async function generateArticleImages(
@@ -136,11 +136,11 @@ export async function generateArticleImages(
     try {
       const results = await generateAIImages({
         prompt,
-        negative_prompt: 'text, typography, words, letters, captions, signage, brand names, company logos, gibberish fonts, user interface text, subtitles, watermark',
+        negative_prompt: 'text, typography, words, letters, captions, signage, brand names, company logos, gibberish fonts, user interface text, subtitles, watermark, blurry, low quality, pixelated, grainy, out of focus, soft focus',
         n: 1,
         aspect_ratio: '16:9',
         output_format: 'webp',
-        output_quality: 80,
+        output_quality: 95,
       });
 
       if (results.length > 0) {

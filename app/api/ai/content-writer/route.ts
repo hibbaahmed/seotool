@@ -393,7 +393,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 2, description: 'Writing introduction and sections 1-4...' })}\n\n`));
         
         const sections1to4 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', contentLength),
+          getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', contentLength, websiteUrl),
           apiKey,
           getPhaseTokens(2)
         );
@@ -409,7 +409,7 @@ async function handleMultiPhaseGeneration(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'phase', phase: 3, description: 'Writing sections 5-8...' })}\n\n`));
         
         const sections5to8 = await generatePhase(
-          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', contentLength),
+          getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', contentLength, websiteUrl),
           apiKey,
           getPhaseTokens(3)
         );
@@ -613,7 +613,8 @@ function getSectionsPrompt(
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
   description: string,
-  contentLength: 'short' | 'medium' | 'long' = 'long'
+  contentLength: 'short' | 'medium' | 'long' = 'long',
+  websiteUrl: string = ''
 ): string {
   const phaseTargets = {
     short: { phase2: '300-400', phase3: '250-350', phase4: '200-300', h2: '150-250', h3: '50-80' },
@@ -632,8 +633,10 @@ User requirements: ${userInput}
 Article outline to follow:
 ${outline}
 
-AVAILABLE IMAGES (embed 1-2 per section):
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES:
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
+- IMPORTANT: Image #1 is reserved as the featured/header image - DO NOT embed it in the article content
+- YOU MUST USE images #2 onwards - embed 1-2 per section
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS (embed if relevant):
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}
@@ -739,6 +742,20 @@ Write ${targets.h3} words covering:
 </tbody>
 </table>
 
+MANDATORY COMPARISON TABLE RULES:
+- If a section title mentions comparing products/apps/services (e.g., "Top 10 Best [Topic] Apps", "Best [Topic] Tools", "Comparing [Topic] Solutions"), you MUST create a comparison table with multiple options side-by-side
+- If the title specifies a number (e.g., "Top 10", "5 Best", "7 Options"), the comparison table MUST include that many rows (or close to it, e.g., 8-10 rows for "Top 10")
+- DO NOT just write individual descriptions for each option - create an actual comparison table first, then you can add detailed descriptions after the table if needed
+- The comparison table should be the primary way to compare options - individual app/product descriptions are supplementary, not replacements
+${websiteUrl ? `- NATURALLY INCORPORATE USER'S WEBSITE: When creating comparison tables about products, services, tools, or platforms that are relevant to ${websiteUrl}, naturally include it as one of the comparison options:
+  * Analyze the article topic and determine if ${websiteUrl} is relevant to the comparison being made
+  * If ${websiteUrl} offers products, services, tools, or solutions that match the comparison topic, include it as a row in the comparison table alongside other popular options
+  * When a section title mentions "Top X" or "Best X" apps/tools/services, ${websiteUrl} should be included in that comparison table if it's relevant
+  * Present it naturally as a legitimate option - use the website domain (${websiteUrl}) or a descriptive name based on what the site actually offers
+  * Fill in all comparison columns with realistic, honest values based on what ${websiteUrl} actually provides - don't make it artificially superior, just present it as a real option with its actual features/benefits
+  * Only include it when it's genuinely relevant to the comparison topic - don't force it into unrelated comparisons
+  * Match the format and detail level of other rows in the table for consistency` : ''}
+
 Transition paragraph (30-50 words) connecting to the next section.
 
 FORMATTING REQUIREMENTS:
@@ -795,7 +812,9 @@ Article outline to follow:
 ${outline}
 
 AVAILABLE IMAGES:
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
+- IMPORTANT: Image #1 is reserved as the featured/header image - DO NOT embed it in the article content
+- YOU MUST USE images #2 onwards (any remaining images not yet used in previous phases)
 
 ${videos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
 ${videos.map((v, i) => `${i + 1}. ${v.title} - Video ID: ${v.id}`).join('\n')}` : ''}

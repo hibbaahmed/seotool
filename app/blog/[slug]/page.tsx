@@ -88,6 +88,88 @@ function cleanExcerpt(excerpt?: string) {
   return decoded.replace(/[\u2026.]+$/u, '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Remove header image from content HTML to prevent duplication
+ * The featured image is already displayed at the top of the article
+ */
+function removeHeaderImageFromContent(html: string, featuredImageUrl?: string): string {
+  if (!html) return html;
+  
+  let result = html;
+  
+  // Remove images with class "ai-header-image" (inserted by insertHeaderImage function)
+  result = result.replace(/<figure[^>]*class=["'][^"']*ai-header-image[^"']*["'][^>]*>[\s\S]*?<\/figure>/gi, '');
+  
+  // Also remove the figure wrapper if it contains an image with ai-header-image class
+  result = result.replace(/<figure[^>]*>[\s\S]*?<img[^>]*class=["'][^"']*ai-header-image[^"']*["'][^>]*>[\s\S]*?<\/figure>/gi, '');
+  
+  // Remove images that match the featured image URL (if provided)
+  if (featuredImageUrl) {
+    const normalizedFeatured = featuredImageUrl.trim().toLowerCase();
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    let match;
+    
+    while ((match = imgRegex.exec(result)) !== null) {
+      const imgSrc = match[1].trim().toLowerCase();
+      if (imgSrc === normalizedFeatured || imgSrc.includes(normalizedFeatured) || normalizedFeatured.includes(imgSrc)) {
+        // Remove the image tag and its potential container (figure, div, etc.)
+        const imgTag = match[0];
+        const beforeImg = result.substring(0, match.index);
+        const afterImg = result.substring(match.index + imgTag.length);
+        
+        // Check if there's a figure wrapper before this image
+        const figureStart = beforeImg.lastIndexOf('<figure');
+        if (figureStart !== -1) {
+          const figureEnd = afterImg.indexOf('</figure>');
+          if (figureEnd !== -1) {
+            // Remove entire figure element
+            result = beforeImg.substring(0, figureStart) + afterImg.substring(figureEnd + 8);
+          } else {
+            // Just remove the image tag
+            result = beforeImg + afterImg;
+          }
+        } else {
+          // Just remove the image tag
+          result = beforeImg + afterImg;
+        }
+        
+        // Reset regex to start from beginning after modification
+        imgRegex.lastIndex = 0;
+      }
+    }
+  }
+  
+  // Remove any images near the top of the content (within first 1500 chars) that might be header images
+  const topSection = result.substring(0, 1500);
+  const firstImgMatch = topSection.match(/<img[^>]+>/i);
+  if (firstImgMatch && firstImgMatch.index !== undefined) {
+    // Check if it's in a figure or div container
+    const beforeImg = topSection.substring(0, firstImgMatch.index);
+    const afterImg = result.substring(firstImgMatch.index + firstImgMatch[0].length);
+    
+    // Look for opening figure/div tag before the image
+    const containerStart = beforeImg.lastIndexOf('<figure');
+    if (containerStart === -1) {
+      const divStart = beforeImg.lastIndexOf('<div');
+      if (divStart !== -1) {
+        const divEnd = afterImg.indexOf('</div>');
+        if (divEnd !== -1 && divEnd < 200) {
+          // Remove the div container with the image
+          result = result.substring(0, divStart) + afterImg.substring(divEnd + 6);
+        }
+      }
+    } else {
+      const figureEnd = afterImg.indexOf('</figure>');
+      if (figureEnd !== -1 && figureEnd < 200) {
+        // Remove the figure container with the image
+        result = result.substring(0, containerStart) + afterImg.substring(figureEnd + 8);
+      }
+    }
+  }
+  
+  return result.trim();
+}
+
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   
@@ -236,7 +318,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Content with Automatic Internal Linking */}
                 <LinkedContent
-                  content={post.content}
+                  content={removeHeaderImageFromContent(post.content, post.featuredImage?.node.sourceUrl)}
                   slug={slug}
                   className="prose prose-lg prose-slate max-w-none 
                     prose-headings:font-bold prose-headings:tracking-tight

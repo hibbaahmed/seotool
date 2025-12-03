@@ -41,7 +41,7 @@ export async function generateMultiPhaseContent(
   // PHASE 2: Generate Introduction + First 4 sections (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 2: Writing introduction and sections 1-4...');
   const sections1to4 = await generatePhase(
-    getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections'),
+    getSectionsPrompt(topic, userInput, outline, '1-4', imageUrls, videos, 'introduction and first 4 sections', websiteUrl),
     apiKey,
     5000
   );
@@ -51,7 +51,7 @@ export async function generateMultiPhaseContent(
   // PHASE 3: Generate Sections 5-8 (reduced from 8000 to avoid rate limit)
   console.log('✍️ Phase 3: Writing sections 5-8...');
   const sections5to8 = await generatePhase(
-    getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8'),
+    getSectionsPrompt(topic, userInput, outline, '5-8', imageUrls, videos, 'sections 5-8', websiteUrl),
     apiKey,
     5000
   );
@@ -269,7 +269,8 @@ export function getSectionsPrompt(
   sectionRange: string,
   imageUrls: string[],
   videos: Array<{ id: string; title: string; url: string }>,
-  description: string
+  description: string,
+  websiteUrl: string = ''
 ): string {
   return `You are writing the ${description} for a comprehensive pillar article about: "${topic}"
 
@@ -280,8 +281,10 @@ User requirements: ${userInput}
 Article outline to follow:
 ${outline}
 
-AVAILABLE IMAGES (YOU MUST USE ALL - distribute throughout this phase):
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES:
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
+- IMPORTANT: Image #1 is reserved as the featured/header image - DO NOT embed it in the article content
+- YOU MUST USE images #2 onwards - distribute them evenly throughout the article
 - Embed images at relevant points in your sections using: ![descriptive alt text](URL)
 - Distribute images evenly - do not cluster them all in one section
 
@@ -389,6 +392,20 @@ Write 100-130 words covering:
 </tbody>
 </table>
 
+MANDATORY COMPARISON TABLE RULES:
+- If a section title mentions comparing products/apps/services (e.g., "Top 10 Best [Topic] Apps", "Best [Topic] Tools", "Comparing [Topic] Solutions"), you MUST create a comparison table with multiple options side-by-side
+- If the title specifies a number (e.g., "Top 10", "5 Best", "7 Options"), the comparison table MUST include that many rows (or close to it, e.g., 8-10 rows for "Top 10")
+- DO NOT just write individual descriptions for each option - create an actual comparison table first, then you can add detailed descriptions after the table if needed
+- The comparison table should be the primary way to compare options - individual app/product descriptions are supplementary, not replacements
+${websiteUrl ? `- NATURALLY INCORPORATE USER'S WEBSITE: When creating comparison tables about products, services, tools, or platforms that are relevant to ${websiteUrl}, naturally include it as one of the comparison options:
+  * Analyze the article topic and determine if ${websiteUrl} is relevant to the comparison being made
+  * If ${websiteUrl} offers products, services, tools, or solutions that match the comparison topic, include it as a row in the comparison table alongside other popular options
+  * When a section title mentions "Top X" or "Best X" apps/tools/services, ${websiteUrl} should be included in that comparison table if it's relevant
+  * Present it naturally as a legitimate option - use the website domain (${websiteUrl}) or a descriptive name based on what the site actually offers
+  * Fill in all comparison columns with realistic, honest values based on what ${websiteUrl} actually provides - don't make it artificially superior, just present it as a real option with its actual features/benefits
+  * Only include it when it's genuinely relevant to the comparison topic - don't force it into unrelated comparisons
+  * Match the format and detail level of other rows in the table for consistency` : ''}
+
 Transition paragraph (30-50 words) connecting to the next section.
 
 FORMATTING REQUIREMENTS:
@@ -439,8 +456,10 @@ User requirements: ${userInput}
 Article outline to follow:
 ${outline}
 
-AVAILABLE IMAGES (YOU MUST USE ALL remaining images in this final phase):
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES:
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
+- IMPORTANT: Image #1 is reserved as the featured/header image - DO NOT embed it in the article content
+- YOU MUST USE images #2 onwards (any remaining images not yet used in previous phases)
 - Embed images at relevant points using: ![descriptive alt text](URL)
 - Use any images not yet used in previous phases
 

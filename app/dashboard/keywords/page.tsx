@@ -649,12 +649,6 @@ export default function KeywordsDashboard() {
         await loadAllOnboardingKeywords();
       }
 
-      // Reset form after 2 seconds
-      setTimeout(() => {
-        setSeedKeywords(['']);
-        setGenerateSuccess(null);
-      }, 2000);
-
     } catch (err: any) {
       console.error('Error generating keywords:', err);
       setGenerateError(err.message);
@@ -868,10 +862,9 @@ export default function KeywordsDashboard() {
         await loadAllOnboardingKeywords();
       }
 
-      // Reset form after 2 seconds
+      // Close modal and reset form after 2 seconds
       setTimeout(() => {
-        setManualKeywords('');
-        setGenerateSuccess(null);
+        closeManualAddModal();
       }, 2000);
 
     } catch (err: any) {
@@ -1417,7 +1410,7 @@ export default function KeywordsDashboard() {
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                     <div className="flex items-start gap-3">
                       <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-medium text-green-900">Success!</h3>
                         <p className="text-sm text-green-700 mt-1">
                           {generateSuccess.message || `Successfully generated ${generateSuccess.keywords?.total || 0} keywords`}
@@ -1443,13 +1436,114 @@ export default function KeywordsDashboard() {
                   </div>
                 )}
 
+                {/* Generated Keywords Preview */}
+                {generateSuccess && generateSuccess.samples && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-slate-900 mb-3">Generated Keywords Preview</h4>
+                    <div className="space-y-4">
+                      {generateSuccess.samples.primary && generateSuccess.samples.primary.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-purple-600"></div>
+                            <span className="text-xs font-medium text-slate-700">Primary Keywords</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {generateSuccess.samples.primary.map((kw: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm"
+                              >
+                                <div className="font-medium text-slate-900">{kw.keyword}</div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1">
+                                    <BarChart3 className="w-3 h-3" />
+                                    {kw.searchVolume?.toLocaleString() || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Target className="w-3 h-3" />
+                                    {kw.difficulty || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {generateSuccess.samples.secondary && generateSuccess.samples.secondary.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <span className="text-xs font-medium text-slate-700">Secondary Keywords</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {generateSuccess.samples.secondary.map((kw: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm"
+                              >
+                                <div className="font-medium text-slate-900">{kw.keyword}</div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1">
+                                    <BarChart3 className="w-3 h-3" />
+                                    {kw.searchVolume?.toLocaleString() || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Target className="w-3 h-3" />
+                                    {kw.difficulty || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {generateSuccess.samples.longTail && generateSuccess.samples.longTail.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-600"></div>
+                            <span className="text-xs font-medium text-slate-700">Long-tail Keywords</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {generateSuccess.samples.longTail.map((kw: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-white border border-orange-200 rounded-lg px-3 py-2 text-sm"
+                              >
+                                <div className="font-medium text-slate-900">{kw.keyword}</div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1">
+                                    <BarChart3 className="w-3 h-3" />
+                                    {kw.searchVolume?.toLocaleString() || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Target className="w-3 h-3" />
+                                    {kw.difficulty || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-3">
+                      These are sample keywords. All {generateSuccess.keywords?.total || 0} keywords have been saved to your dashboard.
+                    </p>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-slate-200">
                   <button
-                    onClick={closeAddKeywordsModal}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                    onClick={() => {
+                      closeAddKeywordsModal();
+                      // Scroll to top of page to show the keywords
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700 flex items-center justify-center gap-2"
                   >
-                    Cancel
+                    <ArrowRight className="h-4 w-4" />
+                    Go to Dashboard
                   </button>
                   <button
                     onClick={handleGenerateKeywords}

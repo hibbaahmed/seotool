@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
           });
 
           console.log(`✅ Retrieved ${keywordSet.all.length} keywords from DataForSEO`);
+          console.log(`📊 Breakdown: ${keywordSet.primary.length} primary, ${keywordSet.secondary.length} secondary, ${keywordSet.longTail.length} long-tail`);
 
           // Ensure the seed keyword is always included, even if it has 0 volume
           const seedKeywordLower = trimmed.toLowerCase();

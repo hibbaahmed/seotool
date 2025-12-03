@@ -131,18 +131,19 @@ export function generateContentSystemPrompt(options: ContentPromptOptions): stri
 
 ${keyword ? `PRIMARY KEYWORD/TOPIC: "${keyword}" - You MUST optimize the title and content for this specific keyword.` : ''}
 
-AVAILABLE IMAGES (embed using Markdown):
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES:
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
 
 IMAGE AND VIDEO PLACEMENT RULES (CRITICAL - MUST FOLLOW):
-- YOU MUST USE ALL PROVIDED IMAGES - distribute them evenly throughout the article
+- IMPORTANT: Image #1 is reserved as the featured/header image - DO NOT embed it in the article content
+- YOU MUST USE images #2 onwards - distribute them evenly throughout the article
 - Place images after relevant H2 sections or within H3 subsections where contextually appropriate
 - DO NOT place all images at the beginning - spread them across the entire article
 - DO NOT place images and videos directly next to each other
 - Always include at least 2-3 paragraphs of text between any image and video
 - Ensure substantial content (100+ words) between media elements
 - Format: ![descriptive alt text](IMAGE_URL)
-- If you have 4 images and 8 sections, aim to place images in sections 1, 3, 5, and 7
+- If you have 4 images total (1 featured + 3 to embed), aim to place the 3 embeddable images in sections 2, 4, and 6
 
 ${youtubeVideos.length > 0 ? `AVAILABLE YOUTUBE VIDEOS:
 ${youtubeVideos.map((v, i) => `${i + 1}. ${v.title || 'Video'} - Video ID: ${v.id}`).join('\n')}` : ''}
@@ -289,6 +290,19 @@ COMPARISON TABLES FORMAT${isTestMode ? ' (OPTIONAL for test - 0-1 table if neede
 - Place tables strategically after relevant H2 sections or within H3 subsections
 - Include real metrics, comparisons, and actionable data
 - Make tables useful for reader decision-making
+- MANDATORY COMPARISON TABLE RULES:
+  * If a section title mentions comparing products/apps/services (e.g., "Top 10 Best [Topic] Apps", "Best [Topic] Tools", "Comparing [Topic] Solutions"), you MUST create a comparison table with multiple options side-by-side
+  * If the title specifies a number (e.g., "Top 10", "5 Best", "7 Options"), the comparison table MUST include that many rows (or close to it, e.g., 8-10 rows for "Top 10")
+  * DO NOT just write individual descriptions for each option - create an actual comparison table first, then you can add detailed descriptions after the table if needed
+  * The comparison table should be the primary way to compare options - individual app/product descriptions are supplementary, not replacements
+${websiteUrl ? `- NATURALLY INCORPORATE USER'S WEBSITE: When creating comparison tables about products, services, tools, or platforms that are relevant to ${websiteUrl}, naturally include it as one of the comparison options:
+  * Analyze the article topic and determine if ${websiteUrl} is relevant to the comparison being made
+  * If ${websiteUrl} offers products, services, tools, or solutions that match the comparison topic, include it as a row in the comparison table alongside other popular options
+  * When a section title mentions "Top X" or "Best X" apps/tools/services, ${websiteUrl} should be included in that comparison table if it's relevant
+  * Present it naturally as a legitimate option - use the website domain (${websiteUrl}) or a descriptive name based on what the site actually offers
+  * Fill in all comparison columns with realistic, honest values based on what ${websiteUrl} actually provides - don't make it artificially superior, just present it as a real option with its actual features/benefits
+  * Only include it when it's genuinely relevant to the comparison topic - don't force it into unrelated comparisons
+  * Match the format and detail level of other rows in the table for consistency` : ''}
 
 FORMATTING:
 - Use **bold** ONLY for FAQ questions (Q: format) and key technical terms on first mention (sparingly)
@@ -481,8 +495,8 @@ LONG-TAIL KEYWORDS (use in H3 subsections, FAQ questions, specific examples):
 ${longTailKeywords.slice(0, 15).map(k => `- "${k}"`).join('\n')}
 ` : ''}
 
-AVAILABLE IMAGES (embed using Markdown):
-${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+AVAILABLE IMAGES:
+${imageUrls.map((u, i) => `${i + 1}. ${u}${i === 0 ? ' (FEATURED IMAGE - do not embed in content)' : ' (embed using Markdown)'}`).join('\n')}
 
 KEYWORD INTEGRATION:
 - Primary keyword "${keyword}": Naturally in title, first paragraph, one H2, conclusion
