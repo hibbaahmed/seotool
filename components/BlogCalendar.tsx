@@ -472,7 +472,13 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                       </div>
                       
                       {/* View Article Link */}
-                      <div className="px-2 pb-1.5 flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium">
+                      <div 
+                        className="px-2 pb-1.5 flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = '/login';
+                        }}
+                      >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
@@ -573,24 +579,9 @@ export default function BlogCalendar({ onPostClick, onAddPost, onKeywordClick, o
                         {isPublished ? (
                           <div 
                             className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (keyword.publishing_info?.publishUrl) {
-                                window.open(keyword.publishing_info.publishUrl, '_blank', 'noopener,noreferrer');
-                              } else {
-                                // Try to fetch publication URL
-                                try {
-                                  const response = await fetch(`/api/calendar/keywords/${keyword.id}/publication`);
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    if (data.publishUrl) {
-                                      window.open(data.publishUrl, '_blank', 'noopener,noreferrer');
-                                    }
-                                  }
-                                } catch (error) {
-                                  console.error('Error fetching publication URL:', error);
-                                }
-                              }
+                              window.location.href = '/login';
                             }}
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

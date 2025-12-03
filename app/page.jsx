@@ -417,7 +417,10 @@ const HomePage = () => {
                                                 <span>Volume: 2154</span>
                                                 <span>Difficulty: 9</span>
                                             </div>
-                                            <button className="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-1">
+                                            <button 
+                                                onClick={() => window.location.href = '/login'}
+                                                className="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-1"
+                                            >
                                                 View Article
                                                 <ArrowRight className="w-3 h-3" />
                                             </button>
