@@ -198,26 +198,16 @@ const HomePage = () => {
                                         <p className="text-slate-600 text-sm">The backwards approach that wastes time and money:</p>
                                     </div>
                                     
-                                    {/* Visual Chart - Flat/No Growth */}
-                                    <div className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-200">
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <div className="text-xs text-slate-500 mb-1">Total Clicks</div>
-                                                <div className="text-2xl font-bold text-slate-400">0</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-slate-500 mb-1">Avg Position</div>
-                                                <div className="text-2xl font-bold text-slate-400">0</div>
-                                            </div>
-                                        </div>
-                                        {/* Simple flat line chart representation */}
-                                        <div className="h-24 bg-white rounded-lg p-3 border border-slate-200">
-                                            <div className="h-full flex items-end justify-between gap-1">
-                                                {[...Array(8)].map((_, i) => (
-                                                    <div key={i} className="flex-1 bg-slate-200 rounded-t" style={{ height: '10%' }}></div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    {/* Gemini2 Image */}
+                                    <div className="mb-6">
+                                        <NextImage
+                                            src="/gemini2.png"
+                                            alt="The Challenge - Backwards Approach"
+                                            width={600}
+                                            height={400}
+                                            className="rounded-xl shadow-lg object-contain w-full"
+                                            priority
+                                        />
                                     </div>
                                     
                                     {/* Problem List */}
@@ -720,6 +710,130 @@ const HomePage = () => {
                                 <div className="text-slate-800 mb-3 font-semibold text-lg">Star Rating</div>
                                 <p className="text-slate-600">From our community</p>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Backlink Exchange Section */}
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-12">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl mb-6 shadow-lg">
+                                <Link2 className="w-8 h-8 text-white" />
+                            </div>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 leading-tight">
+                                Backlink Exchange Network
+                            </h2>
+                            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                                Connect with quality websites in your niche. Exchange backlinks automatically and build domain authority—all within Bridgely.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+                                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                                    <Search className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-3">Find Quality Partners</h3>
+                                <p className="text-slate-600 leading-relaxed">
+                                    Discover relevant websites in your niche with matching domain authority and traffic. Our AI matches you with the best exchange partners.
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+                                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+                                    <Zap className="w-6 h-6 text-indigo-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-3">Automatic Exchange</h3>
+                                <p className="text-slate-600 leading-relaxed">
+                                    Set it once and forget it. Bridgely handles the entire backlink exchange process—from outreach to link placement and monitoring.
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+                                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                                    <TrendingUp className="w-6 h-6 text-purple-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-3">Boost Domain Authority</h3>
+                                <p className="text-slate-600 leading-relaxed">
+                                    Build quality backlinks that improve your search rankings. Every exchange is monitored to ensure you're getting high-quality, relevant links.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-8 md:p-12 border-2 border-blue-200 shadow-xl">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                                <div>
+                                    <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">
+                                        How It Works
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                                1
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-slate-900 mb-1">Submit Your Site</h4>
+                                                <p className="text-slate-600 text-sm">Add your website to our network and set your niche, domain authority, and preferences.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                                2
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-slate-900 mb-1">Get Matched</h4>
+                                                <p className="text-slate-600 text-sm">Our system automatically finds compatible partners based on your niche and domain metrics.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                                3
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-slate-900 mb-1">Exchange Links</h4>
+                                                <p className="text-slate-600 text-sm">Bridgely handles the entire exchange—outreach, negotiation, and link placement—all automatically.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                                            <div>
+                                                <div className="font-semibold text-slate-900">Active Exchanges</div>
+                                                <div className="text-2xl font-bold text-blue-600">250+</div>
+                                            </div>
+                                            <Globe className="w-8 h-8 text-blue-600" />
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                                            <div>
+                                                <div className="font-semibold text-slate-900">Avg. DA Increase</div>
+                                                <div className="text-2xl font-bold text-indigo-600">+12</div>
+                                            </div>
+                                            <TrendingUp className="w-8 h-8 text-indigo-600" />
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                                            <div>
+                                                <div className="font-semibold text-slate-900">Network Size</div>
+                                                <div className="text-2xl font-bold text-purple-600">1,200+</div>
+                                            </div>
+                                            <Users className="w-8 h-8 text-purple-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-center mt-12">
+                            <Link 
+                                href="/login"
+                                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                            >
+                                Join the Backlink Exchange Network
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
+                            <p className="text-sm text-slate-500 mt-4">Free for all Bridgely subscribers</p>
                         </div>
                     </div>
                 </section>

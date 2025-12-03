@@ -64,7 +64,7 @@ const pricingFeatures = [
 const PricingSection = () => {
 
   return (
-    <div className="pb-20 px-4 sm:px-6 lg:px-8 bg-white">
+    <div className="pt-20 pb-20 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="max-w-7xl mx-auto">
         {/* Header Section - Centered */}
         <div className="text-center mb-16">
@@ -80,9 +80,9 @@ const PricingSection = () => {
         </div>
 
         {/* Two Column Layout - Centered */}
-        <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto items-start lg:items-center">
+        <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto items-center justify-center">
           {/* Left Column - Pricing Card */}
-          <div className="flex-1 flex justify-center lg:justify-start">
+          <div className="flex-1 flex justify-center">
             <div className="relative bg-white border-2 border-slate-200 rounded-2xl p-8 lg:p-10 shadow-lg hover:shadow-xl transition-all w-full max-w-md">
               {/* Most Popular Tag */}
               <div className="absolute -top-3 right-6">
@@ -173,17 +173,17 @@ const PricingSection = () => {
           </div>
 
           {/* Right Column - Solution Details */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center items-center lg:items-start">
             {/* Solution Heading */}
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-3 text-center lg:text-left tracking-tight leading-tight">
               Replace Manual SEO with <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Automation</span>
             </h2>
-            <p className="text-lg text-slate-600 mb-10 text-center lg:text-left font-normal leading-relaxed">
+            <p className="text-lg text-slate-600 mb-10 text-center lg:text-left font-normal leading-relaxed max-w-lg lg:max-w-none">
               Stop watching your margins shrink. Start automating and scale your SEO without scaling your team. Everything you need to rank and get traffic on autopilot.
             </p>
 
             {/* Detailed Features */}
-            <div className="space-y-6 mb-10">
+            <div className="space-y-6 mb-10 w-full max-w-lg lg:max-w-none">
               {solutionFeatures.map((feature, index) => {
                 const iconBgClasses = [
                   'bg-gradient-to-br from-blue-50 to-indigo-50',
@@ -212,7 +212,7 @@ const PricingSection = () => {
             </div>
 
             {/* Testimonial */}
-            <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 rounded-xl p-6 lg:p-8 border-2 border-slate-200 shadow-sm hover:shadow-md transition-all">
+            <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 rounded-xl p-6 lg:p-8 border-2 border-slate-200 shadow-sm hover:shadow-md transition-all w-full max-w-lg lg:max-w-none">
               <div className="flex gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
