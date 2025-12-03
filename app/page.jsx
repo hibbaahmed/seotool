@@ -38,6 +38,7 @@ const FAQItem = ({ question, answer }) => {
 const HomePage = () => {
     const router = useRouter();
     const cloudflareStreamId = process.env.NEXT_PUBLIC_CF_STREAM_UID;
+    const [websiteUrl, setWebsiteUrl] = useState('');
 
     useEffect(() => {
         const checkUserOnboarding = async () => {
@@ -306,20 +307,31 @@ const HomePage = () => {
                         </div>
 
                         {/* Bottom Callout */}
-                        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-center text-white shadow-xl">
-                            <p className="text-2xl md:text-3xl font-bold mb-4">
-                                Ready to Automate Your SEO?
-                            </p>
-                            <p className="text-lg text-blue-100 mb-6 max-w-2xl mx-auto">
-                                Join 500+ businesses scaling their content with Bridgely.
-                            </p>
-                            <Link 
-                                href="/dashboard"
-                                className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-semibold transition-all group"
-                            >
-                                Start Free Trial
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
+                        <div className="relative bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl p-8 md:p-10 text-center text-white shadow-lg overflow-hidden">
+                            {/* Decorative background elements */}
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+                            
+                            <div className="relative z-10">
+                                <div className="mb-5">
+                                    <h3 className="text-2xl md:text-3xl font-semibold mb-3 leading-tight">
+                                        Ready to Automate Your SEO?
+                                    </h3>
+                                    <p className="text-base md:text-lg text-blue-50/90 max-w-2xl mx-auto leading-relaxed">
+                                        Join 500+ businesses scaling their content with Bridgely.
+                                    </p>
+                                </div>
+                                
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                    <Link 
+                                        href="/dashboard"
+                                        className="group inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-7 py-3 rounded-lg font-medium text-base transition-all duration-200 shadow-md hover:shadow-lg"
+                                    >
+                                        Start Free Trial
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -371,11 +383,18 @@ const HomePage = () => {
                                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
                                     <div className="mb-3">
                                         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 block">Enter Your Website</label>
-                                        <div className="bg-white rounded-lg px-4 py-3 border border-slate-200 text-slate-700 font-medium">
-                                            yourbusiness.com
-                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="yourbusiness.com"
+                                            value={websiteUrl}
+                                            onChange={(e) => setWebsiteUrl(e.target.value)}
+                                            className="w-full bg-white rounded-lg px-4 py-3 border border-slate-200 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
                                     </div>
-                                    <button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-3 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={() => router.push('/login')}
+                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-3 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                    >
                                         Find Keywords
                                         <ArrowRight className="w-4 h-4" />
                                     </button>

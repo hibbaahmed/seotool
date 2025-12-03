@@ -1,6 +1,6 @@
 /**
  * AI Image Generation Utility
- * Uses Replicate Flux Schnell to generate images based on text prompts
+ * Uses Replicate Flux Pro/Dev for high-quality image generation based on text prompts
  */
 
 import Replicate from 'replicate';
@@ -45,7 +45,7 @@ export async function generateAIImages(
   }
 
   try {
-    console.log('🎨 Generating AI images with Flux Schnell, prompt:', prompt.substring(0, 120) + '...');
+    console.log('🎨 Generating high-quality AI images with Flux Pro/Dev, prompt:', prompt.substring(0, 120) + '...');
 
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
@@ -55,21 +55,57 @@ export async function generateAIImages(
       return fetch(url, { cache: "no-store", ...options });
     };
 
-    const model = "black-forest-labs/flux-schnell";
+    // Use flux-pro for higher quality images (slower but much better quality)
+    // Fallback to flux-dev if flux-pro is not available
+    const model = "black-forest-labs/flux-pro";
     const candidates: CandidateImage[] = [];
 
     for (let i = 0; i < Math.min(n, CANDIDATE_LIMIT); i++) {
       try {
-        console.log(`🔄 Generating image ${i + 1}/${Math.min(n, CANDIDATE_LIMIT)}...`);
-        const output = await replicate.run(model, {
-          input: {
-            prompt,
-            negative_prompt,
-            aspect_ratio,
-            output_format,
-            output_quality,
-          },
-        });
+        console.log(`🔄 Generating high-quality image ${i + 1}/${Math.min(n, CANDIDATE_LIMIT)}...`);
+        
+        // Enhanced prompt with quality descriptors
+        const enhancedPrompt = `${prompt}, ultra high definition, 8k resolution, sharp focus, detailed, crisp, professional photography, masterpiece quality`;
+        
+        let output;
+        try {
+          // Try flux-pro first (highest quality)
+          // Build input with supported parameters
+          const inputParams: any = {
+            prompt: enhancedPrompt,
+            negative_prompt: `${negative_prompt}, blurry, low quality, pixelated, grainy, soft focus, out of focus, low resolution`,
+            aspect_ratio: aspect_ratio || "16:9",
+            output_format: output_format || 'png', // Use PNG for better quality
+            output_quality: output_quality || 100, // Maximum quality
+          };
+          
+          // Add advanced parameters if supported by the model
+          // Note: These may not be supported by all Flux models
+          inputParams.num_inference_steps = 28; // More steps = better quality
+          inputParams.guidance_scale = 7.5; // Higher guidance for better prompt adherence
+          
+          output = await replicate.run(model, { input: inputParams });
+        } catch (proError: any) {
+          console.warn('⚠️ flux-pro failed, falling back to flux-dev:', proError?.message || proError);
+          // Fallback to flux-dev if flux-pro fails
+          const devInput: any = {
+            prompt: enhancedPrompt,
+            negative_prompt: `${negative_prompt}, blurry, low quality, pixelated, grainy, soft focus, out of focus, low resolution`,
+            aspect_ratio: aspect_ratio || "16:9",
+            output_format: output_format || 'png',
+            output_quality: output_quality || 100,
+          };
+          
+          // Try with advanced parameters, but they may not be supported
+          try {
+            devInput.num_inference_steps = 28;
+            devInput.guidance_scale = 7.5;
+          } catch (e) {
+            // Ignore if not supported
+          }
+          
+          output = await replicate.run("black-forest-labs/flux-dev", { input: devInput });
+        }
 
         const outputs = Array.isArray(output) ? output : [output];
 
@@ -79,14 +115,14 @@ export async function generateAIImages(
             console.log(`✅ Image ${i + 1} generated URL:`, item);
           } else if (item && typeof item === 'object' && 'getReader' in item) {
             const buffer = await streamToBuffer(item as ReadableStream);
-            candidates.push({ data: buffer, contentType: 'image/webp' });
+            candidates.push({ data: buffer, contentType: output_format === 'png' ? 'image/png' : 'image/webp' });
             console.log(`✅ Image ${i + 1} generated buffer (size=${buffer.length})`);
           } else if (item && typeof item === 'object' && 'arrayBuffer' in item) {
             const buffer = await streamToBuffer(item as unknown as ReadableStream);
-            candidates.push({ data: buffer, contentType: 'image/webp' });
+            candidates.push({ data: buffer, contentType: output_format === 'png' ? 'image/png' : 'image/webp' });
             console.log(`✅ Image ${i + 1} generated buffer from object`);
           } else {
-            console.warn(`⚠️ Unexpected Flux Schnell output for prompt ${i + 1}:`, item);
+            console.warn(`⚠️ Unexpected Flux output for prompt ${i + 1}:`, item);
           }
         }
 
@@ -99,14 +135,14 @@ export async function generateAIImages(
     }
 
     if (candidates.length > 0) {
-      console.log(`✅ Generated ${candidates.length} AI image candidate(s) with Flux Schnell`);
+      console.log(`✅ Generated ${candidates.length} high-quality AI image candidate(s) with Flux Pro/Dev`);
     } else {
-      console.warn('⚠️ No images generated from Flux Schnell');
+      console.warn('⚠️ No images generated from Flux Pro/Dev');
     }
 
     return candidates;
   } catch (error: any) {
-    console.error('❌ Error generating AI images with Flux Schnell:', error?.message || error);
+    console.error('❌ Error generating AI images with Flux Pro/Dev:', error?.message || error);
     return [];
   }
 }
@@ -117,7 +153,7 @@ export function createImagePrompt(keyword: string): string {
   Show people, workplaces, dashboards, or abstract shapes that convey the concept through visuals only.
   Absolutely NO text, words, letters, numbers, logos, brand names (like Google), signage, or UI labels anywhere in the frame.
   If screens are shown, keep them blurred or filled with simple gradients or icon blocks without glyphs.
-  Use clean lighting, modern color palettes, subtle gradients, sharp focus, high resolution, detailed, crisp edges, professional photography quality, 4K quality, and avoid obvious AI artifacts, blur, or pixelation.`;
+  Use clean lighting, modern color palettes, subtle gradients, sharp focus, ultra high definition, 8K resolution, detailed textures, crisp edges, professional photography quality, cinematic composition, depth of field, realistic shadows, and avoid obvious AI artifacts, blur, pixelation, or low quality.`;
 }
 
 export async function generateArticleImages(
@@ -136,11 +172,11 @@ export async function generateArticleImages(
     try {
       const results = await generateAIImages({
         prompt,
-        negative_prompt: 'text, typography, words, letters, captions, signage, brand names, company logos, gibberish fonts, user interface text, subtitles, watermark, blurry, low quality, pixelated, grainy, out of focus, soft focus',
+        negative_prompt: 'text, typography, words, letters, captions, signage, brand names, company logos, gibberish fonts, user interface text, subtitles, watermark, blurry, low quality, pixelated, grainy, out of focus, soft focus, low resolution, distorted, artifacts',
         n: 1,
         aspect_ratio: '16:9',
-        output_format: 'webp',
-        output_quality: 95,
+        output_format: 'png', // Use PNG for better quality
+        output_quality: 100, // Maximum quality
       });
 
       if (results.length > 0) {
