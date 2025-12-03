@@ -11,6 +11,7 @@ import { WaitingForMagicLink } from "./WaitingForMagicLink";
 import { supabase } from "../../../utils/supabaseClient";
 import { useSearchParams } from "next/navigation";
 import AuthComponent from "../../auth/components/AuthComponent";
+import Image from "next/image";
 type Inputs = {
   email: string;
 };

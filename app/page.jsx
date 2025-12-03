@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ChevronRight, Sparkles, CheckCircle, Star, Users, Clock, Shield, Code, Globe, Award, Quote, Zap, TrendingUp, Briefcase, Lightbulb, ChevronDown, Search, Link2, Image, Megaphone, Plug } from "lucide-react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import Nav from "../components/Nav";
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -254,26 +255,16 @@ const HomePage = () => {
                                         <p className="text-slate-600 text-sm">The smart, data-driven automated approach:</p>
                                     </div>
                                     
-                                    {/* Visual Chart - Growth */}
-                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 mb-6 border border-blue-200">
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <div className="text-xs text-slate-600 mb-1">Total Clicks</div>
-                                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">110K+</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-slate-600 mb-1">Avg Position</div>
-                                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">17.1</div>
-                                            </div>
-                                        </div>
-                                        {/* Simple growth chart representation */}
-                                        <div className="h-24 bg-white rounded-lg p-3 border border-blue-200">
-                                            <div className="h-full flex items-end justify-between gap-1">
-                                                {[15, 25, 20, 35, 40, 50, 60, 75].map((height, i) => (
-                                                    <div key={i} className="flex-1 bg-gradient-to-t from-blue-500 to-purple-500 rounded-t" style={{ height: `${height}%` }}></div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    {/* Gemini Image */}
+                                    <div className="mb-6">
+                                        <NextImage
+                                            src="/gemini.png"
+                                            alt="Bridgely Analytics Dashboard"
+                                            width={600}
+                                            height={400}
+                                            className="rounded-xl shadow-lg object-contain w-full"
+                                            priority
+                                        />
                                     </div>
                                     
                                     {/* Solution Features */}
