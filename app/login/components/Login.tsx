@@ -73,101 +73,144 @@ export const Login = ({
   }
   return (
     <>
-      <div className="min-h-screen bg-slate-50 relative overflow-hidden flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center p-4 sm:p-6 lg:p-8">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23E2E8F0%22%20fill-opacity%3D%220.3%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
         
         {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 via-transparent to-indigo-100/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-indigo-50/30"></div>
         
-        <div className="relative z-10 w-full max-w-md">
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 p-8 sm:p-10 rounded-3xl shadow-xl shadow-slate-300/30">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300/60 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+        <div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          {/* Left Column - Login Form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
+            <div className="bg-white p-8 sm:p-10 rounded-3xl">
+              {/* Header */}
+              <div className="mb-8 text-center">
+                <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+                  Welcome to <span className="text-blue-600">Bridgely</span>
+                </h1>
+                <p className="text-slate-600 text-lg leading-relaxed">
+                  Turn your SEO strategy into a content machine that writes, optimizes, and publishes while you sleep.
+                </p>
               </div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-3 tracking-tight">Welcome to Bridgely</h1>
-              <p className="text-slate-600 text-lg leading-relaxed">
-                Sign in or create an account to get started.
-              </p>
-            </div>
-            {/* Auth Component */}
-            <div className="mb-6">
-              <AuthComponent/>
-            </div>
-            
-            <OR />
-            
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
-              <div className="space-y-2">
-                <Input
-                  type="email"
-                  className="w-full px-4 py-4 text-slate-700 bg-slate-50/80 border border-slate-300/60 rounded-xl placeholder-slate-400 focus:ring-2 focus:ring-blue-400/30 focus:border-blue-500 transition-all duration-200 text-base"
-                  placeholder="Enter your email address"
-                  {...register("email", {
-                    required: true,
-                    validate: {
-                      emailIsValid: (value: string) =>
-                        /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) ||
-                        "Please enter a valid email",
-                      emailDoesntHavePlus: (value: string) =>
-                        /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) ||
-                        "Email addresses with a '+' are not allowed",
-                      emailIsntDisposable: (value: string) =>
-                        !disposableDomains.includes(value.split("@")[1]) ||
-                        "Please use a permanent email address",
-                    },
-                  })}
-                />
-                {isSubmitted && errors.email && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm text-red-600">
-                      {errors.email?.message || "Email is required to sign in"}
-                    </span>
+              
+              {/* Social Proof */}
+              <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                      </svg>
+                    ))}
                   </div>
-                )}
+                  <span className="text-slate-700 font-medium text-sm">Trusted by 2,500+ agencies</span>
+                </div>
               </div>
-              <Button
-                isLoading={isSubmitting}
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl shadow-blue-400/25 hover:shadow-blue-400/40 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                type="submit"
+
+              {/* Auth Component */}
+              <div className="mb-6">
+                <AuthComponent/>
+              </div>
+              
+              <OR />
+              
+              <div className="text-center mb-4">
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Or continue with email</p>
+              </div>
+              
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-6"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Sending magic link...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span>Continue with Email</span>
-                  </div>
-                )}
-              </Button>
-            </form>
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-slate-200/80">
-              <p className="text-center text-sm text-slate-500">
-                By continuing, you agree to our{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                  Privacy Policy
-                </a>
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    className="w-full px-4 py-4 text-slate-700 bg-slate-50/80 border border-slate-300/60 rounded-xl placeholder-slate-400 focus:ring-2 focus:ring-blue-400/30 focus:border-blue-500 transition-all duration-200 text-base"
+                    placeholder="name@example.com"
+                    {...register("email", {
+                      required: true,
+                      validate: {
+                        emailIsValid: (value: string) =>
+                          /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) ||
+                          "Please enter a valid email",
+                        emailDoesntHavePlus: (value: string) =>
+                          /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) ||
+                          "Email addresses with a '+' are not allowed",
+                        emailIsntDisposable: (value: string) =>
+                          !disposableDomains.includes(value.split("@")[1]) ||
+                          "Please use a permanent email address",
+                      },
+                    })}
+                  />
+                  {isSubmitted && errors.email && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm text-red-600">
+                        {errors.email?.message || "Email is required to sign in"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  isLoading={isSubmitting}
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl shadow-blue-400/25 hover:shadow-blue-400/40 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                  type="submit"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Sending magic link...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Get Started with Email</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  )}
+                </Button>
+              </form>
+              {/* Footer */}
+              <div className="mt-8 pt-6 border-t border-slate-200/80">
+                <p className="text-center text-sm text-slate-500">
+                  By continuing, you agree to our{" "}
+                  <a href="/terms" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                    Privacy Policy
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Testimonial */}
+          <div className="hidden lg:flex flex-col items-center justify-center relative px-8">
+            {/* Quotation Mark Icon */}
+            <div className="absolute -top-6 -left-6 text-blue-100 text-[120px] leading-none font-serif select-none pointer-events-none z-0">
+              "
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative z-10 w-full max-w-md">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-md ring-2 ring-blue-100">
+                  MJ
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900 text-lg">Michael Chen</div>
+                  <div className="text-sm text-slate-600">Head of Marketing, TechScale Agency</div>
+                </div>
+              </div>
+              
+              <p className="text-slate-700 leading-relaxed text-base italic">
+                We went from publishing 4 articles per month to 40+—all while maintaining our quality standards. Bridgely doesn't just generate content, it generates results. Our organic traffic doubled in the first quarter, and we've already recovered our investment three times over.
               </p>
             </div>
           </div>
