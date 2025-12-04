@@ -114,6 +114,24 @@ export async function GET(request: NextRequest) {
     const tokenData: TokenResponse = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
+    // Fetch WordPress.com account email
+    let wpcomAccountEmail: string | null = null;
+    try {
+      const meResponse = await fetch('https://public-api.wordpress.com/rest/v1.1/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        wpcomAccountEmail = meData.email || null;
+      }
+    } catch (error) {
+      console.error('Failed to fetch WordPress.com account email:', error);
+      // Continue without email - it's optional
+    }
+
     // Fetch user's WordPress.com sites
     const sitesResponse = await fetch('https://public-api.wordpress.com/rest/v1.1/me/sites', {
       headers: {
@@ -204,6 +222,7 @@ export async function GET(request: NextRequest) {
             token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             updated_at: new Date().toISOString(),
             onboarding_profile_id: existing.onboarding_profile_id || resolvedProfileId || null,
+            wpcom_account_email: wpcomAccountEmail,
           })
           .eq('id', existing.id);
       } else {
@@ -220,6 +239,7 @@ export async function GET(request: NextRequest) {
             token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             is_active: true,
             onboarding_profile_id: resolvedProfileId || null,
+            wpcom_account_email: wpcomAccountEmail,
           });
       }
     }

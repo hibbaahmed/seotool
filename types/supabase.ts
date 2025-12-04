@@ -409,6 +409,7 @@ export interface Database {
           url: string
           user_id: string
           username: string
+          wpcom_account_email: string | null
         }
         Insert: {
           access_token?: string | null
@@ -426,6 +427,7 @@ export interface Database {
           url: string
           user_id: string
           username: string
+          wpcom_account_email?: string | null
         }
         Update: {
           access_token?: string | null
@@ -443,6 +445,7 @@ export interface Database {
           url?: string
           user_id?: string
           username?: string
+          wpcom_account_email?: string | null
         }
         Relationships: [
           {

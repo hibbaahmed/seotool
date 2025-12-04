@@ -15,6 +15,7 @@ export default function WordPressSitesPage() {
   const [success, setSuccess] = useState('');
   const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string | null; website_url?: string | null; industry?: string | null }>>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [wpcomEmail, setWpcomEmail] = useState('');
 
   useEffect(() => {
     loadSites();
@@ -89,6 +90,10 @@ export default function WordPressSitesPage() {
   };
 
   const handleWordPressComConnect = () => {
+    // Store the email preference in sessionStorage if provided
+    if (wpcomEmail.trim()) {
+      sessionStorage.setItem('wpcom_preferred_email', wpcomEmail.trim());
+    }
     // Redirect to OAuth flow
     window.location.href = '/api/wordpress/wpcom/login';
   };
@@ -206,30 +211,71 @@ export default function WordPressSitesPage() {
               <h2 className="text-2xl font-bold text-slate-900 mb-6">Connect WordPress.com Sites</h2>
               
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <Globe className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2 text-center">
                     Connect Your WordPress.com Sites
                   </h3>
-                  <p className="text-slate-600 mb-6">
+                  <p className="text-slate-600 mb-6 text-center">
                     Authorize Bridgely to access your WordPress.com sites. You'll be able to publish content to any of your sites.
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleWordPressComConnect}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-                  >
-                    <Key className="h-5 w-5" />
-                    Connect with WordPress.com
-                  </button>
+                  
+                  {/* Email input field */}
+                  <div className="mb-6">
+                    <label htmlFor="wpcom-email" className="block text-sm font-medium text-slate-700 mb-2">
+                      WordPress.com Account Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      id="wpcom-email"
+                      value={wpcomEmail}
+                      onChange={(e) => setWpcomEmail(e.target.value)}
+                      placeholder="e.g., business-email.com"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="mt-2 text-sm text-slate-600">
+                      <strong>Leave this blank</strong> to connect with the WordPress.com account you're currently logged into. 
+                      <strong>Or enter a different email</strong> if your WordPress.com sites are under a different account than the one you're logged into. 
+                      This is important if you signed into Bridgely with one email (e.g., <strong>home-email.com</strong>) but your WordPress sites are under another email (e.g., <strong>business-email.com</strong>). 
+                      You'll need to log in with that email on WordPress.com when prompted.
+                    </p>
+                  </div>
+
+                  {/* Important instructions */}
+                  {wpcomEmail.trim() && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-amber-800">
+                          <p className="font-semibold mb-1">Important:</p>
+                          <p>When you click "Connect with WordPress.com", make sure you log in with <strong>{wpcomEmail.trim()}</strong> on WordPress.com. 
+                          If you're already logged into WordPress.com with a different account, you'll need to log out first or use an incognito/private window.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      type="button"
+                      onClick={handleWordPressComConnect}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                    >
+                      <Key className="h-5 w-5" />
+                      Connect with WordPress.com
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingSite(false);
+                        setWpcomEmail('');
+                      }}
+                      className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingSite(false)}
-                  className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
           )}
@@ -285,6 +331,13 @@ export default function WordPressSitesPage() {
                           <div className="flex items-center gap-1">
                             <Key className="h-4 w-4" />
                             <span>{site.username}</span>
+                          </div>
+                        )}
+                        {site.provider === 'wpcom' && site.wpcom_account_email && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">
+                              Account: {site.wpcom_account_email}
+                            </span>
                           </div>
                         )}
                         <div className="flex items-center gap-1">
@@ -387,11 +440,19 @@ export default function WordPressSitesPage() {
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">3.</span>
-                  <p className="text-sm">Click "Connect with WordPress.com" and authorize access</p>
+                  <p className="text-sm">
+                    <strong>If your WordPress.com sites are under a different email</strong> than your Bridgely account, 
+                    enter that email in the field provided. This is important if you signed into Bridgely with one email 
+                    (e.g., home-email.com) but your WordPress sites are under another email (e.g., business-email.com).
+                  </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">4.</span>
-                  <p className="text-sm">All your WordPress.com sites will be automatically connected!</p>
+                  <p className="text-sm">Click "Connect with WordPress.com" and <strong>make sure you log in with the correct WordPress.com account</strong> when prompted. If you're already logged into WordPress.com with a different account, log out first or use an incognito/private window.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-blue-600">5.</span>
+                  <p className="text-sm">All your WordPress.com sites from that account will be automatically connected!</p>
                 </div>
               </div>
             </div>
