@@ -211,7 +211,7 @@ export default function Price() {
                     <span className="text-slate-400 line-through text-lg font-normal">$200</span>
                   </div>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$99</span>
+                    <span className="text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight leading-none pricing-amount">$69</span>
                     <span className="text-xl lg:text-2xl font-semibold text-slate-600">/month</span>
                   </div>
                 </div>
@@ -220,42 +220,28 @@ export default function Price() {
                 {hasActiveSubscription ? (
                   <Button
                     className={cn(
-                      "w-full bg-slate-300 text-slate-500 cursor-not-allowed py-4 px-6 rounded-xl font-bold text-lg mb-4 shadow-lg flex items-center justify-center gap-2"
+                      "w-full bg-slate-300 text-slate-500 cursor-not-allowed py-4 px-6 rounded-xl font-bold text-lg mb-8 shadow-lg flex items-center justify-center gap-2"
                     )}
                     onClick={handleSubscriptionClick}
                     disabled
                   >
-                    Start for Free
+                    Get Started
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 ) : (
                   <Checkout 
                     priceId={priceId} 
                     className={cn(
-                      "w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-4 px-6 rounded-xl font-bold text-lg mb-4 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 group"
+                      "w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-4 px-6 rounded-xl font-bold text-lg mb-8 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 group"
                     )}
                     buttonText={
                       <span className="flex items-center gap-2">
-                        Start for Free
+                        Get Started
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     }
                   />
                 )}
-
-                {/* Trial Details */}
-                <div className="flex items-center justify-center gap-2 text-slate-600 text-sm mb-8 font-normal text-center">
-                  <span className="font-semibold text-slate-700">$1 for 3 days, then $99/month. Cancel anytime.</span>
-                  <div className="relative group">
-                    <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-lg">
-                      <p>The $1 trial charge helps us prevent fraud and ensures we're working with serious customers. It's a small verification fee that gives you full access to test our platform risk-free.</p>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-slate-900"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Features List */}
                 <div className="space-y-4">

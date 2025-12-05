@@ -59,7 +59,7 @@ export default function TermsPage() {
                 <a href="mailto:team@bridgely.io" className="text-blue-600 hover:text-blue-700 underline">
                   team@bridgely.io
                 </a>{' '}
-                within 24 hours of your purchase. Please note that the trial $1 fee is non-refundable under any circumstances.
+                within 24 hours of your purchase.
               </p>
               <p>
                 If you experience any technical issues with our service, please reach out to us and we will do our best to resolve them.
