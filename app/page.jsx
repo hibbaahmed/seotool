@@ -121,7 +121,7 @@ const HomePage = () => {
                                 href="/dashboard"
                                 className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-8 py-3 rounded-xl font-semibold text-base sm:text-lg transition-colors duration-200 group"
                             >
-                                Get Started for Free
+                                Start Growing Your Traffic
                                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-200" />
                             </Link>
                         </div>
@@ -280,7 +280,7 @@ const HomePage = () => {
                                         href="/dashboard"
                                         className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors w-full group"
                                     >
-                                        Start Free Trial
+                                        Start Growing Traffic Now
                                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
@@ -308,7 +308,7 @@ const HomePage = () => {
                                         href="/dashboard"
                                         className="group inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-7 py-3 rounded-lg font-medium text-base transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        Start Free Trial
+                                        Get Started Today
                                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
                                     </Link>
                                 </div>
@@ -339,7 +339,7 @@ const HomePage = () => {
                                         href="/dashboard"
                                         className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                                     >
-                                        Try It Free
+                                        See It In Action
                                         <ArrowRight className="w-5 h-5" />
                                     </Link>
                                 </div>
@@ -833,7 +833,7 @@ const HomePage = () => {
                                 Join the Backlink Exchange Network
                                 <ArrowRight className="w-5 h-5" />
                             </Link>
-                            <p className="text-sm text-slate-500 mt-4">Free for all Bridgely subscribers</p>
+                            <p className="text-sm text-slate-500 mt-4">Included with all Bridgely plans</p>
                         </div>
                     </div>
                 </section>
@@ -859,7 +859,7 @@ const HomePage = () => {
                                 href="/dashboard"
                                 className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white px-8 py-3 rounded-xl font-semibold text-base sm:text-lg transition-colors duration-200 group"
                             >
-                                Get Started for Free
+                                Automate Your SEO Now
                                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-200" />
                             </Link>
                         </div>
@@ -867,11 +867,11 @@ const HomePage = () => {
                         <div className="flex items-center justify-center gap-8 text-slate-500 text-sm flex-wrap">
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span>No credit card required</span>
+                                <span>30 articles per month</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span>14-day free trial</span>
+                                <span>Fully automated publishing</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
@@ -937,10 +937,10 @@ const HomePage = () => {
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
                             <div className="flex-1 text-center md:text-left">
                                 <p className="text-white text-xs sm:text-sm font-semibold uppercase tracking-wider mb-2 md:mb-3">
-                                    READY TO START?
+                                    DON'T WAIT TO RANK
                                 </p>
                                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight">
-                                    Start driving traffic today with a <span className="text-yellow-300">free trial!</span>
+                                    Your competitors are already using <span className="text-yellow-300">AI-powered SEO</span>
                                 </h2>
                             </div>
                             <div className="flex-shrink-0">
@@ -948,7 +948,7 @@ const HomePage = () => {
                                     href="/login"
                                     className="inline-flex items-center justify-center gap-2 bg-white border-2 border-purple-600 text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg hover:bg-purple-50 transition-colors duration-200 shadow-lg"
                                 >
-                                    Get Started for Free
+                                    Start Ranking Now
                                     <ArrowRight className="w-5 h-5 text-slate-900" />
                                 </Link>
                             </div>
