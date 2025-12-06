@@ -339,12 +339,53 @@ case "customer.subscription.updated":
 					result.lines.data[0]?.period.end * 1000
 				).toISOString();
 				const customer_id = result.customer as string;
+				
 				// Access subscription property with proper type handling
+				// The subscription field can be: null, string (ID), or expanded Subscription object
 				const subscriptionField = (result as any).subscription;
-				const subscription_id = typeof subscriptionField === 'string' 
-					? subscriptionField 
-					: (subscriptionField as Stripe.Subscription | null)?.id || '';
+				let subscription_id = '';
+				
+				if (typeof subscriptionField === 'string') {
+					subscription_id = subscriptionField;
+				} else if (subscriptionField && typeof subscriptionField === 'object' && subscriptionField.id) {
+					subscription_id = subscriptionField.id;
+				}
+				
+				// Also try to get from subscription_details if subscription field is null
+				if (!subscription_id) {
+					const subDetails = (result as any).subscription_details;
+					if (subDetails?.metadata?.subscription_id) {
+						subscription_id = subDetails.metadata.subscription_id;
+					}
+				}
+				
+				// Try line items as last resort
+				if (!subscription_id && result.lines?.data?.[0]) {
+					const lineSubscription = (result.lines.data[0] as any).subscription;
+					if (typeof lineSubscription === 'string') {
+						subscription_id = lineSubscription;
+					} else if (lineSubscription?.id) {
+						subscription_id = lineSubscription.id;
+					}
+				}
+				
 				const email = result.customer_email as string;
+				
+				console.log('📋 invoice.payment_succeeded details:', {
+					subscriptionField: subscriptionField,
+					subscriptionFieldType: typeof subscriptionField,
+					extracted_subscription_id: subscription_id,
+					customer_id,
+					email,
+					end_at
+				});
+				
+				// Only process if we have a valid subscription ID
+				if (!subscription_id) {
+					console.log('ℹ️ Skipping invoice.payment_succeeded - no subscription ID found (likely a one-time payment)');
+					break;
+				}
+				
 				const error = await onPaymentSucceeded(
 					end_at,
 					customer_id,
@@ -557,29 +598,37 @@ async function updateCreditsFromSubscription(email: string, subscriptionId: stri
 	});
 
 	// Update subscription table with end_at and trial_ends_at if we have them
-	const subscriptionUpdate: any = {
+	// Use upsert to handle both insert and update cases
+	const subscriptionData: any = {
+		email: email,
 		customer_id: customerId,
 		subscription_id: subscriptionId,
 	};
 	
 	if (subscriptionEndDate) {
-		subscriptionUpdate.end_at = subscriptionEndDate;
+		subscriptionData.end_at = subscriptionEndDate;
 	}
 	
 	// Add trial_ends_at if subscription is in trial
 	if (trialEndsAt) {
-		subscriptionUpdate.trial_ends_at = trialEndsAt;
+		subscriptionData.trial_ends_at = trialEndsAt;
 	}
+	
+	console.log('📝 Upserting subscription data:', subscriptionData);
 	
 	const { error: subscriptionError } = await supabase
 		.from("subscription")
-		.update(subscriptionUpdate)
-		.eq("email", email);
+		.upsert(subscriptionData, { 
+			onConflict: 'email',
+			ignoreDuplicates: false 
+		});
 	
 	if (subscriptionError) {
-		console.error('Error updating subscription:', subscriptionError);
+		console.error('Error upserting subscription:', subscriptionError);
 		throw subscriptionError;
 	}
+	
+	console.log('✅ Subscription table updated successfully');
 
 	// Update credits table - check if record exists first
 	const { data: existingCredits, error: checkError } = await supabase
@@ -760,7 +809,8 @@ async function onPaymentSucceeded(
 		// Also update subscription table with the end_at from the invoice and trial status
 		// (updateCreditsFromSubscription already updates subscription, but we want to ensure end_at is set correctly)
 		const supabase = await supabaseAdmin();
-		const subscriptionUpdate: any = {
+		const subscriptionData: any = {
+			email, // Required for upsert
 			end_at, // This is the end_at from the invoice period
 			customer_id,
 			subscription_id,
@@ -768,19 +818,23 @@ async function onPaymentSucceeded(
 
 		// Update trial_ends_at based on current subscription status
 		if (trialEndsAt) {
-			subscriptionUpdate.trial_ends_at = trialEndsAt;
+			subscriptionData.trial_ends_at = trialEndsAt;
 		} else {
 			// Clear trial_ends_at if trial has ended
-			subscriptionUpdate.trial_ends_at = null;
+			subscriptionData.trial_ends_at = null;
 		}
+
+		console.log('📝 Upserting subscription in onPaymentSucceeded:', subscriptionData);
 
 		const { error: subscriptionError } = await supabase
 			.from("subscription")
-			.update(subscriptionUpdate)
-			.eq("email", email);
+			.upsert(subscriptionData, { 
+				onConflict: 'email',
+				ignoreDuplicates: false 
+			});
 		
 		if (subscriptionError) {
-			console.error('Error updating subscription end date:', subscriptionError);
+			console.error('Error upserting subscription end date:', subscriptionError);
 			return subscriptionError;
 		}
 
