@@ -288,39 +288,7 @@ export default function Nav({ user }) {
         style={{ top: `${navHeight}px`, height: `calc(100vh - ${navHeight}px)` }}
       >
         <div className="px-6 py-8">
-          <div className="flex flex-col space-y-3">
-            {/* Tools Section */}
-            <div className="px-5 py-3">
-              <div className="flex items-center text-xs font-bold text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text uppercase tracking-wider mb-3">
-                <Wrench className="w-4 h-4 mr-2 text-purple-500" />
-                Free SEO Tools
-              </div>
-              <Link 
-                href="/tools/seo-title-generator" 
-                className="flex items-center px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-purple-100/50 hover:border-purple-200 hover:shadow-sm"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3">
-                  <Type className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <div className="font-medium">SEO Title Generator</div>
-                  <div className="text-xs text-slate-500">Generate high-CTR title tags</div>
-                </div>
-              </Link>
-            </div>
-            
-            <div className="border-t border-purple-100 pt-3">
-              <Link href="/blog" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-                Blog
-              </Link>
-              <Link href="/pricing" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-                Pricing
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-purple-100">
+          <div>
             {user ? (
               <div className="space-y-4">
                 <div className="flex items-center px-5 py-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100">
