@@ -114,7 +114,7 @@ export const Login = ({
                   <Input
                     type="email"
                     className="w-full px-4 py-4 text-slate-700 bg-slate-50/80 border border-slate-300/60 rounded-xl placeholder-slate-400 focus:ring-2 focus:ring-blue-400/30 focus:border-blue-500 transition-all duration-200 text-base"
-                    placeholder="name@example.com"
+                    placeholder="Enter Your Email"
                     {...register("email", {
                       required: true,
                       validate: {
@@ -154,7 +154,7 @@ export const Login = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      <span>Send Magic Link</span>
+                      <span>Continue to Bridgely</span>
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
