@@ -11,14 +11,14 @@ import {
 } from "./ui/dropdown-menu";
 import Link from "next/link";
 import { Button } from "./ui/Button";
-import { 
-  Sparkles, 
-  Home, 
-  Code, 
-  Palette, 
-  LogOut, 
-  Menu, 
-  ChevronDown, 
+import {
+  Sparkles,
+  Home,
+  Code,
+  Palette,
+  LogOut,
+  Menu,
+  ChevronDown,
   Settings,
   Zap,
   FileText,
@@ -214,9 +214,21 @@ export default function Nav({ user }) {
                   </div>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/meta-description-generator" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Meta Description Generator</div>
+                    <div className="text-xs text-slate-500">Create high-converting descriptions</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <Link href="/blog" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
             Blog
           </Link>
