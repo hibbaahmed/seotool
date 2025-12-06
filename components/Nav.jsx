@@ -28,7 +28,9 @@ import {
   Sun,
   DollarSign,
   BookOpen,
-  Github
+  Github,
+  Wrench,
+  Type
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
 
@@ -186,6 +188,34 @@ export default function Nav({ user }) {
               </div>
             </DropdownMenuContent>
           </DropdownMenu> */}
+
+          {/* Tools Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm group">
+                <Wrench className="w-4 h-4 mr-2 text-purple-500" />
+                Tools
+                <ChevronDown size={16} className="ml-1 text-slate-600 group-hover:text-purple-600 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="mt-2 w-72 rounded-xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-purple-100/50 border border-purple-100/50 p-2">
+              <DropdownMenuLabel className="px-3 py-2 text-xs font-bold text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text uppercase tracking-wider">
+                Free SEO Tools
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-purple-100/50" />
+              <DropdownMenuItem asChild>
+                <Link href="/tools/seo-title-generator" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Type className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">SEO Title Generator</div>
+                    <div className="text-xs text-slate-500">Generate high-CTR title tags</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <Link href="/blog" className="flex items-center px-5 py-2.5 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
             Blog
@@ -259,12 +289,35 @@ export default function Nav({ user }) {
       >
         <div className="px-6 py-8">
           <div className="flex flex-col space-y-3">
-            <Link href="/blog" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Blog
-            </Link>
-            <Link href="/pricing" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
-              Pricing
-            </Link>
+            {/* Tools Section */}
+            <div className="px-5 py-3">
+              <div className="flex items-center text-xs font-bold text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text uppercase tracking-wider mb-3">
+                <Wrench className="w-4 h-4 mr-2 text-purple-500" />
+                Free SEO Tools
+              </div>
+              <Link 
+                href="/tools/seo-title-generator" 
+                className="flex items-center px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-purple-100/50 hover:border-purple-200 hover:shadow-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3">
+                  <Type className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="font-medium">SEO Title Generator</div>
+                  <div className="text-xs text-slate-500">Generate high-CTR title tags</div>
+                </div>
+              </Link>
+            </div>
+            
+            <div className="border-t border-purple-100 pt-3">
+              <Link href="/blog" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
+                Blog
+              </Link>
+              <Link href="/pricing" className="block px-5 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-purple-100 hover:shadow-sm">
+                Pricing
+              </Link>
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-purple-100">
