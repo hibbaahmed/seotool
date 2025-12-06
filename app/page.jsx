@@ -106,13 +106,8 @@ const HomePage = () => {
                         </h1>
                         
                         {/* Subheadline */}
-                        <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-2xl text-slate-700 mb-6 max-w-4xl mx-auto leading-relaxed font-semibold">
-                            Get traffic from Google, ChatGPT, and other search engines on autopilot.
-                        </p>
-                        
-                        <p className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-                            Our platform automatically researches, writes, optimizes, and publishes articles for you 24/7.  
-                            <span className="font-semibold text-slate-700"> Rank on Google and get cited on ChatGPT</span> — all in one place.
+                        <p className="text-lg sm:text-xl md:text-2xl text-slate-700 mb-12 max-w-3xl mx-auto leading-relaxed font-semibold">
+                            Rank on Google. Get cited on ChatGPT. We research, write, and publish SEO content for you — 24/7, on autopilot.
                         </p>
                         
                         {/* CTA Button */}
