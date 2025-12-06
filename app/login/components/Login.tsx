@@ -94,20 +94,6 @@ export const Login = ({
                   Turn your SEO strategy into a content machine that writes, optimizes, and publishes while you sleep.
                 </p>
               </div>
-              
-              {/* Social Proof */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <span className="text-slate-700 font-medium text-sm">Trusted by 2,500+ agencies</span>
-                </div>
-              </div>
 
               {/* Auth Component */}
               <div className="mb-6">
@@ -168,7 +154,7 @@ export const Login = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      <span>Get Started with Email</span>
+                      <span>Send Magic Link</span>
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
