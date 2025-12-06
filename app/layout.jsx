@@ -6,6 +6,7 @@ import ClientProvider from "@/components/ClientProvider";
 import Script from "next/script";
 import { PostHogProvider } from './providers';
 import { CreditsProvider } from './context/CreditsContext';
+import FacebookTrackingInit from '@/components/FacebookTrackingInit';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,10 @@ export default function RootLayout({ children }) {
           />
         </noscript>
         {/* End Meta Pixel Code */}
+        
+        {/* Facebook Tracking Initialization - captures fbclid and ensures fbp */}
+        <FacebookTrackingInit />
+        
         <ClientProvider>
           <CreditsProvider>
             {children}

@@ -1,64 +1,169 @@
 // Facebook Tracking Utilities for Enhanced Event Match Quality
 
 /**
- * Get Facebook Click ID (fbc) from cookies
+ * Capture fbclid from URL and store it for later use
+ * This should be called on every page load to capture Facebook click IDs
+ * The fbc format is: fb.{subdomain_index}.{creation_time}.{fbclid}
+ */
+export function captureFbclid(): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fbclid = urlParams.get('fbclid');
+    
+    if (fbclid) {
+      // Store fbclid in localStorage for persistence
+      localStorage.setItem('fbclid', fbclid);
+      localStorage.setItem('fbclid_timestamp', Date.now().toString());
+      
+      // Generate proper fbc format: fb.{subdomain_index}.{creation_time}.{fbclid}
+      // subdomain_index is 1 for most cases
+      const fbc = `fb.1.${Date.now()}.${fbclid}`;
+      localStorage.setItem('fbc_generated', fbc);
+      
+      // Also set as a cookie for server-side access (90 day expiry)
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 90);
+      document.cookie = `_fbc=${encodeURIComponent(fbc)};path=/;expires=${expiryDate.toUTCString()};SameSite=Lax`;
+      
+      console.log('📱 Facebook Click ID captured from URL:', { fbclid, fbc });
+    }
+  } catch (error) {
+    console.error('Error capturing fbclid:', error);
+  }
+}
+
+/**
+ * Get Facebook Click ID (fbc) from cookies or localStorage
  * This helps Facebook attribute events to ad clicks
+ * Returns stored fbc or generates from stored fbclid
  */
 export function getFbcCookie(): string | null {
-    if (typeof window === 'undefined') return null;
-    
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === '_fbc') {
-        return decodeURIComponent(value);
+  if (typeof window === 'undefined') return null;
+  
+  // First check for _fbc cookie (set by Facebook Pixel or our capture)
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === '_fbc') {
+      return decodeURIComponent(value);
+    }
+  }
+  
+  // Check localStorage for our generated fbc
+  const generatedFbc = localStorage.getItem('fbc_generated');
+  if (generatedFbc) {
+    // Check if it's not too old (90 days)
+    const timestamp = localStorage.getItem('fbclid_timestamp');
+    if (timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+      if (age < ninetyDays) {
+        return generatedFbc;
       }
     }
-    return null;
   }
   
-  /**
-   * Get Facebook Browser ID (fbp) from cookies
-   * This helps Facebook identify the browser for better matching
-   */
-  export function getFbpCookie(): string | null {
-    if (typeof window === 'undefined') return null;
-    
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === '_fbp') {
-        return decodeURIComponent(value);
+  // Try to generate from stored fbclid
+  const storedFbclid = localStorage.getItem('fbclid');
+  if (storedFbclid) {
+    const timestamp = localStorage.getItem('fbclid_timestamp');
+    if (timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+      if (age < ninetyDays) {
+        return `fb.1.${timestamp}.${storedFbclid}`;
       }
     }
-    return null;
   }
   
-  /**
-   * Get external ID from local storage or generate one
-   * This provides consistent user identification across sessions
-   */
-  export function getExternalId(): string {
-    if (typeof window === 'undefined') return `ext_${Date.now()}`;
-    
-    let externalId = localStorage.getItem('fb_external_id');
-    if (!externalId) {
-      externalId = `ext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('fb_external_id', externalId);
+  return null;
+}
+
+/**
+ * Get Facebook Browser ID (fbp) from cookies or generate one
+ * This helps Facebook identify the browser for better matching
+ * fbp format: fb.{subdomain_index}.{creation_time}.{random_number}
+ */
+export function getFbpCookie(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  // First check for _fbp cookie (set by Facebook Pixel)
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === '_fbp') {
+      return decodeURIComponent(value);
     }
-    return externalId;
   }
   
-  /**
-   * Enhanced tracking data with all Facebook identifiers
-   */
-  export function getEnhancedTrackingData() {
-    return {
-      fbc: getFbcCookie(),
-      fbp: getFbpCookie(),
-      external_id: getExternalId(),
-    };
+  // Check localStorage for our generated fbp
+  let generatedFbp = localStorage.getItem('fbp_generated');
+  if (generatedFbp) {
+    return generatedFbp;
   }
+  
+  // Generate fbp if not available (shouldn't happen if Pixel is installed correctly)
+  // Format: fb.{subdomain_index}.{creation_time}.{random_number}
+  const randomNum = Math.floor(Math.random() * 2147483647);
+  generatedFbp = `fb.1.${Date.now()}.${randomNum}`;
+  localStorage.setItem('fbp_generated', generatedFbp);
+  
+  // Also set as a cookie for server-side access (90 day expiry)
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 90);
+  document.cookie = `_fbp=${encodeURIComponent(generatedFbp)};path=/;expires=${expiryDate.toUTCString()};SameSite=Lax`;
+  
+  console.log('📱 Generated Facebook Browser ID:', generatedFbp);
+  return generatedFbp;
+}
+
+/**
+ * Get external ID from local storage or generate one
+ * This provides consistent user identification across sessions
+ */
+export function getExternalId(): string {
+  if (typeof window === 'undefined') return `ext_${Date.now()}`;
+  
+  let externalId = localStorage.getItem('fb_external_id');
+  if (!externalId) {
+    externalId = `ext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('fb_external_id', externalId);
+  }
+  return externalId;
+}
+
+/**
+ * Initialize Facebook tracking - call this on app load
+ * Captures fbclid from URL and ensures fbp exists
+ */
+export function initFacebookTracking(): void {
+  if (typeof window === 'undefined') return;
+  
+  // Capture fbclid from URL if present
+  captureFbclid();
+  
+  // Ensure fbp exists
+  getFbpCookie();
+  
+  console.log('📱 Facebook tracking initialized:', {
+    fbc: getFbcCookie() ? 'present' : 'missing',
+    fbp: getFbpCookie() ? 'present' : 'missing',
+    external_id: getExternalId() ? 'present' : 'missing'
+  });
+}
+
+/**
+ * Enhanced tracking data with all Facebook identifiers
+ */
+export function getEnhancedTrackingData() {
+  return {
+    fbc: getFbcCookie(),
+    fbp: getFbpCookie(),
+    external_id: getExternalId(),
+  };
+}
   
   /**
    * Check if we're in development/localhost environment

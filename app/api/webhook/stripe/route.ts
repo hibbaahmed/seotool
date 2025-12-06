@@ -193,6 +193,9 @@ export async function POST(req: any) {
 						const sessionId = checkoutSession.id;
 						
 						// Prepare enhanced user data for better Facebook matching
+						// Include external_id for consistent user identification across sessions
+						const externalId = checkoutEmail ? hashDataForFacebook(checkoutEmail) : undefined;
+						
                         const userData = {
                             em: hashDataForFacebook(checkoutEmail),
                             ...(firstName && { fn: hashDataForFacebook(firstName) }),
@@ -201,20 +204,25 @@ export async function POST(req: any) {
                             ...(customerDetails?.address?.state && { st: hashDataForFacebook(customerDetails.address.state) }),
                             ...(customerDetails?.address?.postal_code && { zp: hashDataForFacebook(customerDetails.address.postal_code) }),
                             ...(customerDetails?.address?.country && { country: hashDataForFacebook(customerDetails.address.country) }),
-                            client_ip_address: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '0.0.0.0',
-                            client_user_agent: req.headers['user-agent'] || 'Server',
+                            ...(customerDetails?.phone && { ph: hashDataForFacebook(customerDetails.phone.replace(/[^0-9]/g, '')) }),
+                            client_ip_address: req.headers.get?.('x-forwarded-for') || req.headers.get?.('x-real-ip') || '0.0.0.0',
+                            client_user_agent: req.headers.get?.('user-agent') || 'Server',
                             // Add Facebook identifiers for better matching - these are crucial for ad attribution
                             ...(checkoutSession.metadata?.fbc && { fbc: checkoutSession.metadata.fbc }),
-                            ...(checkoutSession.metadata?.fbp && { fbp: checkoutSession.metadata.fbp })
+                            ...(checkoutSession.metadata?.fbp && { fbp: checkoutSession.metadata.fbp }),
+                            // Add external_id for consistent user identification (hashed email)
+                            ...(externalId && { external_id: externalId })
                         };
 						
                         console.log('🔐 Enhanced user data prepared for Facebook:', {
                             email: checkoutEmail,
                             firstName: firstName ? 'included' : 'missing',
                             lastName: lastName ? 'included' : 'missing',
+                            phone: customerDetails?.phone ? 'included' : 'missing',
                             address: customerDetails?.address ? 'included' : 'missing',
                             fbc: checkoutSession.metadata?.fbc ? 'present' : 'missing',
-                            fbp: checkoutSession.metadata?.fbp ? 'present' : 'missing'
+                            fbp: checkoutSession.metadata?.fbp ? 'present' : 'missing',
+                            external_id: externalId ? 'included' : 'missing'
                         });
 						
 						// Create enhanced Facebook event data
