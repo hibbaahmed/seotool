@@ -177,61 +177,14 @@ const HomePage = () => {
                                 Stop Wasting Time on SEO. Start Getting Results.
                             </h2>
                             <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed">
-                                You're spending too much time on content that doesn't rank. Hiring writers costs too much. Managing SEO tools is overwhelming. Let Bridgely handle it all automatically—so you can focus on what actually grows your business.
+                                You're spending too much time on content that doesn't rank. Hiring writers costs too much. Managing SEO tools is overwhelming. Let Bridgely handle it all automatically, so you can focus on what actually grows your business.
                             </p>
                         </div>
 
                         {/* Visual Comparison: Challenge vs Solution */}
                         <div className="relative mb-12">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-                                {/* Left Column - The Challenge */}
-                                <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 lg:p-8">
-                                    <div className="mb-6">
-                                        <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-                                            The Challenge
-                                        </h3>
-                                        <p className="text-slate-600 text-sm">The backwards approach that wastes time and money:</p>
-                                    </div>
-                                    
-                                    {/* Gemini2 Image */}
-                                    <div className="mb-6">
-                                        <NextImage
-                                            src="/gemini2.png"
-                                            alt="The Challenge - Backwards Approach"
-                                            width={600}
-                                            height={400}
-                                            className="rounded-xl shadow-lg object-contain w-full"
-                                            priority
-                                        />
-                                    </div>
-                                    
-                                    {/* Problem List */}
-                                    <div className="space-y-3">
-                                        {[
-                                            { text: "Endless hours writing, editing, and optimizing" },
-                                            { text: "High costs for freelancers or agency retainers" },
-                                            { text: "Paying for multiple, expensive SEO tools" },
-                                            { text: "Guessing which keywords will actually work" },
-                                            { text: "Wasting time on content that never ranks" }
-                                        ].map((item, idx) => (
-                                            <div key={idx} className="flex items-start gap-3">
-                                                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                    <span className="text-red-600 text-xs font-bold">×</span>
-                                                </div>
-                                                <span className="text-slate-700 text-sm">{item.text}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* VS Divider */}
-                                <div className="hidden lg:block absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                                    <div className="bg-slate-100 text-slate-600 font-bold text-sm px-4 py-2 rounded-full border-2 border-white shadow-lg">
-                                        VS
-                                    </div>
-                                </div>
-
-                                {/* Right Column - The Solution */}
+                                {/* Left Column - With Bridgely */}
                                 <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 lg:p-8">
                                     <div className="mb-6">
                                         <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
@@ -278,6 +231,53 @@ const HomePage = () => {
                                         Start Growing Traffic Now
                                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </Link>
+                                </div>
+
+                                {/* VS Divider */}
+                                <div className="hidden lg:block absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                                    <div className="bg-slate-100 text-slate-600 font-bold text-sm px-4 py-2 rounded-full border-2 border-white shadow-lg">
+                                        VS
+                                    </div>
+                                </div>
+
+                                {/* Right Column - The Challenge */}
+                                <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 lg:p-8">
+                                    <div className="mb-6">
+                                        <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+                                            The Challenge
+                                        </h3>
+                                        <p className="text-slate-600 text-sm">The backwards approach that wastes time and money:</p>
+                                    </div>
+                                    
+                                    {/* Gemini2 Image */}
+                                    <div className="mb-6">
+                                        <NextImage
+                                            src="/gemini2.png"
+                                            alt="The Challenge - Backwards Approach"
+                                            width={600}
+                                            height={400}
+                                            className="rounded-xl shadow-lg object-contain w-full"
+                                            priority
+                                        />
+                                    </div>
+                                    
+                                    {/* Problem List */}
+                                    <div className="space-y-3">
+                                        {[
+                                            { text: "Endless hours writing, editing, and optimizing" },
+                                            { text: "High costs for freelancers or agency retainers" },
+                                            { text: "Paying for multiple, expensive SEO tools" },
+                                            { text: "Guessing which keywords will actually work" },
+                                            { text: "Wasting time on content that never ranks" }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <span className="text-red-600 text-xs font-bold">×</span>
+                                                </div>
+                                                <span className="text-slate-700 text-sm">{item.text}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
