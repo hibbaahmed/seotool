@@ -523,7 +523,15 @@ export default function ContentWriterPage() {
     // FIFTH PASS: Ensure proper spacing after intro paragraphs (after main H1 title)
     // Add blank line after intro paragraphs if missing
     normalized = normalized.replace(/#\s+[^\n]+(?:\n\n)?([^\n#][^\n]+)(?=\n##)/g, '# $1\n\n');
-    
+
+    // SIXTH PASS: Soften "expert" claims only in sensitive legal contexts
+    normalized = normalized
+      .replace(/\bexpert guide\b/gi, 'comprehensive guide')
+      .replace(/\bexpert (attorney|attorneys|lawyer|lawyers|legal team|team|firm)\b/gi, 'experienced $1')
+      .replace(/\bexpert (help|assistance|support|services?)\b/gi, 'professional $1')
+      .replace(/\blegal expertise\b/gi, 'legal experience')
+      .replace(/\bexpertise in\b/gi, 'experience in');
+
     // Clean up any triple+ newlines (should be max 2)
     normalized = normalized.replace(/\n{3,}/g, '\n\n');
 
