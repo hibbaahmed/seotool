@@ -30,7 +30,14 @@ import {
   BookOpen,
   Github,
   Wrench,
-  Type
+  Type,
+  Lightbulb,
+  BarChart3,
+  Search,
+  Book,
+  RefreshCw,
+  Wand2,
+  Globe
 } from "lucide-react";
 import { supabase } from '../utils/supabaseClient';
 
@@ -198,7 +205,7 @@ export default function Nav({ user }) {
                 <ChevronDown size={16} className="ml-1 text-slate-600 group-hover:text-purple-600 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="mt-2 w-72 rounded-xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-purple-100/50 border border-purple-100/50 p-2">
+            <DropdownMenuContent className="mt-2 w-80 rounded-xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-purple-100/50 border border-purple-100/50 p-2 max-h-[600px] overflow-y-auto">
               <DropdownMenuLabel className="px-3 py-2 text-xs font-bold text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text uppercase tracking-wider">
                 Free SEO Tools
               </DropdownMenuLabel>
@@ -225,7 +232,94 @@ export default function Nav({ user }) {
                   </div>
                 </Link>
               </DropdownMenuItem>
-
+              <DropdownMenuItem asChild>
+                <Link href="/tools/blog-idea-generator" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Lightbulb className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Blog Idea Generator</div>
+                    <div className="text-xs text-slate-500">Generate creative blog topics</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/keyword-difficulty-checker" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Search className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Keyword Difficulty Checker</div>
+                    <div className="text-xs text-slate-500">Analyze keyword competition</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/long-form-article-generator" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Book className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Long-Form Article Generator</div>
+                    <div className="text-xs text-slate-500">Create comprehensive articles</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/paragraph-rewriter" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <RefreshCw className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Paragraph Rewriter</div>
+                    <div className="text-xs text-slate-500">Rewrite and improve paragraphs</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/rewrite-for-seo" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Wand2 className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Rewrite for SEO</div>
+                    <div className="text-xs text-slate-500">Optimize content for search engines</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/competitor-content-analyzer" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <BarChart3 className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Competitor Content Analyzer</div>
+                    <div className="text-xs text-slate-500">Analyze competitor strategies</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/serp-snippet-preview-tool" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Eye className="w-5 h-5 text-cyan-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">SERP Snippet Preview</div>
+                    <div className="text-xs text-slate-500">Preview how your page appears</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tools/automatic-wordpress-publishing" className="flex items-center px-3 py-3 text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                  <div className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-200">
+                    <Globe className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Automatic WordPress Publishing</div>
+                    <div className="text-xs text-slate-500">Auto-publish to WordPress</div>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
