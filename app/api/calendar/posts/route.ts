@@ -75,6 +75,13 @@ export async function POST(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    if (isNaN(scheduledDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date format' },
+        { status: 400 }
+      );
+    }
+    
     if (scheduledDate < today) {
       return NextResponse.json(
         { error: 'Cannot schedule posts in the past' },
@@ -105,12 +112,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Trigger Inngest scheduling event
+      // Use the original scheduled_date string (YYYY-MM-DD format) instead of Date object
       try {
         await inngest.send({
           name: 'blog/post.schedule',
           data: {
             postId: post.id,
-            scheduledDate,
+            scheduledDate: scheduled_date, // Use string format, not Date object
             scheduledTime: scheduled_time,
             platform,
             title,

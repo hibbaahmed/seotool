@@ -563,8 +563,52 @@ export const scheduleBlogPost = inngest.createFunction(
   async ({ event, step }) => {
     const { postId, scheduledDate, scheduledTime, platform, title, content, userId, imageUrls, notes } = event.data;
 
+    // Validate required fields
+    if (!scheduledDate || !scheduledTime) {
+      console.error('❌ Missing scheduledDate or scheduledTime:', { scheduledDate, scheduledTime });
+      // Publish immediately if scheduling data is invalid
+      return await step.run('publish-immediately-invalid-date', async () => {
+        await inngest.send({
+          name: 'blog/post.publish',
+          data: {
+            postId,
+            platform,
+            title,
+            content,
+            userId,
+            imageUrls,
+          },
+        });
+      });
+    }
+
+    // Normalize time format (ensure it has seconds if missing)
+    const normalizedTime = scheduledTime.includes(':') && scheduledTime.split(':').length === 2
+      ? `${scheduledTime}:00`
+      : scheduledTime;
+
     // Calculate the exact publish time
-    const publishDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+    const publishDateTime = new Date(`${scheduledDate}T${normalizedTime}`);
+    
+    // Validate the date is valid
+    if (isNaN(publishDateTime.getTime())) {
+      console.error('❌ Invalid date created:', { scheduledDate, scheduledTime, normalizedTime, publishDateTime });
+      // Publish immediately if date is invalid
+      return await step.run('publish-immediately-invalid-date', async () => {
+        await inngest.send({
+          name: 'blog/post.publish',
+          data: {
+            postId,
+            platform,
+            title,
+            content,
+            userId,
+            imageUrls,
+          },
+        });
+      });
+    }
+
     const now = new Date();
 
     // If the scheduled time is in the past, publish immediately
@@ -884,8 +928,44 @@ export const scheduleKeywordGeneration = inngest.createFunction(
   async ({ event, step }) => {
     const { keywordId, keyword, userId, runAtISO, relatedKeywords } = event.data;
 
+    // Validate runAtISO is provided
+    if (!runAtISO) {
+      console.error('❌ Missing runAtISO for keyword scheduling:', { keywordId, keyword });
+      // Trigger generation immediately if no schedule time provided
+      await inngest.send({
+        name: 'calendar/keyword.generate',
+        data: { keywordId, keyword, userId, relatedKeywords }
+      });
+      return { scheduledFor: null, keywordId, error: 'No schedule time provided, generating immediately' };
+    }
+
+    // Parse and validate the date
+    const scheduledDate = new Date(runAtISO);
+    
+    if (isNaN(scheduledDate.getTime())) {
+      console.error('❌ Invalid runAtISO date:', { runAtISO, keywordId, keyword });
+      // Trigger generation immediately if date is invalid
+      await inngest.send({
+        name: 'calendar/keyword.generate',
+        data: { keywordId, keyword, userId, relatedKeywords }
+      });
+      return { scheduledFor: null, keywordId, error: 'Invalid date provided, generating immediately' };
+    }
+
+    const now = new Date();
+    
+    // If the scheduled time is in the past, generate immediately
+    if (scheduledDate <= now) {
+      console.log('⏰ Scheduled time is in the past, generating immediately:', { scheduledDate, now });
+      await inngest.send({
+        name: 'calendar/keyword.generate',
+        data: { keywordId, keyword, userId, relatedKeywords }
+      });
+      return { scheduledFor: runAtISO, keywordId, generatedImmediately: true };
+    }
+
     // Sleep until the specified datetime
-    await step.sleepUntil('wait-until-scheduled-time', new Date(runAtISO));
+    await step.sleepUntil('wait-until-scheduled-time', scheduledDate);
 
     // Then trigger the actual generation
     await inngest.send({
