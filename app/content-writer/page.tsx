@@ -355,17 +355,16 @@ export default function ContentWriterPage() {
         continue;
       }
 
-      // Structural elements - check if next line continues them (especially headings)
-      if (trimmed.startsWith('#') || 
-          trimmed.startsWith('![') || 
-          trimmed.startsWith('>') ||
-          trimmed.startsWith('|') ||
-          trimmed.startsWith('- ') ||
-          trimmed.startsWith('* ') ||
-          /^\d+\.\s/.test(trimmed)) {
-        
+      const isHeading = trimmed.startsWith('#');
+      const isImage = trimmed.startsWith('![');
+      const isQuote = trimmed.startsWith('>');
+      const isTable = trimmed.startsWith('|');
+      const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed);
+
+      // Structural elements - check if next line continues them (especially headings and bullets)
+      if (isHeading || isImage || isQuote || isTable || isBullet) {
         // CRITICAL: For headings, always check if next line is continuation letters and merge
-        if (trimmed.startsWith('#') && i + 1 < lines.length) {
+        if (isHeading && i + 1 < lines.length) {
           const nextLine = lines[i + 1];
           const nextTrimmed = nextLine.trim();
           // If next line is just 1-5 lowercase letters (continuation of word), merge immediately
@@ -376,6 +375,36 @@ export default function ContentWriterPage() {
             i += 2;
             continue;
           }
+        }
+
+        // For bullet/numbered items, merge any continuation lines into the same item
+        if (isBullet) {
+          let mergedBullet = line.trimEnd();
+          let j = i + 1;
+
+          while (j < lines.length) {
+            const nextLine = lines[j];
+            const nextTrimmed = nextLine.trim();
+
+            // Stop if we hit a blank line or another structural element (new list item, heading, etc.)
+            if (!nextTrimmed ||
+                nextTrimmed.startsWith('#') ||
+                nextTrimmed.startsWith('![') ||
+                nextTrimmed.startsWith('>') ||
+                nextTrimmed.startsWith('|') ||
+                nextTrimmed.startsWith('- ') ||
+                nextTrimmed.startsWith('* ') ||
+                /^\d+\.\s/.test(nextTrimmed)) {
+              break;
+            }
+
+            mergedBullet = mergedBullet.replace(/\s+$/, '') + ' ' + nextTrimmed;
+            j++;
+          }
+
+          result.push(mergedBullet);
+          i = j;
+          continue;
         }
         
         result.push(line);
