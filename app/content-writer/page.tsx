@@ -293,7 +293,11 @@ export default function ContentWriterPage() {
     targetAudience: '',
     tone: 'professional',
     length: 'medium',
-    additionalContext: ''
+    additionalContext: '',
+    // Comparison post specific fields
+    toolA: '',
+    toolB: '',
+    useCase: ''
   });
 
   // Replace IMAGE_PLACEMENT placeholders and remove ALL mid-sentence newlines
@@ -551,6 +555,45 @@ export default function ContentWriterPage() {
     }
   }, [isStreaming, content, images]);
 
+  const buildComparisonPrompt = (): string => {
+    const { toolA, toolB, useCase, targetAudience, tone, length, additionalContext } = formData;
+    
+    return `Create a detailed comparison blog post between ${toolA} and ${toolB} for ${useCase}.
+
+Structure Requirements:
+1. Start with an engaging introduction explaining why choosing the right tool matters
+2. Include a "Quick Verdict" section with a clear winner recommendation
+3. Create a detailed feature comparison table with columns: Feature | ${toolA} | ${toolB}
+4. Break down comparisons by category:
+   - AI Writing Quality (if applicable)
+   - SEO Optimization & Ranking Ability (if applicable)
+   - Ease of Use
+   - Pricing Comparison
+   - Best Use Cases
+5. Include a "Final Verdict" section summarizing the winner and why
+6. Use checkmarks (✔) and X marks (❌) in the comparison table
+7. Include star ratings (⭐⭐⭐⭐⭐) where appropriate
+8. Make it SEO-optimized with proper H2/H3 headings
+9. Include internal linking opportunities
+10. End with a call-to-action
+
+Comparison Points to Cover:
+- Feature comparison (use markdown table format: | Feature | ${toolA} | ${toolB} |)
+- Pricing differences
+- Ease of use
+- Target audience for each tool
+- Pros and cons
+- Real-world use cases
+- Which tool wins for specific scenarios
+
+Target Audience: ${targetAudience}
+Tone: ${tone}
+Length: ${length}
+${additionalContext ? `Additional Context: ${additionalContext}` : ''}
+
+Please provide high-quality, engaging content that meets these requirements.`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveMessage('');
@@ -564,12 +607,30 @@ export default function ContentWriterPage() {
       return; // STOP - do not proceed
     }
 
+    // Validate comparison post fields
+    if (formData.contentType === 'comparison-post') {
+      if (!formData.toolA || !formData.toolB || !formData.useCase) {
+        setSaveMessage('Please fill in all comparison fields: Tool A, Tool B, and Use Case');
+        return;
+      }
+      // Auto-generate topic if not provided
+      if (!formData.topic) {
+        setFormData(prev => ({
+          ...prev,
+          topic: `${formData.toolA} vs ${formData.toolB} — Which Is Better for ${formData.useCase}?`
+        }));
+      }
+    }
+
     // Get user ID for image uploads
     const supabase = supabaseBrowser();
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'anonymous';
 
-    const userInput = `Create ${formData.contentType} content with the following specifications:
+    // Build prompt based on content type
+    const userInput = formData.contentType === 'comparison-post' 
+      ? buildComparisonPrompt()
+      : `Create ${formData.contentType} content with the following specifications:
 Topic: "${formData.topic}"
 Content Type: ${formData.contentType}
 Target Audience: "${formData.targetAudience}"
@@ -845,7 +906,9 @@ Please provide high-quality, engaging content that meets these requirements.`;
               {/* Topic Input */}
               <div>
                 <label htmlFor="topic" className="block text-sm font-medium text-slate-700 mb-2">
-                  What topic do you want to write about? *
+                  {formData.contentType === 'comparison-post' 
+                    ? 'Blog Post Title (Auto-generated if left blank)' 
+                    : 'What topic do you want to write about? *'}
                 </label>
                 <input
                   type="text"
@@ -853,11 +916,66 @@ Please provide high-quality, engaging content that meets these requirements.`;
                   name="topic"
                   value={formData.topic}
                   onChange={handleInputChange}
-                  placeholder="e.g., 'The Future of AI in Healthcare', '10 Tips for Remote Work Success', 'Sustainable Fashion Trends'"
+                  placeholder={
+                    formData.contentType === 'comparison-post'
+                      ? "e.g., 'Bridgely vs SurferSEO — Which Is Better for AI SEO Blogging?'"
+                      : "e.g., 'The Future of AI in Healthcare', '10 Tips for Remote Work Success', 'Sustainable Fashion Trends'"
+                  }
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
-                  required
+                  required={formData.contentType !== 'comparison-post'}
                 />
               </div>
+
+              {/* Comparison Post Fields */}
+              {formData.contentType === 'comparison-post' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <label htmlFor="toolA" className="block text-sm font-medium text-slate-700 mb-2">
+                      Tool/Product A *
+                    </label>
+                    <input
+                      type="text"
+                      id="toolA"
+                      name="toolA"
+                      value={formData.toolA}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Bridgely"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="toolB" className="block text-sm font-medium text-slate-700 mb-2">
+                      Tool/Product B *
+                    </label>
+                    <input
+                      type="text"
+                      id="toolB"
+                      name="toolB"
+                      value={formData.toolB}
+                      onChange={handleInputChange}
+                      placeholder="e.g., SurferSEO"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="useCase" className="block text-sm font-medium text-slate-700 mb-2">
+                      Use Case *
+                    </label>
+                    <input
+                      type="text"
+                      id="useCase"
+                      name="useCase"
+                      value={formData.useCase}
+                      onChange={handleInputChange}
+                      placeholder="e.g., AI SEO Blogging"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-900"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Content Type and Audience Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -873,6 +991,7 @@ Please provide high-quality, engaging content that meets these requirements.`;
                     className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 bg-white"
                   >
                     <option value="blog-post">Blog Post</option>
+                    <option value="comparison-post">Comparison Blog Post</option>
                     <option value="article">Article</option>
                     <option value="social-media">Social Media Post</option>
                     <option value="email">Email Newsletter</option>
@@ -940,6 +1059,11 @@ Please provide high-quality, engaging content that meets these requirements.`;
                     <option value="long">Long (1500-2500 words)</option>
                     <option value="comprehensive">Comprehensive (2500+ words)</option>
                   </select>
+                  {formData.contentType === 'comparison-post' && (
+                    <p className="mt-2 text-xs text-blue-600">
+                      💡 Comparison posts work best with "Long" or "Comprehensive" length
+                    </p>
+                  )}
                 </div>
               </div>
 
