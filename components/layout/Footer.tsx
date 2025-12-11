@@ -14,7 +14,9 @@ const navigation = {
     { name: 'Outrank', href: 'https://www.bridgely.io/blog/bridgely-vs-outrank-which-ranks-faster-in-2025' },
     { name: 'Copy.ai', href: 'https://www.bridgely.io/blog/bridgely-vs-copy-ai-best-ai-tool-for-long-form-seo-content' },
     { name: 'Frase', href: 'https://www.bridgely.io/blog/bridgely-vs-frase-which-produces-better-seo-content-briefs' },
-    { name: 'RankPill', href: 'https://www.bridgely.io/blog/bridgely-vs-rankpill-which-ai-seo-article-tool-is-better' }
+    { name: 'RankPill', href: 'https://www.bridgely.io/blog/bridgely-vs-rankpill-which-ai-seo-article-tool-is-better' },
+    { name: 'Rytr', href: 'https://www.bridgely.io/blog/bridgely-vs-rytr-which-ai-seo-writing-tool-is-better-for-long-form-content' },
+    { name: 'Neuronwriter', href: 'https://www.bridgely.io/blog/bridgely-vs-neuronwriter-which-ai-seo-writing-tool-produces-better-seo-content-in-2025' },
   ]
 }
 
