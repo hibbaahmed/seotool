@@ -7,6 +7,9 @@ const navigation = {
     { name: 'Privacy Policy', href: '/privacy' },
     { name: 'Terms of Service', href: '/terms' }
   ],
+  alternatives: [
+    { name: 'SurferSEO vs Bridgely', href: 'https://www.bridgely.io/blog/surferseo-vs-bridgely-2025-comparison' }
+  ],
 }
 
 export function Footer() {
@@ -58,6 +61,23 @@ export function Footer() {
                       <Link href={item.href} className="text-sm leading-6 text-slate-600 hover:text-slate-900 transition-colors">
                         {item.name}
                       </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-10 md:mt-0">
+                <h3 className="text-sm font-semibold leading-6 text-slate-900">Alternatives</h3>
+                <ul role="list" className="mt-6 space-y-4">
+                  {navigation.alternatives.map((item) => (
+                    <li key={item.name}>
+                      <a 
+                        href={item.href} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm leading-6 text-slate-600 hover:text-slate-900 transition-colors"
+                      >
+                        {item.name}
+                      </a>
                     </li>
                   ))}
                 </ul>
