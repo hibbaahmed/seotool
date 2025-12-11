@@ -8,8 +8,10 @@ const navigation = {
     { name: 'Terms of Service', href: '/terms' }
   ],
   alternatives: [
-    { name: 'SurferSEO vs Bridgely', href: 'https://www.bridgely.io/blog/surferseo-vs-bridgely-2025-comparison' }
-  ],
+    { name: 'SurferSEO', href: 'https://www.bridgely.io/blog/surferseo-vs-bridgely-2025-comparison' },
+    { name: 'Jasper', href: 'https://www.bridgely.io/blog/bridgely-vs-jasper-which-is-better-for-ai-seo-blogging' },
+    { name: 'Writesonic', href: 'https://www.bridgely.io/blog/bridgely-vs-writesonic-best-ai-seo-blog-tool-for-2025' },
+  ]
 }
 
 export function Footer() {
