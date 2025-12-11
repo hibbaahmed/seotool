@@ -11,6 +11,10 @@ const navigation = {
     { name: 'SurferSEO', href: 'https://www.bridgely.io/blog/surferseo-vs-bridgely-2025-comparison' },
     { name: 'Jasper', href: 'https://www.bridgely.io/blog/bridgely-vs-jasper-which-is-better-for-ai-seo-blogging' },
     { name: 'Writesonic', href: 'https://www.bridgely.io/blog/bridgely-vs-writesonic-best-ai-seo-blog-tool-for-2025' },
+    { name: 'Outrank', href: 'https://www.bridgely.io/blog/bridgely-vs-outrank-which-ranks-faster-in-2025' },
+    { name: 'Copy.ai', href: 'https://www.bridgely.io/blog/bridgely-vs-copy-ai-best-ai-tool-for-long-form-seo-content' },
+    { name: 'Frase', href: 'https://www.bridgely.io/blog/bridgely-vs-frase-which-produces-better-seo-content-briefs' },
+    { name: 'RankPill', href: 'https://www.bridgely.io/blog/bridgely-vs-rankpill-which-ai-seo-article-tool-is-better' }
   ]
 }
 
