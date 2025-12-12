@@ -11,6 +11,16 @@ export default function WordPressSitesPage() {
   const [sites, setSites] = useState<WordPressSite[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingSite, setIsAddingSite] = useState(false);
+  const [connectionType, setConnectionType] = useState<'self_hosted' | 'wpcom'>('self_hosted');
+  const [connectionMethod, setConnectionMethod] = useState<'url' | 'sitemap'>('url');
+  const [newSite, setNewSite] = useState({
+    name: '',
+    url: '',
+    sitemapUrl: '',
+    username: '',
+    password: '',
+  });
+  const [isDiscoveringUrl, setIsDiscoveringUrl] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [profiles, setProfiles] = useState<Array<{ id: string; business_name?: string | null; website_url?: string | null; industry?: string | null }>>([]);
@@ -85,6 +95,82 @@ export default function WordPressSitesPage() {
       setError('Failed to load WordPress sites');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDiscoverUrl = async () => {
+    if (!newSite.sitemapUrl) {
+      setError('Please enter a sitemap URL');
+      return;
+    }
+
+    setIsDiscoveringUrl(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/wordpress/discover-from-sitemap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sitemapUrl: newSite.sitemapUrl }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setNewSite(prev => ({ ...prev, url: data.siteUrl }));
+        setSuccess(`Successfully discovered WordPress site: ${data.siteUrl}`);
+      } else {
+        setError(data.error || 'Failed to discover WordPress site from sitemap');
+      }
+    } catch (error) {
+      console.error('Error discovering URL:', error);
+      setError('Failed to discover WordPress site from sitemap');
+    } finally {
+      setIsDiscoveringUrl(false);
+    }
+  };
+
+  const handleAddSite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    // Validate that URL is set (either directly or via sitemap discovery)
+    if (connectionType === 'self_hosted' && connectionMethod === 'sitemap' && !newSite.url) {
+      setError('Please discover the WordPress site URL from the sitemap first');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/wordpress/sites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newSite.name,
+          url: newSite.url,
+          username: newSite.username,
+          password: newSite.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSites(prev => [data.site, ...prev]);
+        setNewSite({ name: '', url: '', sitemapUrl: '', username: '', password: '' });
+        setIsAddingSite(false);
+        setSuccess('WordPress site added successfully!');
+      } else {
+        setError(data.error || 'Failed to add site');
+      }
+    } catch (error) {
+      console.error('Error adding site:', error);
+      setError('Failed to add WordPress site');
     }
   };
 
@@ -203,34 +289,215 @@ export default function WordPressSitesPage() {
           {/* Add Site Form */}
           {isAddingSite && (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Connect WordPress.com Sites</h2>
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Add WordPress Site</h2>
               
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                  <Globe className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                    Connect Your WordPress.com Sites
-                  </h3>
-                  <p className="text-slate-600 mb-6">
-                    Authorize Bridgely to access your WordPress.com sites. You'll be able to publish content to any of your sites.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleWordPressComConnect}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-                  >
-                    <Key className="h-5 w-5" />
-                    Connect with WordPress.com
-                  </button>
-                </div>
+              {/* Connection Type Tabs */}
+              <div className="flex gap-2 mb-6 border-b border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setIsAddingSite(false)}
-                  className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                  onClick={() => setConnectionType('self_hosted')}
+                  className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+                    connectionType === 'self_hosted'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  Cancel
+                  Self-Hosted WordPress
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConnectionType('wpcom')}
+                  className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+                    connectionType === 'wpcom'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  WordPress.com
                 </button>
               </div>
+
+              {connectionType === 'self_hosted' ? (
+                <form onSubmit={handleAddSite} className="space-y-4">
+                {/* Connection Method Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    Connection Method
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConnectionMethod('url');
+                        setNewSite(prev => ({ ...prev, sitemapUrl: '', url: '' }));
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        connectionMethod === 'url'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Direct URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConnectionMethod('sitemap');
+                        setNewSite(prev => ({ ...prev, url: '', sitemapUrl: '' }));
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        connectionMethod === 'sitemap'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Via Sitemap
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
+                      Site Name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      value={newSite.name}
+                      onChange={(e) => setNewSite(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="My WordPress Blog"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                      required
+                    />
+                  </div>
+                  {connectionMethod === 'url' ? (
+                    <div>
+                      <label htmlFor="url" className="block text-sm font-medium text-slate-700 mb-2">
+                        Site URL
+                      </label>
+                      <input
+                        type="url"
+                        id="url"
+                        value={newSite.url}
+                        onChange={(e) => setNewSite(prev => ({ ...prev, url: e.target.value }))}
+                        placeholder="https://mysite.com"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label htmlFor="sitemapUrl" className="block text-sm font-medium text-slate-700 mb-2">
+                        Sitemap URL
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          id="sitemapUrl"
+                          value={newSite.sitemapUrl}
+                          onChange={(e) => setNewSite(prev => ({ ...prev, sitemapUrl: e.target.value }))}
+                          placeholder="https://mysite.com/sitemap.xml"
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={handleDiscoverUrl}
+                          disabled={isDiscoveringUrl || !newSite.sitemapUrl}
+                          className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        >
+                          {isDiscoveringUrl ? 'Discovering...' : 'Discover URL'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        We'll automatically discover your WordPress site URL from the sitemap
+                      </p>
+                      {newSite.url && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Discovered: {newSite.url}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      id="username"
+                      value={newSite.username}
+                      onChange={(e) => setNewSite(prev => ({ ...prev, username: e.target.value }))}
+                      placeholder="admin"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                      Application Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      value={newSite.password}
+                      onChange={(e) => setNewSite(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Your WordPress application password"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                      required
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Generate an application password in WordPress: Users → Profile → Application Passwords
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Add Site
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingSite(false)}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                    <Globe className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                      Connect Your WordPress.com Sites
+                    </h3>
+                    <p className="text-slate-600 mb-6">
+                      Authorize Bridgely to access your WordPress.com sites. You'll be able to publish content to any of your sites.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleWordPressComConnect}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                    >
+                      <Key className="h-5 w-5" />
+                      Connect with WordPress.com
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingSite(false)}
+                    className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -369,29 +636,69 @@ export default function WordPressSitesPage() {
 
           {/* Instructions */}
           <div className="mt-12 bg-blue-50 rounded-2xl border border-blue-200 p-8">
-            <h3 className="text-xl font-bold text-blue-900 mb-4">How to Connect Your WordPress Sites</h3>
+            <h3 className="text-xl font-bold text-blue-900 mb-4">How to Set Up WordPress Integration</h3>
             
-            <div className="bg-white rounded-lg p-6 border border-blue-200">
-              <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                WordPress.com Integration
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600">1.</span>
-                  <p className="text-sm">Make sure you have a WordPress.com account with at least one site</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>✨ Now supports both:</strong> You can connect <strong>self-hosted WordPress sites</strong> (WordPress.org) using application passwords or sitemap discovery, 
+                or connect <strong>WordPress.com sites</strong> using OAuth authentication.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 text-blue-800">
+              {/* Self-Hosted Instructions */}
+              <div className="bg-white rounded-lg p-6 border border-blue-200">
+                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Self-Hosted WordPress
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">1.</span>
+                    <p className="text-sm">Set up WordPress on your own hosting or use Local by Flywheel</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">2.</span>
+                    <p className="text-sm">Go to Users → Profile → Application Passwords and create one</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">3.</span>
+                    <p className="text-sm">Click "Add Site" above and select "Self-Hosted WordPress"</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">4.</span>
+                    <p className="text-sm">Choose "Direct URL" or "Via Sitemap" connection method</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">5.</span>
+                    <p className="text-sm">Enter your credentials and connect</p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600">2.</span>
-                  <p className="text-sm">Click "Add Site" above</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600">3.</span>
-                  <p className="text-sm">Click "Connect with WordPress.com" and authorize access</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600">4.</span>
-                  <p className="text-sm">All your WordPress.com sites will be automatically connected!</p>
+              </div>
+
+              {/* WordPress.com Instructions */}
+              <div className="bg-white rounded-lg p-6 border border-blue-200">
+                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <Key className="h-5 w-5" />
+                  WordPress.com
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">1.</span>
+                    <p className="text-sm">Make sure you have a WordPress.com account with at least one site</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">2.</span>
+                    <p className="text-sm">Click "Add Site" above and select "WordPress.com"</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">3.</span>
+                    <p className="text-sm">Click "Connect with WordPress.com" and authorize access</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">4.</span>
+                    <p className="text-sm">All your WordPress.com sites will be automatically connected!</p>
+                  </div>
                 </div>
               </div>
             </div>

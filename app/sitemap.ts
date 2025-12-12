@@ -72,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/tools/paragraph-rewriter`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.7,
+      priority: 1,
     },
     {
       url: `${baseUrl}/tools/rewrite-for-seo`,

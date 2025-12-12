@@ -307,7 +307,7 @@ export default function SavedContentPage() {
                   Make sure to connect your WordPress site to publish your content automatically.
                 </p>
                 <Link
-                  href="/wordpress-sites"
+                  href="/dashboard/wordpress-sites"
                   className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   <Link2 className="h-4 w-4" />
@@ -338,7 +338,7 @@ export default function SavedContentPage() {
                           Schedule Keywords
                         </Link>
                         <Link
-                          href="/wordpress-sites"
+                          href="/dashboard/wordpress-sites"
                           className="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
                         >
                           <Link2 className="h-4 w-4" />
