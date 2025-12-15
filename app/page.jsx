@@ -679,9 +679,22 @@ const HomePage = () => {
                             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl mb-6 shadow-lg">
                                 <Link2 className="w-8 h-8 text-white" />
                             </div>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 leading-tight">
-                                Backlink Exchange Network
-                            </h2>
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
+                                    Backlink Exchange Network
+                                </h2>
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border-2 border-amber-300 shadow-sm">
+                                    Beta - Testing Phase
+                                </span>
+                            </div>
+                            {/* <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 md:p-6 mb-6 max-w-4xl mx-auto">
+                                <p className="text-base md:text-lg text-amber-900 font-semibold mb-2">
+                                    ⚠️ Currently in Beta Testing
+                                </p>
+                                <p className="text-sm md:text-base text-amber-800 leading-relaxed">
+                                    This feature is currently in beta phase and available for testing purposes only. We're actively gathering user feedback to improve the experience. Features may change as we refine the product.
+                                </p>
+                            </div> */}
                             <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
                                 Connect with quality websites in your niche. Exchange backlinks automatically and build domain authority—all within Bridgely.
                             </p>
@@ -698,13 +711,21 @@ const HomePage = () => {
                                 </p>
                             </div>
 
-                            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+                            <div className="bg-white rounded-2xl p-6 border-2 border-amber-300 shadow-lg hover:shadow-xl transition-all relative">
+                                <div className="absolute top-4 right-4">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500 text-white shadow-sm">
+                                        Beta
+                                    </span>
+                                </div>
                                 <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
                                     <Zap className="w-6 h-6 text-indigo-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-3">Automatic Exchange</h3>
-                                <p className="text-slate-600 leading-relaxed">
+                                <h3 className="text-xl font-bold text-slate-900 mb-3">Managed Exchange (Beta)</h3>
+                                <p className="text-slate-600 leading-relaxed mb-3">
                                     Set it once and forget it. Bridgely handles the entire backlink exchange process—from outreach to link placement and monitoring.
+                                </p>
+                                <p className="text-sm font-semibold text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                                    Currently available for testing. Help us improve by sharing your feedback!
                                 </p>
                             </div>
 
@@ -784,14 +805,22 @@ const HomePage = () => {
                         </div>
 
                         <div className="text-center mt-12">
+                            <div className="mb-4">
+                                <span className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-amber-100 text-amber-900 border-2 border-amber-300">
+                                    Beta Testing Available Now
+                                </span>
+                            </div>
                             <Link 
                                 href="/login"
                                 className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                             >
-                                Join the Backlink Exchange Network
+                                Join the Backlink Exchange Network (Beta)
                                 <ArrowRight className="w-5 h-5" />
                             </Link>
-                            <p className="text-sm text-slate-500 mt-4">Included with all Bridgely plans</p>
+                            <p className="text-sm text-amber-700 font-medium mt-4">
+                                ⚠️ Beta Testing Phase - Help us improve by testing and providing feedback
+                            </p>
+                            <p className="text-xs text-slate-500 mt-2">Included with all Bridgely plans</p>
                         </div>
                     </div>
                 </section>
