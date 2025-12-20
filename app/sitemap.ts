@@ -81,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
-      url: `${baseUrl}tools/competitor-content-analyzer`,
+      url: `${baseUrl}/tools/competitor-content-analyzer`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 1,
